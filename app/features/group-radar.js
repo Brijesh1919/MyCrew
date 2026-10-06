@@ -45,8 +45,8 @@ export default function GroupRadarScreen() {
       offlineCount++;
       return;
     }
-    const bearing = calculateBearing(userLocation, m.coordinates);
-    const rel = getRelativeDirection(userLocation.heading || 0, bearing);
+    const bearing = userLocation && m.coordinates ? calculateBearing(userLocation, m.coordinates) : 0;
+    const rel = getRelativeDirection(userLocation?.heading || 0, bearing);
     if (rel.direction === 'ahead' || rel.direction === 'slight_right' || rel.direction === 'slight_left') {
       aheadCount++;
     } else {
@@ -109,8 +109,8 @@ export default function GroupRadarScreen() {
         <Text style={styles.sectionLabel}>CREW PROXIMITY</Text>
 
         {nearestList.map((m) => {
-          const bearing = calculateBearing(userLocation, m.coordinates);
-          const rel = getRelativeDirection(userLocation.heading || 0, bearing);
+          const bearing = userLocation && m.coordinates ? calculateBearing(userLocation, m.coordinates) : 0;
+          const rel = getRelativeDirection(userLocation?.heading || 0, bearing);
 
           return (
             <TouchableOpacity

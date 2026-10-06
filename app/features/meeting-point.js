@@ -55,17 +55,19 @@ export default function MeetingPointScreen() {
             latitude: parseFloat(params.customLat),
             longitude: parseFloat(params.customLon),
           }
-        : {
-            latitude: userLocation.latitude + 0.0012,
-            longitude: userLocation.longitude + 0.0008,
-          };
+        : (userLocation && !isNaN(userLocation.latitude))
+        ? {
+            latitude: userLocation.latitude,
+            longitude: userLocation.longitude,
+          }
+        : { latitude: 20.5937, longitude: 78.9629 };
 
     addMeetingPoint(
       {
         name: pointName.trim(),
         description: pointDesc.trim(),
-        createdBy: currentUser.name || 'You',
-        createdById: currentUser.id,
+        createdBy: currentUser?.name || 'You',
+        createdById: currentUser?.id || 'me',
         coordinates: coords,
         radiusMeters: 600,
       },

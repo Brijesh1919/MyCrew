@@ -117,10 +117,17 @@ const styles = StyleSheet.create({
     height: '96%',
     borderRadius: 28,
     overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.45,
-    shadowRadius: 36,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 16px 36px rgba(0, 0, 0, 0.45)',
+      },
+      default: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 16 },
+        shadowOpacity: 0.45,
+        shadowRadius: 36,
+      },
+    }),
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },

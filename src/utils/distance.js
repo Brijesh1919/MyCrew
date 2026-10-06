@@ -86,7 +86,7 @@ export const getRelativeDirection = (userHeading = 0, targetBearing = 0) => {
  */
 export const calculateGroupCenter = (coords) => {
   if (!coords || coords.length === 0) {
-    return { latitude: 15.5898, longitude: 73.7438 };
+    return null;
   }
 
   let totalLat = 0;
@@ -94,14 +94,14 @@ export const calculateGroupCenter = (coords) => {
   let validCount = 0;
 
   coords.forEach((c) => {
-    if (c && !isNaN(c.latitude) && !isNaN(c.longitude)) {
+    if (c && !isNaN(c.latitude) && !isNaN(c.longitude) && c.latitude !== 0) {
       totalLat += Number(c.latitude);
       totalLon += Number(c.longitude);
       validCount++;
     }
   });
 
-  if (validCount === 0) return { latitude: 15.5898, longitude: 73.7438 };
+  if (validCount === 0) return null;
 
   return {
     latitude: totalLat / validCount,

@@ -10,14 +10,13 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Svg, { Circle, Line, Rect, G } from 'react-native-svg';
-import { COLORS, RADIUS, TYPOGRAPHY } from '../constants/theme';
+import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
 import { MemberMarker } from './MemberMarker';
 import { ClusterMarker } from './ClusterMarker';
 import { MeetingPointMarker } from './MeetingPointMarker';
 import { MapControls } from './MapControls';
-import { calculateDistanceMeters, formatDistance } from '../utils/distance';
+import { calculateDistanceMeters, formatDistance, calculateGroupCenter } from '../utils/distance';
 import { mapService, MAP_STYLES } from '../services/mapService';
-import { APP_CONFIG } from '../constants/config';
 
 export const MapView = ({
   userLocation,
@@ -61,11 +60,32 @@ export const MapView = ({
   const containerHeight = layoutSize.height;
 
   // Active geographic center & zoom
-  const initialCoord = center || userLocation || APP_CONFIG.defaultRegion;
-  const [mapCenterCoord, setMapCenterCoord] = useState(initialCoord);
+  const getInitialCoord = () => {
+    if (center && !isNaN(center.latitude) && !isNaN(center.longitude)) return center;
+    if (userLocation && !isNaN(userLocation.latitude) && !isNaN(userLocation.longitude)) return userLocation;
+    const memberWithCoords = (members || []).find(
+      (m) => m.coordinates && !isNaN(m.coordinates.latitude) && !isNaN(m.coordinates.longitude)
+    );
+    if (memberWithCoords) return memberWithCoords.coordinates;
+    return { latitude: 20.5937, longitude: 78.9629 };
+  };
+
+  const [mapCenterCoord, setMapCenterCoord] = useState(getInitialCoord);
   const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
   const [currentZoom, setCurrentZoom] = useState(zoom);
   const [showPointsToggle, setShowPointsToggle] = useState(showMeetingPoints);
+  const hasInitiallyCenteredRef = useRef(false);
+
+  // Auto-center on userLocation as soon as GPS arrives if center wasn't explicitly given
+  useEffect(() => {
+    if (userLocation && !center && !hasInitiallyCenteredRef.current) {
+      if (!isNaN(userLocation.latitude) && !isNaN(userLocation.longitude)) {
+        setMapCenterCoord({ ...userLocation });
+        setMapOffset({ x: 0, y: 0 });
+        hasInitiallyCenteredRef.current = true;
+      }
+    }
+  }, [userLocation?.latitude, userLocation?.longitude, center]);
 
   // Mapbox style & loading states
   const [activeStyle, setActiveStyle] = useState(mapService.getStyle() || 'streets-v12');
@@ -148,16 +168,39 @@ export const MapView = ({
   const handleZoomIn = () => setCurrentZoom((z) => Math.min(Number((z + 0.75).toFixed(2)), 19));
   const handleZoomOut = () => setCurrentZoom((z) => Math.max(Number((z - 0.75).toFixed(2)), 12));
   const handleRecenter = () => {
-    const target = center || userLocation || APP_CONFIG.defaultRegion;
-    setMapCenterCoord({ ...target });
-    setMapOffset({ x: 0, y: 0 });
-    setCurrentZoom(16);
+    if (userLocation && !isNaN(userLocation.latitude) && !isNaN(userLocation.longitude)) {
+      setMapCenterCoord({ ...userLocation });
+      setMapOffset({ x: 0, y: 0 });
+      setCurrentZoom(16.5);
+    } else if (center) {
+      setMapCenterCoord({ ...center });
+      setMapOffset({ x: 0, y: 0 });
+      setCurrentZoom(16.5);
+    }
   };
   const handleFitGroup = () => {
-    const target = center || userLocation || APP_CONFIG.defaultRegion;
-    setMapCenterCoord({ ...target });
-    setMapOffset({ x: 0, y: 0 });
-    setCurrentZoom(14.8);
+    const allCoords = [];
+    if (userLocation && !isNaN(userLocation.latitude)) {
+      allCoords.push(userLocation);
+    }
+    (members || []).forEach((m) => {
+      if (m.coordinates && !isNaN(m.coordinates.latitude) && !isNaN(m.coordinates.longitude)) {
+        allCoords.push(m.coordinates);
+      }
+    });
+
+    if (allCoords.length > 1) {
+      const groupCenter = calculateGroupCenter(allCoords);
+      if (groupCenter) {
+        setMapCenterCoord(groupCenter);
+        setMapOffset({ x: 0, y: 0 });
+        setCurrentZoom(14.8);
+      }
+    } else if (allCoords.length === 1) {
+      setMapCenterCoord({ ...allCoords[0] });
+      setMapOffset({ x: 0, y: 0 });
+      setCurrentZoom(16.5);
+    }
   };
 
   // Cycle through available Mapbox styles
@@ -172,6 +215,21 @@ export const MapView = ({
 
   // User projected screen coordinate
   const userPos = projectToScreen(userLocation);
+
+  // Dynamic accuracy radius in screen pixels based on Web Mercator scale
+  const accuracyRadius = userLocation?.accuracy
+    ? Math.max(
+        18,
+        Math.min(
+          95,
+          Math.round(
+            userLocation.accuracy /
+              ((156543.03392 * Math.cos(((userLocation.latitude || 20) * Math.PI) / 180)) /
+                Math.pow(2, currentZoom))
+          )
+        )
+      )
+    : 32;
 
   // Route destination coordinate
   const routePos = routeDestination ? projectToScreen(routeDestination.coordinates) : null;
@@ -265,25 +323,27 @@ export const MapView = ({
         style={StyleSheet.absoluteFillObject}
         pointerEvents="none"
       >
-        {/* Radar concentric rings around user */}
-        {userLocation && (
+        {/* Radar & Accuracy SVG ring around real user location */}
+        {userLocation && !isNaN(userLocation.latitude) && (
           <G>
+            {/* Real GPS accuracy circle */}
             <Circle
               cx={userPos.x}
               cy={userPos.y}
-              r={46}
-              fill="none"
-              stroke="rgba(56, 189, 248, 0.2)"
+              r={accuracyRadius}
+              fill="rgba(56, 189, 248, 0.10)"
+              stroke="rgba(56, 189, 248, 0.35)"
               strokeWidth="1.5"
+              strokeDasharray="4 4"
             />
+            {/* Inner pulse ring */}
             <Circle
               cx={userPos.x}
               cy={userPos.y}
-              r={92}
-              fill="rgba(56, 189, 248, 0.03)"
-              stroke="rgba(56, 189, 248, 0.12)"
-              strokeWidth="1"
-              strokeDasharray="4 4"
+              r={22}
+              fill="none"
+              stroke="rgba(56, 189, 248, 0.5)"
+              strokeWidth="1.5"
             />
           </G>
         )}
@@ -329,6 +389,7 @@ export const MapView = ({
       {/* 5. MEETING POINTS LAYER */}
       {showPointsToggle &&
         meetingPoints.map((mp) => {
+          if (!mp.coordinates || isNaN(mp.coordinates.latitude)) return null;
           const pos = projectToScreen(mp.coordinates);
           return (
             <View
@@ -351,7 +412,11 @@ export const MapView = ({
       {showClusters &&
         clusters.map((cluster) => {
           if (cluster.count <= 1) return null;
-          const pos = projectToScreen(cluster.center);
+          const clusterCoord = cluster.center || cluster.coordinates;
+          if (!clusterCoord || isNaN(clusterCoord.latitude) || isNaN(clusterCoord.longitude)) {
+            return null;
+          }
+          const pos = projectToScreen(clusterCoord);
           return (
             <View
               key={cluster.id}
@@ -373,6 +438,14 @@ export const MapView = ({
       {/* 7. MEMBER MARKERS LAYER */}
       {!showClusters &&
         members.map((member) => {
+          if (
+            !member.coordinates ||
+            isNaN(member.coordinates.latitude) ||
+            isNaN(member.coordinates.longitude) ||
+            member.coordinates.latitude === 0
+          ) {
+            return null;
+          }
           const pos = projectToScreen(member.coordinates);
           return (
             <View
@@ -392,7 +465,7 @@ export const MapView = ({
         })}
 
       {/* 8. CURRENT USER MARKER */}
-      {userLocation && (
+      {userLocation && !isNaN(userLocation.latitude) && !isNaN(userLocation.longitude) && (
         <View
           style={[
             styles.markerPosition,
@@ -401,7 +474,7 @@ export const MapView = ({
         >
           <MemberMarker
             member={{
-              name: 'You',
+              name: 'YOU',
               status: 'live',
               coordinates: userLocation,
             }}
@@ -425,7 +498,20 @@ export const MapView = ({
         </View>
       )}
 
-      {/* 10. INTERACTIVE MAP CONTROLS */}
+      {/* 10. FINDING LOCATION BADGE */}
+      {!userLocation && interactive && (
+        <View style={styles.findingLocationPill}>
+          <ActivityIndicator size="small" color={COLORS.primary} style={{ marginRight: 6 }} />
+          <Text style={styles.findingLocationText}>Finding your location…</Text>
+        </View>
+      )}
+
+      {/* 11. MAPBOX & OSM ATTRIBUTION */}
+      <View style={styles.attributionContainer} pointerEvents="none">
+        <Text style={styles.attributionText}>© Mapbox © OpenStreetMap</Text>
+      </View>
+
+      {/* 12. INTERACTIVE MAP CONTROLS */}
       {interactive && (
         <MapControls
           onRecenter={handleRecenter}
@@ -492,5 +578,40 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: '800',
     fontSize: 11,
+  },
+  findingLocationPill: {
+    position: 'absolute',
+    top: 56,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    zIndex: 7,
+    ...SHADOWS.md,
+  },
+  findingLocationText: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  attributionContainer: {
+    position: 'absolute',
+    bottom: 6,
+    left: 8,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    zIndex: 4,
+  },
+  attributionText: {
+    color: '#94A3B8',
+    fontSize: 9,
+    fontWeight: '500',
   },
 });

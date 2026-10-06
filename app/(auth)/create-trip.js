@@ -21,6 +21,7 @@ import {
   Shield,
   Users,
   AlertTriangle,
+  AlertCircle,
 } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { TRIP_TYPES } from '../../src/constants/tripTypes';
@@ -50,12 +51,14 @@ export default function CreateTripScreen() {
 
   // Form State
   const [step, setStep] = useState(1); // 1: Name, 2: Type, 3: Duration, 4: Visibility, 5: Success
-  const [tripName, setTripName] = useState('Goa Beach & Music');
+  const [tripName, setTripName] = useState('');
   const [selectedType, setSelectedType] = useState('event');
   const [durationHours, setDurationHours] = useState('6');
   const [visibility, setVisibility] = useState('everyone');
   const [createdTrip, setCreatedTrip] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
 
   // Go back handler for header & buttons
   const handleGoBack = () => {
@@ -82,14 +85,15 @@ export default function CreateTripScreen() {
       return;
     }
 
-    triggerSuccess();
+    setCreateError('');
+    setIsCreating(true);
 
     // Cleanly leave or end the current trip before initializing the new one
     if (activeTrip && !activeTrip.isExpired) {
       if (userRole === 'organizer') {
-        await endTrip();
+        await endTrip(currentUser?.id);
       } else {
-        await leaveTrip();
+        await leaveTrip(currentUser?.id);
       }
     }
 
@@ -97,18 +101,31 @@ export default function CreateTripScreen() {
     const now = new Date();
     const endTime = new Date(now.getTime() + hours * 60 * 60 * 1000);
 
-    const trip = await createTrip({
-      name: tripName.trim(),
-      type: selectedType,
-      startTime: now.toISOString(),
-      endTime: endTime.toISOString(),
-      visibility,
-      organizerName: currentUser?.name || 'You',
-    });
+    const res = await createTrip(
+      {
+        name: tripName.trim(),
+        type: selectedType,
+        startTime: now.toISOString(),
+        endTime: endTime.toISOString(),
+        visibility,
+        organizerName: currentUser?.name || 'You',
+      },
+      currentUser?.id
+    );
 
-    setCreatedTrip(trip);
-    await setOnboardingCompleted(true);
-    setStep(5);
+    setIsCreating(false);
+
+    if (res.success && res.trip) {
+      triggerSuccess();
+      setCreatedTrip(res.trip);
+      await setOnboardingCompleted(true);
+      setStep(5);
+    } else {
+      triggerWarning();
+      setCreateError(
+        res.error || "Couldn't create your trip. Check your connection and try again."
+      );
+    }
   };
 
   const handleShare = async () => {
@@ -315,9 +332,23 @@ export default function CreateTripScreen() {
               </TouchableOpacity>
             ))}
 
+            {createError ? (
+              <View style={styles.errorBox}>
+                <AlertCircle size={18} color={COLORS.danger} />
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={styles.errorTitle}>Couldn't create your trip</Text>
+                  <Text style={styles.errorSub}>{createError}</Text>
+                </View>
+                <TouchableOpacity onPress={handleCreate} style={styles.retryBtn}>
+                  <Text style={styles.retryBtnText}>Try Again</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
             <PrimaryButton
               title="Create Trip"
               onPress={handleCreate}
+              loading={isCreating}
               icon={Sparkles}
               size="lg"
               style={{ marginTop: 12 }}
@@ -729,5 +760,37 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    marginTop: 12,
+  },
+  errorTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.danger,
+  },
+  errorSub: {
+    fontSize: 12,
+    color: COLORS.danger,
+    marginTop: 1,
+  },
+  retryBtn: {
+    backgroundColor: COLORS.danger,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: RADIUS.sm,
+    marginLeft: 8,
+  },
+  retryBtnText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

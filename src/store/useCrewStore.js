@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { memberService } from '../services/memberService';
 import { locationService } from '../services/locationService';
+import { getLocationFreshness } from '../utils/freshness';
 
 export const useCrewStore = create((set, get) => ({
   members: [], // Initial state is empty for a fresh app session with no active trip
@@ -9,8 +10,23 @@ export const useCrewStore = create((set, get) => ({
   searchQuery: '',
   activeFilter: 'all', // all | active | delayed | offline
 
-  setMembers: (members) => set({ members }),
-  loadDemoMembers: () => set({ members: memberService.getTripMembers() }),
+  setMembers: (members) => {
+    // Ensure each member has properly evaluated freshness
+    const withFreshness = (members || []).map((m) => {
+      const freshness = m.location_updated_at
+        ? getLocationFreshness(m.location_updated_at)
+        : getLocationFreshness(m.lastSeenSecondsAgo || 0);
+      return {
+        ...m,
+        status: freshness.state,
+        freshness,
+      };
+    });
+    set({ members: withFreshness });
+  },
+
+  loadDemoMembers: () => set({ members: memberService.getDemoMembers() }),
+
   clearMembers: () =>
     set({
       members: [],
@@ -25,12 +41,103 @@ export const useCrewStore = create((set, get) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
   setActiveFilter: (filter) => set({ activeFilter: filter }),
 
-  // Micro-jitter simulation (only if members exist)
-  tickLocations: () => {
+  /**
+   * Updates or inserts a member's location from a Supabase Realtime event
+   */
+  updateMemberLocationFromRemote: (row) => {
+    if (!row || !row.user_id) return;
+    const current = get().members;
+
+    // If member left, remove from list
+    if (row.left_at) {
+      set({ members: current.filter((m) => m.id !== row.user_id) });
+      return;
+    }
+
+    const existingIndex = current.findIndex((m) => m.id === row.user_id);
+    const freshness = row.location_updated_at
+      ? getLocationFreshness(row.location_updated_at)
+      : getLocationFreshness(0);
+
+    const hasValidCoords =
+      row.latitude !== null &&
+      row.longitude !== null &&
+      !isNaN(Number(row.latitude)) &&
+      !isNaN(Number(row.longitude)) &&
+      Number(row.latitude) >= -90 &&
+      Number(row.latitude) <= 90 &&
+      Number(row.longitude) >= -180 &&
+      Number(row.longitude) <= 180;
+
+    const coordinates = hasValidCoords
+      ? {
+          latitude: Number(row.latitude),
+          longitude: Number(row.longitude),
+          accuracy: row.location_accuracy ? Number(row.location_accuracy) : null,
+          heading: row.location_heading ? Number(row.location_heading) : null,
+          speed: row.location_speed ? Number(row.location_speed) : null,
+        }
+      : existingIndex >= 0
+      ? current[existingIndex].coordinates
+      : null;
+
+    const updatedMember = {
+      id: row.user_id,
+      name: row.user_name || (existingIndex >= 0 ? current[existingIndex].name : 'Crew Member'),
+      avatar: row.avatar_url || (existingIndex >= 0 ? current[existingIndex].avatar : null),
+      role: row.role || 'participant',
+      status: freshness.state,
+      freshness,
+      lastSeenSecondsAgo: row.location_updated_at
+        ? Math.max(0, Math.round((Date.now() - new Date(row.location_updated_at).getTime()) / 1000))
+        : 0,
+      location_updated_at: row.location_updated_at,
+      coordinates,
+      isSafe: true,
+      cluster: 'Active Crew',
+    };
+
+    if (existingIndex >= 0) {
+      const nextMembers = [...current];
+      nextMembers[existingIndex] = {
+        ...nextMembers[existingIndex],
+        ...updatedMember,
+      };
+      set({ members: nextMembers });
+    } else {
+      set({ members: [...current, updatedMember] });
+    }
+  },
+
+  /**
+   * Recalculates freshness state for all members (called periodically)
+   */
+  refreshFreshness: () => {
     const current = get().members;
     if (!current || current.length === 0) return;
-    const drifted = locationService.simulateMemberDrift(current);
-    set({ members: drifted });
+
+    let changed = false;
+    const updated = current.map((m) => {
+      if (!m.location_updated_at) return m;
+      const freshness = getLocationFreshness(m.location_updated_at);
+      if (freshness.state !== m.status) {
+        changed = true;
+        return {
+          ...m,
+          status: freshness.state,
+          freshness,
+          lastSeenSecondsAgo: Math.max(
+            0,
+            Math.round((Date.now() - new Date(m.location_updated_at).getTime()) / 1000)
+          ),
+        };
+      }
+      return m;
+    });
+
+    if (changed) {
+      set({ members: updated });
+    }
   },
 
   toggleMemberSafety: (memberId, isSafe) => {
@@ -46,13 +153,34 @@ export const useCrewStore = create((set, get) => ({
 
   getStatusCounts: () => {
     const current = get().members || [];
-    return memberService.getStatusCounts(current);
+    let active = 0;
+    let delayed = 0;
+    let offline = 0;
+
+    current.forEach((m) => {
+      const freshness = m.location_updated_at
+        ? getLocationFreshness(m.location_updated_at)
+        : m.freshness || { state: m.status || 'live' };
+
+      if (freshness.state === 'live') active++;
+      else if (freshness.state === 'delayed') delayed++;
+      else offline++;
+    });
+
+    return {
+      active,
+      delayed,
+      offline,
+      total: current.length,
+      online: active + delayed,
+    };
   },
 
   getClusters: () => {
     const current = get().members || [];
     if (current.length === 0) return [];
-    return memberService.getClustersWithMembers(current);
+    // Dynamic clustering based on real distance between member coordinates
+    return locationService.getClusters(current, 80);
   },
 }));
 

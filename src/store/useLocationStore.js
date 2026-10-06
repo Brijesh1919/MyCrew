@@ -1,23 +1,76 @@
+// ==========================================================
+// MyCrew - Real Device Location Store (Zustand)
+// Manages device GPS state, accuracy, camera centering, and sharing toggle
+// ==========================================================
+
 import { create } from 'zustand';
-import { CURRENT_USER } from '../data/mockData';
-import { APP_CONFIG } from '../constants/config';
+import { locationService } from '../services/locationService';
 
 export const useLocationStore = create((set, get) => ({
-  userLocation: { ...CURRENT_USER.coordinates },
-  isLocationSharingActive: true,
-  mapRegion: { ...APP_CONFIG.defaultRegion },
+  // Real GPS Coordinates: { latitude, longitude, accuracy, heading, speed, timestamp } | null
+  userLocation: null,
+  lastKnownLocation: null,
+
+  isLocating: false, // True while acquiring initial GPS fix
+  permissionStatus: 'undetermined', // 'undetermined' | 'granted' | 'denied' | 'blocked'
+  isLocationSharingActive: true, // Master toggle for active-trip sharing
+
+  accuracyLevel: null, // 'high' | 'medium' | 'low' | null
+  accuracyRadius: null, // meters
+
+  // Map camera centering
+  cameraCenter: null, // { latitude, longitude } | null
+  followUser: true, // Follow user on GPS update until manually panned
   zoomLevel: 16,
 
   setUserLocation: (coords) => {
-    set((state) => ({
-      userLocation: {
-        ...state.userLocation,
-        ...coords,
-      },
-    }));
+    if (!coords || isNaN(coords.latitude) || isNaN(coords.longitude)) return;
+
+    const accuracyLevel = locationService.getAccuracyLevel(coords.accuracy);
+
+    set((state) => {
+      const shouldUpdateCamera = state.followUser || !state.cameraCenter;
+      return {
+        userLocation: coords,
+        lastKnownLocation: coords,
+        isLocating: false,
+        accuracyLevel,
+        accuracyRadius: coords.accuracy || null,
+        cameraCenter: shouldUpdateCamera
+          ? { latitude: coords.latitude, longitude: coords.longitude }
+          : state.cameraCenter,
+      };
+    });
   },
 
-  setMapRegion: (region) => set({ mapRegion: region }),
+  setCameraCenter: (center, manualPan = false) => {
+    set({
+      cameraCenter: center,
+      followUser: manualPan ? false : get().followUser,
+    });
+  },
+
+  setFollowUser: (follow) => set({ followUser: follow }),
+
+  setPermissionStatus: (status) => set({ permissionStatus: status }),
+
+  setIsLocating: (locating) => set({ isLocating: locating }),
+
+  recenterOnUser: () => {
+    const loc = get().userLocation || get().lastKnownLocation;
+    if (loc) {
+      set({
+        cameraCenter: {
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+        },
+        followUser: true,
+        zoomLevel: 16.5,
+      });
+    }
+  },
+
+  setIsLocationSharingActive: (active) => set({ isLocationSharingActive: active }),
 
   setZoomLevel: (zoom) => set({ zoomLevel: zoom }),
 
@@ -25,18 +78,13 @@ export const useLocationStore = create((set, get) => ({
 
   zoomOut: () => set((state) => ({ zoomLevel: Math.max(state.zoomLevel - 1, 10) })),
 
-  recenterOnUser: () => {
-    const loc = get().userLocation;
+  clearLocation: () =>
     set({
-      mapRegion: {
-        latitude: loc.latitude,
-        longitude: loc.longitude,
-        latitudeDelta: 0.006,
-        longitudeDelta: 0.006,
-      },
-      zoomLevel: 16.5,
-    });
-  },
-
-  setIsLocationSharingActive: (active) => set({ isLocationSharingActive: active }),
+      userLocation: null,
+      isLocating: false,
+      accuracyLevel: null,
+      accuracyRadius: null,
+      cameraCenter: null,
+      followUser: true,
+    }),
 }));

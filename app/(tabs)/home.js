@@ -30,6 +30,7 @@ import { BottomSheet } from '../../src/components/BottomSheet';
 import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { StatusBadge } from '../../src/components/StatusBadge';
 import { DistanceBadge } from '../../src/components/DistanceBadge';
+import { ActiveTripPickerModal } from '../../src/components/ActiveTripPickerModal';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
@@ -44,11 +45,10 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function HomeScreen() {
   const router = useRouter();
 
-  // Run mock location engine
-  useLocationEngine(3500);
-
   // Zustand state
   const activeTrip = useTripStore((state) => state.activeTrip);
+  const activeTripsList = useTripStore((state) => state.activeTripsList);
+  const selectActiveTrip = useTripStore((state) => state.selectActiveTrip);
   const members = useCrewStore((state) => state.members);
   const getClusters = useCrewStore((state) => state.getClusters);
   const getStatusCounts = useCrewStore((state) => state.getStatusCounts);
@@ -60,6 +60,7 @@ export default function HomeScreen() {
   // Local bottom sheet states
   const [selectedClusterData, setSelectedClusterData] = useState(null);
   const [selectedPersonSheet, setSelectedPersonSheet] = useState(null);
+  const [showTripPicker, setShowTripPicker] = useState(false);
 
   const statusCounts = getStatusCounts();
   const clusters = getClusters();
@@ -69,7 +70,7 @@ export default function HomeScreen() {
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? 'GOOD MORNING' : hour < 17 ? 'GOOD AFTERNOON' : 'GOOD EVENING';
-  const userName = currentUser.name?.toUpperCase() || 'FRIEND';
+  const userName = currentUser?.name?.toUpperCase() || 'FRIEND';
 
   // Handle cluster tap
   const handleClusterPress = (cluster) => {
@@ -213,6 +214,15 @@ export default function HomeScreen() {
               <View style={styles.tripBadgeRow}>
                 <Text style={styles.tripEmoji}>{activeTrip?.emoji || '🎪'}</Text>
                 <Text style={styles.tripTitle}>{activeTrip?.name || 'Active Trip'}</Text>
+                {activeTripsList && activeTripsList.length > 1 && (
+                  <TouchableOpacity
+                    style={styles.switchTripPill}
+                    onPress={() => setShowTripPicker(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.switchTripPillText}>Switch</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
@@ -374,7 +384,7 @@ export default function HomeScreen() {
             <View style={styles.checkInLeft}>
               <ShieldCheck size={16} color={COLORS.success} />
               <Text style={styles.checkInText}>
-                {currentUser.isSafe ? "You're checked in as Safe" : 'Not checked in yet'}
+                {currentUser?.isSafe ? "You're checked in as Safe" : 'Not checked in yet'}
               </Text>
             </View>
             <TouchableOpacity
@@ -539,6 +549,18 @@ export default function HomeScreen() {
           </View>
         )}
       </BottomSheet>
+
+      {/* MULTIPLE ACTIVE TRIPS PICKER MODAL */}
+      <ActiveTripPickerModal
+        visible={showTripPicker}
+        trips={activeTripsList}
+        selectedTripId={activeTrip?.id}
+        onSelectTrip={(t) => {
+          selectActiveTrip(t);
+          setShowTripPicker(false);
+        }}
+        onClose={() => setShowTripPicker(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -582,6 +604,18 @@ const styles = StyleSheet.create({
   tripTitle: {
     ...TYPOGRAPHY.h1,
     fontSize: 22,
+  },
+  switchTripPill: {
+    marginLeft: 8,
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: RADIUS.pill,
+  },
+  switchTripPillText: {
+    color: COLORS.primary,
+    fontSize: 11,
+    fontWeight: '700',
   },
   emergencyIconBtn: {
     width: 40,

@@ -10,6 +10,16 @@ export const MemberMarker = ({
   onPress,
 }) => {
   const isLive = member.status === 'live';
+  const isDelayed = member.status === 'delayed';
+  const isOffline = member.status === 'offline';
+
+  const borderColor = isUser
+    ? COLORS.primary
+    : isLive
+    ? COLORS.success
+    : isDelayed
+    ? COLORS.warning
+    : '#94A3B8';
 
   return (
     <TouchableOpacity
@@ -18,12 +28,14 @@ export const MemberMarker = ({
       style={[styles.container, isSelected && styles.selectedContainer]}
     >
       {/* Outer pulse ring for user or live members */}
-      {(isUser || isLive) && <View style={[styles.pulseRing, isUser && styles.userPulseRing]} />}
+      {isUser && <View style={[styles.pulseRing, styles.userPulseRing]} />}
+      {!isUser && isLive && <View style={styles.pulseRing} />}
 
       {/* Marker Avatar Circle */}
       <View
         style={[
           styles.markerBubble,
+          { borderColor },
           isUser && styles.userMarkerBubble,
           isSelected && styles.selectedMarkerBubble,
         ]}
@@ -31,7 +43,7 @@ export const MemberMarker = ({
         <MemberAvatar
           uri={member.avatar}
           name={member.name}
-          size={isUser ? 'sm' : 'sm'}
+          size="sm"
           isUser={isUser}
         />
       </View>
@@ -39,7 +51,7 @@ export const MemberMarker = ({
       {/* Name Label */}
       <View style={[styles.namePill, isUser && styles.userNamePill, isSelected && styles.selectedNamePill]}>
         <Text style={[styles.nameText, isUser && styles.userNameText]} numberOfLines={1}>
-          {isUser ? 'You' : member.name}
+          {isUser ? 'YOU' : member.name}
         </Text>
       </View>
     </TouchableOpacity>

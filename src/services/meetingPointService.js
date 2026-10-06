@@ -6,10 +6,20 @@ import { calculateDistanceMeters } from '../utils/distance';
 
 class MeetingPointService {
   constructor() {
-    this.meetingPoints = [...INITIAL_MEETING_POINTS];
+    this.meetingPoints = [];
   }
 
   getMeetingPoints() {
+    return this.meetingPoints;
+  }
+
+  loadDemoMeetingPoints() {
+    this.meetingPoints = [...INITIAL_MEETING_POINTS];
+    return this.meetingPoints;
+  }
+
+  clearMeetingPoints() {
+    this.meetingPoints = [];
     return this.meetingPoints;
   }
 

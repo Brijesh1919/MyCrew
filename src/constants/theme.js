@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const COLORS = {
   primary: '#2563EB',      // Main brand blue
   primaryDark: '#1D4ED8',
@@ -45,33 +47,53 @@ export const RADIUS = {
 };
 
 export const SHADOWS = {
-  sm: {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  md: {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  lg: {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  glow: (color = COLORS.primary) => ({
-    shadowColor: color,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
+  sm: Platform.select({
+    web: {
+      boxShadow: '0px 1px 2px rgba(15, 23, 42, 0.05)',
+    },
+    default: {
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+  }),
+  md: Platform.select({
+    web: {
+      boxShadow: '0px 4px 8px rgba(15, 23, 42, 0.08)',
+    },
+    default: {
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+  }),
+  lg: Platform.select({
+    web: {
+      boxShadow: '0px 8px 16px rgba(15, 23, 42, 0.12)',
+    },
+    default: {
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+  }),
+  glow: (color = COLORS.primary) => Platform.select({
+    web: {
+      boxShadow: `0px 4px 12px ${color}`,
+    },
+    default: {
+      shadowColor: color,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      elevation: 6,
+    },
   }),
 };
 

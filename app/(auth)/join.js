@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -47,12 +48,23 @@ export default function JoinTripScreen() {
   const [step, setStep] = useState(1);
   const [tripCode, setTripCode] = useState(params.code ? String(params.code).toUpperCase() : '');
   const [tripPreview, setTripPreview] = useState(null);
-  const [name, setName] = useState(currentUser.name || 'Friend');
+  const [name, setName] = useState(currentUser?.name || 'You');
   const [scanMode, setScanMode] = useState(false);
   const [error, setError] = useState('');
 
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  const handleGoBack = () => {
+    triggerLight();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/home');
+    }
+  };
+
   // Step 1: Validate manual code entry
-  const handleVerifyCode = (codeToVerify) => {
+  const handleVerifyCode = async (codeToVerify) => {
     const targetCode = (codeToVerify || tripCode).trim().toUpperCase();
 
     if (!targetCode) {
@@ -61,7 +73,12 @@ export default function JoinTripScreen() {
       return;
     }
 
-    const preview = tripService.getTripPreview(targetCode);
+    setIsVerifying(true);
+    setError('');
+
+    const preview = await tripService.getTripPreview(targetCode);
+
+    setIsVerifying(false);
 
     if (!preview) {
       setError('Trip not found. Check the code with your organizer and try again.');
@@ -69,7 +86,6 @@ export default function JoinTripScreen() {
       return;
     }
 
-    setError('');
     setTripPreview(preview);
     triggerSuccess();
     setStep(2); // Move to Confirmation Preview
@@ -91,11 +107,15 @@ export default function JoinTripScreen() {
   // Step 3: Complete join flow
   const handleCompleteJoin = async () => {
     triggerSuccess();
-    if (name.trim()) {
-      setUserName(name.trim());
+    const cleanName = name.trim() || currentUser?.name || 'Friend';
+    if (cleanName) {
+      setUserName(cleanName);
     }
 
-    const result = await joinTrip(tripPreview.code, name.trim() || 'Friend');
+    const result = await joinTrip(tripPreview.code, {
+      ...currentUser,
+      name: cleanName,
+    });
 
     if (result.success) {
       await setOnboardingCompleted(true);
@@ -123,7 +143,7 @@ export default function JoinTripScreen() {
             setStep(step - 1);
             setError('');
           } else {
-            router.back();
+            handleGoBack();
           }
         }}
       />
@@ -222,6 +242,7 @@ export default function JoinTripScreen() {
                 <PrimaryButton
                   title="Verify Code"
                   onPress={() => handleVerifyCode()}
+                  loading={isVerifying}
                   size="lg"
                   style={styles.actionButton}
                 />
@@ -440,9 +461,16 @@ const styles = StyleSheet.create({
     right: 20,
     height: 2,
     backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 0px 6px rgba(37, 99, 235, 0.8)',
+      },
+      default: {
+        shadowColor: COLORS.primary,
+        shadowOpacity: 0.8,
+        shadowRadius: 6,
+      },
+    }),
   },
   finderCorner: {
     position: 'absolute',

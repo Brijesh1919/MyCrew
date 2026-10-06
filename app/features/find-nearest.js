@@ -14,6 +14,7 @@ import { AppHeader } from '../../src/components/AppHeader';
 import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { StatusBadge } from '../../src/components/StatusBadge';
 import { DistanceBadge } from '../../src/components/DistanceBadge';
+import { EmptyState } from '../../src/components/EmptyState';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { locationService } from '../../src/services/locationService';
@@ -105,6 +106,17 @@ export default function FindNearestScreen() {
             </View>
           </TouchableOpacity>
         )}
+        ListEmptyComponent={
+          <EmptyState
+            icon={Users}
+            title={!userLocation ? "Finding your GPS location…" : "No crew members nearby"}
+            description={
+              !userLocation
+                ? "Waiting for accurate device GPS coordinates to calculate real distances."
+                : "None of your crew members have active location sharing turned on right now."
+            }
+          />
+        }
       />
     </SafeAreaView>
   );

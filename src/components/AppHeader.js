@@ -22,6 +22,8 @@ export const AppHeader = ({
       onBack();
     } else if (router.canGoBack()) {
       router.back();
+    } else {
+      router.replace('/');
     }
   };
 

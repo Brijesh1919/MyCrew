@@ -38,17 +38,21 @@ export default function NavigationScreen() {
   const [hasArrived, setHasArrived] = useState(false);
 
   // Calculate distance & directional bearing
-  const destinationCoord = targetMember?.coordinates || {
-    latitude: 15.59045,
-    longitude: 73.74415,
-  };
+  const destinationCoord = (params.destLat && params.destLon)
+    ? { latitude: Number(params.destLat), longitude: Number(params.destLon) }
+    : targetMember?.coordinates || null;
 
-  const distanceMeters = locationService.getDistance(userLocation, destinationCoord);
-  const directionData = locationService.getDirectionToMember(
-    userLocation,
-    destinationCoord,
-    userLocation.heading || 0
-  );
+  const distanceMeters = (userLocation && destinationCoord)
+    ? locationService.getDistance(userLocation, destinationCoord)
+    : null;
+
+  const directionData = (userLocation && destinationCoord)
+    ? locationService.getDirectionToMember(
+        userLocation,
+        destinationCoord,
+        userLocation?.heading || 0
+      )
+    : { bearing: 0, relative: { direction: 'ahead', arrow: '↑', label: 'Straight ahead' } };
 
   const handleArrived = () => {
     triggerSuccess();

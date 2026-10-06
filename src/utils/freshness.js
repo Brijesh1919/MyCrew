@@ -5,28 +5,38 @@ import { COLORS } from '../constants/theme';
  * @param {number} secondsAgo
  * @returns {{ state: 'live' | 'delayed' | 'offline', label: string, color: string, bgColor: string, dot: string }}
  */
-export const getLocationFreshness = (secondsAgo = 0) => {
-  const sec = Math.max(0, Math.round(secondsAgo));
+export const getLocationFreshness = (input = 0) => {
+  let sec = 0;
+  if (typeof input === 'string' || input instanceof Date) {
+    const time = new Date(input).getTime();
+    if (isNaN(time)) {
+      sec = 999999;
+    } else {
+      sec = Math.max(0, Math.round((Date.now() - time) / 1000));
+    }
+  } else {
+    sec = Math.max(0, Math.round(Number(input) || 0));
+  }
 
   if (sec < 30) {
     return {
       state: 'live',
-      label: `Live • ${sec === 0 ? 'just now' : `${sec} sec ago`}`,
+      label: `Live • ${sec <= 2 ? 'just now' : `${sec}s ago`}`,
       shortLabel: 'Live',
-      timeText: `${sec} sec ago`,
+      timeText: sec <= 2 ? 'just now' : `${sec}s ago`,
       color: COLORS.success,
       bgColor: COLORS.successBg,
       dot: '🟢',
     };
   }
 
-  if (sec < 300) {
+  if (sec < 120) {
     const mins = Math.max(1, Math.round(sec / 60));
     return {
       state: 'delayed',
-      label: `Delayed • ${mins}m ago`,
+      label: `Delayed • ${sec < 60 ? `${sec}s ago` : `${mins}m ago`}`,
       shortLabel: 'Delayed',
-      timeText: `${mins} min ago`,
+      timeText: `${sec < 60 ? `${sec}s ago` : `${mins}m ago`}`,
       color: COLORS.warning,
       bgColor: COLORS.warningBg,
       dot: '🟡',
@@ -34,7 +44,7 @@ export const getLocationFreshness = (secondsAgo = 0) => {
   }
 
   const mins = Math.round(sec / 60);
-  const timeText = mins >= 60 ? `${Math.round(mins / 60)}h ago` : `${mins} min ago`;
+  const timeText = mins >= 60 ? `${Math.round(mins / 60)}h ago` : `${mins}m ago`;
   return {
     state: 'offline',
     label: `Offline • ${timeText}`,

@@ -32,7 +32,7 @@ import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
 export default function EmergencyScreen() {
   const router = useRouter();
-  const { triggerDanger, triggerHeavy } = useHapticFeedback();
+  const { triggerDanger, triggerHeavy, triggerLight } = useHapticFeedback();
 
   const members = useCrewStore((state) => state.members);
   const userLocation = useLocationStore((state) => state.userLocation);
@@ -40,8 +40,10 @@ export default function EmergencyScreen() {
 
   const [confirmed, setConfirmed] = useState(false);
 
-  const nearestList = locationService.getNearestMembers(userLocation, members, 3);
-  const organizer = activeTrip?.organizer || { name: 'Rahul', phone: '+91 98200 12345' };
+  const nearestList = userLocation
+    ? locationService.getNearestMembers(userLocation, members, 3)
+    : [];
+  const organizer = activeTrip?.organizer || { name: 'Organizer', phone: '+91 98200 12345' };
 
   const handleTriggerAlert = () => {
     triggerDanger();
@@ -58,11 +60,27 @@ export default function EmergencyScreen() {
 
   const handleShareLocation = async () => {
     try {
+      const lat = userLocation?.latitude ? userLocation.latitude.toFixed(5) : 'Unknown';
+      const lon = userLocation?.longitude ? userLocation.longitude.toFixed(5) : 'Unknown';
+      const tripName = activeTrip?.name || 'our crew';
       await Share.share({
-        message: `🚨 EMERGENCY ALERT: I need immediate help at Goa Music Festival!\nMy Coordinates: ${userLocation.latitude.toFixed(5)}, ${userLocation.longitude.toFixed(5)}\nGoogle Maps link: https://maps.google.com/?q=${userLocation.latitude},${userLocation.longitude}`,
+        message: `🚨 EMERGENCY ALERT: I need immediate help at ${tripName}!\nMy Coordinates: ${lat}, ${lon}\nGoogle Maps link: https://maps.google.com/?q=${lat},${lon}`,
       });
     } catch (e) {
       // Fallback
+    }
+  };
+
+  const handleClose = () => {
+    try {
+      triggerLight?.();
+    } catch (e) {
+      // ignore
+    }
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/home');
     }
   };
 
@@ -72,7 +90,7 @@ export default function EmergencyScreen() {
         {/* Dismiss Button */}
         <TouchableOpacity
           style={styles.closeBtn}
-          onPress={() => router.back()}
+          onPress={handleClose}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <X size={22} color={COLORS.textPrimary} />
@@ -105,7 +123,7 @@ export default function EmergencyScreen() {
 
             <SecondaryButton
               title="Cancel"
-              onPress={() => router.back()}
+              onPress={handleClose}
               size="md"
               variant="ghost"
             />
@@ -130,28 +148,36 @@ export default function EmergencyScreen() {
             {/* NEARBY CREW MEMBERS */}
             <Text style={styles.sectionLabel}>CLOSEST CREW NEARBY</Text>
             <View style={styles.nearbyList}>
-              {nearestList.map((m) => (
-                <View key={m.id} style={styles.nearbyRow}>
-                  <MemberAvatar
-                    uri={m.avatar}
-                    name={m.name}
-                    size="sm"
-                    status={m.status}
-                  />
-                  <View style={styles.nearbyInfo}>
-                    <Text style={styles.nearbyName}>{m.name}</Text>
-                    <Text style={styles.nearbyDistance}>
-                      {formatDistance(m.distanceMeters)} away
-                    </Text>
+              {nearestList.length > 0 ? (
+                nearestList.map((m) => (
+                  <View key={m.id} style={styles.nearbyRow}>
+                    <MemberAvatar
+                      uri={m.avatar}
+                      name={m.name}
+                      size="sm"
+                      status={m.status}
+                    />
+                    <View style={styles.nearbyInfo}>
+                      <Text style={styles.nearbyName}>{m.name}</Text>
+                      <Text style={styles.nearbyDistance}>
+                        {formatDistance(m.distanceMeters)} away
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.callIconBtn}
+                      onPress={() => Linking.openURL(`tel:${m.phone || '112'}`)}
+                    >
+                      <Phone size={16} color={COLORS.primary} />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    style={styles.callIconBtn}
-                    onPress={() => Linking.openURL(`tel:${m.phone || '112'}`)}
-                  >
-                    <Phone size={16} color={COLORS.primary} />
-                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={{ padding: 14, alignItems: 'center' }}>
+                  <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.textSecondary }}>
+                    No crew members nearby with location active
+                  </Text>
                 </View>
-              ))}
+              )}
             </View>
 
             {/* CRITICAL ACTION BUTTONS */}
@@ -180,6 +206,14 @@ export default function EmergencyScreen() {
                 icon={Share2}
                 size="md"
                 variant="outline"
+                style={{ marginBottom: 10 }}
+              />
+
+              <SecondaryButton
+                title="Cancel Alert • I'm Safe"
+                onPress={handleClose}
+                size="md"
+                variant="ghost"
               />
             </View>
           </ScrollView>

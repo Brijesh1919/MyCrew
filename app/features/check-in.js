@@ -28,7 +28,7 @@ export default function CheckInScreen() {
     toggleSafeCheckIn();
   };
 
-  const isSafe = currentUser.isSafe;
+  const isSafe = currentUser?.isSafe ?? true;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>

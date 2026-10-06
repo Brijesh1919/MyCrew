@@ -52,6 +52,7 @@ export default function PersonDetailScreen() {
   };
 
   const handleMeetHere = () => {
+    if (!member?.coordinates) return;
     router.push({
       pathname: '/features/meeting-point',
       params: {

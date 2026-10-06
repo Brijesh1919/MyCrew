@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,8 @@ import { useMeetingPointStore } from '../../src/store/useMeetingPointStore';
 import { useTripStore } from '../../src/store/useTripStore';
 import { calculateDistanceMeters } from '../../src/utils/distance';
 import { SecondaryButton } from '../../src/components/SecondaryButton';
+import { LocationPermissionModal } from '../../src/components/LocationPermissionModal';
+import { locationService } from '../../src/services/locationService';
 
 export default function MapScreen() {
   const router = useRouter();
@@ -43,6 +45,49 @@ export default function MapScreen() {
   const [selectedMemberModal, setSelectedMemberModal] = useState(null);
   const [selectedPointModal, setSelectedPointModal] = useState(null);
   const [clusterMode, setClusterMode] = useState(true);
+
+  // Location permission states
+  const [permissionState, setPermissionState] = useState('granted');
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    locationService.checkPermission().then((res) => {
+      if (!isMounted) return;
+      if (res.status === 'granted') {
+        setPermissionState('granted');
+      } else if (res.status === 'blocked' || res.canAskAgain === false) {
+        setPermissionState('blocked');
+      } else {
+        setPermissionState('undetermined');
+        if (activeTrip) {
+          setShowPermissionModal(true);
+        }
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTrip?.id]);
+
+  const handleAllowPermission = async () => {
+    const res = await locationService.requestPermission();
+    if (res.granted) {
+      setPermissionState('granted');
+      setShowPermissionModal(false);
+      const pos = await locationService.getCurrentPosition(true);
+      if (pos) {
+        useLocationStore.getState().setUserLocation(pos);
+      }
+    } else {
+      if (res.status === 'blocked' || res.canAskAgain === false) {
+        setPermissionState('blocked');
+      } else {
+        setPermissionState('denied');
+        setShowPermissionModal(false);
+      }
+    }
+  };
 
   // EMPTY STATE (No active trip joined)
   if (!activeTrip) {
@@ -125,6 +170,27 @@ export default function MapScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Floating Permission Warning Banner */}
+        {permissionState !== 'granted' && (
+          <View style={styles.permissionBannerCard}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={styles.permissionBannerTitle}>Location sharing is off</Text>
+              <Text style={styles.permissionBannerSub}>
+                Allow location access so your crew can see where you are.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.permissionActionBtn}
+              onPress={() => setShowPermissionModal(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.permissionActionBtnText}>
+                {permissionState === 'blocked' ? 'Settings' : 'Enable'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </SafeAreaView>
 
       {/* Floating Bottom Quick Bar */}
@@ -288,6 +354,14 @@ export default function MapScreen() {
           </View>
         )}
       </BottomSheet>
+
+      {/* EXPLANATORY LOCATION PERMISSION MODAL */}
+      <LocationPermissionModal
+        visible={showPermissionModal}
+        isPermanentlyDenied={permissionState === 'blocked'}
+        onAllow={handleAllowPermission}
+        onDismiss={() => setShowPermissionModal(false)}
+      />
     </View>
   );
 }
@@ -352,6 +426,45 @@ const styles = StyleSheet.create({
   },
   clusterToggleTxtActive: {
     color: COLORS.white,
+  },
+  permissionBannerCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(30, 41, 59, 0.95)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    maxWidth: 440,
+    width: '92%',
+    alignSelf: 'center',
+    ...SHADOWS.md,
+  },
+  permissionBannerTitle: {
+    ...TYPOGRAPHY.h3,
+    color: '#F87171',
+    fontSize: 13,
+  },
+  permissionBannerSub: {
+    ...TYPOGRAPHY.caption,
+    color: '#CBD5E1',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  permissionActionBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
+  },
+  permissionActionBtnText: {
+    color: COLORS.white,
+    fontSize: 11,
+    fontWeight: '700',
   },
   floatingBottom: {
     position: 'absolute',

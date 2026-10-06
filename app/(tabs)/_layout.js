@@ -6,8 +6,12 @@ import { Home, Map, Users, Compass, User } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useTripStore } from '../../src/store/useTripStore';
+import { useLocationEngine } from '../../src/hooks/useLocationEngine';
 
 export default function TabLayout() {
+  // Start GPS watch and Supabase Realtime synchronization across all tabs during active trip
+  useLocationEngine();
+
   const insets = useSafeAreaInsets();
   const activeTrip = useTripStore((state) => state.activeTrip);
   const getStatusCounts = useCrewStore((state) => state.getStatusCounts);
@@ -103,11 +107,18 @@ const styles = StyleSheet.create({
     borderTopColor: '#E2E8F0',
     borderTopWidth: 1,
     paddingTop: 4,
-    elevation: 8,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px -2px 8px rgba(0, 0, 0, 0.05)',
+      },
+      default: {
+        elevation: 8,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+    }),
   },
   tabItem: {
     flexDirection: 'column',

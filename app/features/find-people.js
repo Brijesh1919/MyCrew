@@ -89,15 +89,25 @@ export default function FindPeopleScreen() {
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
           >
-            {nearestMembers.map((member, index) => (
-              <MemberCard
-                key={member.id}
-                member={member}
-                distanceMeters={member.distanceMeters}
-                isHighlighted={index === 0}
-                onPress={handleSelectMember}
-              />
-            ))}
+            {nearestMembers.length > 0 ? (
+              nearestMembers.map((member, index) => (
+                <MemberCard
+                  key={member.id}
+                  member={member}
+                  distanceMeters={member.distanceMeters}
+                  isHighlighted={index === 0}
+                  onPress={handleSelectMember}
+                />
+              ))
+            ) : (
+              <View style={{ padding: 24, alignItems: 'center' }}>
+                <Text style={{ ...TYPOGRAPHY.bodySecondary, color: COLORS.textSecondary, textAlign: 'center' }}>
+                  {!userLocation
+                    ? 'Acquiring GPS coordinates for your device…'
+                    : 'No crew members with location shared yet.'}
+                </Text>
+              </View>
+            )}
           </ScrollView>
         </View>
       </View>

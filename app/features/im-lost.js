@@ -29,7 +29,7 @@ import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
 export default function ImLostScreen() {
   const router = useRouter();
-  const { triggerDanger, triggerHeavy } = useHapticFeedback();
+  const { triggerDanger, triggerHeavy, triggerLight } = useHapticFeedback();
 
   const members = useCrewStore((state) => state.members);
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
@@ -46,7 +46,9 @@ export default function ImLostScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  const nearestList = locationService.getNearestMembers(userLocation, members, 4);
+  const nearestList = userLocation
+    ? locationService.getNearestMembers(userLocation, members, 4)
+    : [];
   const closestPerson = nearestList[0] || null;
 
   const handleNavigateToClosest = () => {
@@ -62,13 +64,26 @@ export default function ImLostScreen() {
     router.replace('/(tabs)/map');
   };
 
+  const handleClose = () => {
+    try {
+      triggerLight?.();
+    } catch (e) {
+      // ignore
+    }
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/home');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* Top Dismiss Button */}
         <TouchableOpacity
           style={styles.closeBtn}
-          onPress={() => router.back()}
+          onPress={handleClose}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <X size={22} color={COLORS.textPrimary} />
@@ -95,74 +110,89 @@ export default function ImLostScreen() {
           </View>
         ) : (
           <View style={styles.content}>
-            {/* CLOSEST PERSON HERO CARD */}
-            {closestPerson && (
-              <View style={styles.closestHeroCard}>
-                <View style={styles.closestHeaderRow}>
-                  <View style={styles.closestTag}>
-                    <Sparkles size={12} color={COLORS.primary} />
-                    <Text style={styles.closestTagText}>CLOSEST TO YOU</Text>
-                  </View>
-                  <DistanceBadge meters={closestPerson.distanceMeters} isHighlight={true} size="lg" />
-                </View>
-
-                <View style={styles.personHeroRow}>
-                  <MemberAvatar
-                    uri={closestPerson.avatar}
-                    name={closestPerson.name}
-                    size="lg"
-                    status={closestPerson.status}
-                  />
-                  <View style={styles.heroInfo}>
-                    <Text style={styles.heroName}>{closestPerson.name}</Text>
-                    <Text style={styles.heroSub}>
-                      {closestPerson.distanceMeters} meters away • Live
-                    </Text>
-                    <Text style={styles.heroTime}>
-                      {closestPerson.freshness?.label || 'Active right now'}
-                    </Text>
-                  </View>
-                </View>
-
-                <PrimaryButton
-                  title={`Navigate to ${closestPerson.name}`}
-                  onPress={handleNavigateToClosest}
-                  icon={Navigation}
-                  size="lg"
-                  style={styles.heroNavBtn}
-                />
+            {!closestPerson ? (
+              <View style={styles.noNearbyBox}>
+                <Text style={styles.noNearbyTitle}>No active crew members nearby</Text>
+                <Text style={styles.noNearbyDesc}>
+                  {!userLocation
+                    ? 'Acquiring high accuracy GPS coordinates for your device...'
+                    : 'None of your crew members have their location sharing active right now.'}
+                </Text>
               </View>
-            )}
-
-            {/* OTHER NEARBY MEMBERS LIST */}
-            <Text style={styles.sectionLabel}>ALSO NEARBY</Text>
-            <View style={styles.othersList}>
-              {nearestList.slice(1).map((m) => (
-                <TouchableOpacity
-                  key={m.id}
-                  style={styles.otherItem}
-                  onPress={() => {
-                    setSelectedMember(m);
-                    router.replace({
-                      pathname: '/features/navigation',
-                      params: { memberId: m.id },
-                    });
-                  }}
-                >
-                  <MemberAvatar
-                    uri={m.avatar}
-                    name={m.name}
-                    size="sm"
-                    status={m.status}
-                  />
-                  <View style={styles.otherInfo}>
-                    <Text style={styles.otherName}>{m.name}</Text>
-                    <Text style={styles.otherDist}>{m.distanceMeters} m away</Text>
+            ) : (
+              <>
+                {/* CLOSEST PERSON HERO CARD */}
+                <View style={styles.closestHeroCard}>
+                  <View style={styles.closestHeaderRow}>
+                    <View style={styles.closestTag}>
+                      <Sparkles size={12} color={COLORS.primary} />
+                      <Text style={styles.closestTagText}>CLOSEST TO YOU</Text>
+                    </View>
+                    <DistanceBadge meters={closestPerson.distanceMeters} isHighlight={true} size="lg" />
                   </View>
-                  <ChevronRight size={16} color={COLORS.textMuted} />
-                </TouchableOpacity>
-              ))}
-            </View>
+
+                  <View style={styles.personHeroRow}>
+                    <MemberAvatar
+                      uri={closestPerson.avatar}
+                      name={closestPerson.name}
+                      size="lg"
+                      status={closestPerson.status}
+                    />
+                    <View style={styles.heroInfo}>
+                      <Text style={styles.heroName}>{closestPerson.name}</Text>
+                      <Text style={styles.heroSub}>
+                        {closestPerson.distanceMeters} meters away • Live
+                      </Text>
+                      <Text style={styles.heroTime}>
+                        {closestPerson.freshness?.label || 'Active right now'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <PrimaryButton
+                    title={`Navigate to ${closestPerson.name}`}
+                    onPress={handleNavigateToClosest}
+                    icon={Navigation}
+                    size="lg"
+                    style={styles.heroNavBtn}
+                  />
+                </View>
+
+                {/* OTHER NEARBY MEMBERS LIST */}
+                {nearestList.length > 1 && (
+                  <>
+                    <Text style={styles.sectionLabel}>ALSO NEARBY</Text>
+                    <View style={styles.othersList}>
+                      {nearestList.slice(1).map((m) => (
+                        <TouchableOpacity
+                          key={m.id}
+                          style={styles.otherItem}
+                          onPress={() => {
+                            setSelectedMember(m);
+                            router.replace({
+                              pathname: '/features/navigation',
+                              params: { memberId: m.id },
+                            });
+                          }}
+                        >
+                          <MemberAvatar
+                            uri={m.avatar}
+                            name={m.name}
+                            size="sm"
+                            status={m.status}
+                          />
+                          <View style={styles.otherInfo}>
+                            <Text style={styles.otherName}>{m.name}</Text>
+                            <Text style={styles.otherDist}>{m.distanceMeters} m away</Text>
+                          </View>
+                          <ChevronRight size={16} color={COLORS.textMuted} />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </>
+                )}
+              </>
+            )}
           </View>
         )}
 
@@ -329,6 +359,31 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  noNearbyBox: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 20,
+    ...SHADOWS.sm,
+  },
+  noNearbyTitle: {
+    ...TYPOGRAPHY.h3,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  noNearbyDesc: {
+    ...TYPOGRAPHY.bodySecondary,
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   bottomSection: {
     paddingTop: 12,

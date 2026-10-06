@@ -24,7 +24,7 @@ export default function SmartTrackingScreen() {
   const isSharing = useLocationStore((state) => state.isLocationSharingActive);
   const setIsSharing = useLocationStore((state) => state.setIsLocationSharingActive);
 
-  const selectedMode = currentUser.trackingMode || 'crowded';
+  const selectedMode = currentUser?.trackingMode || 'crowded';
 
   const handleSelectMode = (modeId) => {
     triggerLight();
@@ -78,7 +78,7 @@ export default function SmartTrackingScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <BatteryCharging size={16} color={COLORS.success} />
                 <Text style={[styles.telemetryVal, { marginLeft: 4 }]}>
-                  {currentUser.batteryLevel || 64}%
+                  {currentUser?.batteryLevel || 64}%
                 </Text>
               </View>
             </View>

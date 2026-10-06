@@ -7,12 +7,16 @@ import { calculateDistanceMeters } from '../utils/distance';
 
 class MemberService {
   constructor() {
-    this.members = [...INITIAL_MEMBERS];
+    this.members = [];
     this.clusters = [...CLUSTERS_DEFINITIONS];
   }
 
   getTripMembers() {
     return this.members;
+  }
+
+  getDemoMembers() {
+    return [...INITIAL_MEMBERS];
   }
 
   getMemberById(id) {

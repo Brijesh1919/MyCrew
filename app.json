@@ -8,14 +8,27 @@
     "userInterfaceStyle": "light",
     "scheme": "mycrew",
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MyCrew uses your location while you're part of an active crew so your friends can find you."
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mycrew.app"
+      "bundleIdentifier": "com.mycrew.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "MyCrew uses your location while you're part of an active crew so your friends can find you."
+      }
     },
     "android": {
       "package": "com.mycrew.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#2563EB",
         "foregroundImage": "./assets/android-icon-foreground.png",

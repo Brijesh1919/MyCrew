@@ -22,4 +22,14 @@ export const useMeetingPointStore = create((set, get) => ({
     meetingPointService.deleteMeetingPoint(id);
     set({ meetingPoints: [...meetingPointService.getMeetingPoints()] });
   },
+
+  clearMeetingPoints: () => {
+    meetingPointService.clearMeetingPoints();
+    set({ meetingPoints: [], selectedMeetingPoint: null });
+  },
+
+  loadDemoMeetingPoints: () => {
+    const pts = meetingPointService.loadDemoMeetingPoints();
+    set({ meetingPoints: [...pts] });
+  },
 }));
