@@ -5,7 +5,19 @@ import { COLORS } from '../constants/theme';
  * @param {number} secondsAgo
  * @returns {{ state: 'live' | 'delayed' | 'offline', label: string, color: string, bgColor: string, dot: string }}
  */
-export const getLocationFreshness = (input = 0) => {
+export const getLocationFreshness = (input) => {
+  if (input === null || input === undefined || input === '') {
+    return {
+      state: 'offline',
+      label: 'Offline • Waiting for GPS',
+      shortLabel: 'Offline',
+      timeText: 'No location yet',
+      color: COLORS.textMuted || '#94A3B8',
+      bgColor: '#F1F5F9',
+      dot: '⚪',
+    };
+  }
+
   let sec = 0;
   if (typeof input === 'string' || input instanceof Date) {
     const time = new Date(input).getTime();

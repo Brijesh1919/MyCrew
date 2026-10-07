@@ -55,35 +55,47 @@ class MapService {
       return null;
     }
 
-    const safeWidth = Math.min(1280, Math.max(120, Math.round(width)));
-    const safeHeight = Math.min(1280, Math.max(120, Math.round(height)));
-    const safeZoom = Math.min(20, Math.max(1, Number(zoom.toFixed(2))));
-    const safeLon = Number(longitude.toFixed(5));
-    const safeLat = Number(latitude.toFixed(5));
+    const safeWidth = Math.min(1280, Math.max(120, Math.round(Number(width) || 400)));
+    const safeHeight = Math.min(1280, Math.max(120, Math.round(Number(height) || 360)));
+    const safeZoom = Math.min(20, Math.max(1, Number((Number(zoom) || 16).toFixed(2))));
+    
+    // Ensure coordinates are valid numbers
+    const validLat = typeof latitude === 'number' && !isNaN(latitude) && latitude >= -90 && latitude <= 90
+      ? latitude
+      : 22.2698;
+    const validLon = typeof longitude === 'number' && !isNaN(longitude) && longitude >= -180 && longitude <= 180
+      ? longitude
+      : 73.1627;
+      
+    const safeLon = Number(validLon.toFixed(5));
+    const safeLat = Number(validLat.toFixed(5));
 
-    // Mapbox Static Images API (Retina @2x for ultra sharp displays)
-    return `https://api.mapbox.com/styles/v1/mapbox/${style}/static/${safeLon},${safeLat},${safeZoom},0,0/${safeWidth}x${safeHeight}@2x?access_token=${this.token}`;
+    // Mapbox Static Images API limits total dimension to 1280x1280.
+    // Use @2x only when both dimensions fit within 640px to prevent Mapbox 400 errors.
+    const retinaSuffix = safeWidth <= 640 && safeHeight <= 640 ? '@2x' : '';
+
+    return `https://api.mapbox.com/styles/v1/mapbox/${style}/static/${safeLon},${safeLat},${safeZoom},0,0/${safeWidth}x${safeHeight}${retinaSuffix}?access_token=${this.token}`;
   }
 
   /**
-   * Web Mercator Projection helpers to align custom SVG overlays with Mapbox static tiles
+   * Web Mercator Projection helpers to align custom SVG overlays with Mapbox static tiles (512px tile scale)
    */
   lon2x(lon, zoom) {
-    return ((lon + 180) / 360) * 256 * Math.pow(2, zoom);
+    return ((lon + 180) / 360) * 512 * Math.pow(2, zoom);
   }
 
   lat2y(lat, zoom) {
     const clampedLat = Math.min(85.05112878, Math.max(-85.05112878, lat));
     const rad = (clampedLat * Math.PI) / 180;
-    return (1 - Math.log(Math.tan(Math.PI / 4 + rad / 2)) / Math.PI) * 128 * Math.pow(2, zoom);
+    return (1 - Math.log(Math.tan(Math.PI / 4 + rad / 2)) / Math.PI) * 256 * Math.pow(2, zoom);
   }
 
   x2lon(x, zoom) {
-    return (x / (256 * Math.pow(2, zoom))) * 360 - 180;
+    return (x / (512 * Math.pow(2, zoom))) * 360 - 180;
   }
 
   y2lat(y, zoom) {
-    const n = Math.PI - (2 * Math.PI * y) / (256 * Math.pow(2, zoom));
+    const n = Math.PI - (2 * Math.PI * y) / (512 * Math.pow(2, zoom));
     return (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
   }
 

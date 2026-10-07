@@ -104,9 +104,7 @@ export const useTripStore = create((set, get) => ({
                 Number(m.longitude) >= -180 &&
                 Number(m.longitude) <= 180;
 
-              const freshness = m.location_updated_at
-                ? getLocationFreshness(m.location_updated_at)
-                : getLocationFreshness(0);
+              const freshness = getLocationFreshness(m.location_updated_at);
 
               return {
                 id: m.user_id,
@@ -340,9 +338,7 @@ export const useTripStore = create((set, get) => ({
             Number(m.longitude) >= -180 &&
             Number(m.longitude) <= 180;
 
-          const freshness = m.location_updated_at
-            ? getLocationFreshness(m.location_updated_at)
-            : getLocationFreshness(0);
+          const freshness = getLocationFreshness(m.location_updated_at);
 
           return {
             id: m.user_id,

@@ -14,6 +14,7 @@ export const MemberCard = ({
   showNavigateAction = false,
   onNavigate,
   isHighlighted = false,
+  isCurrentUser = false,
 }) => {
   const { triggerLight } = useHapticFeedback();
 
@@ -22,6 +23,8 @@ export const MemberCard = ({
     onPress && onPress(member);
   };
 
+  const isOrganizer = member.role === 'organizer' || member.isOrganizer;
+
   return (
     <TouchableOpacity
       activeOpacity={0.78}
@@ -29,6 +32,7 @@ export const MemberCard = ({
       style={[
         styles.card,
         isHighlighted && styles.cardHighlighted,
+        isCurrentUser && styles.cardCurrentUser,
       ]}
     >
       <View style={styles.leftRow}>
@@ -43,11 +47,20 @@ export const MemberCard = ({
             <Text style={styles.name} numberOfLines={1}>
               {member.name}
             </Text>
-            {member.isOrganizer && (
-              <View style={styles.organizerBadge}>
-                <Text style={styles.organizerText}>Host</Text>
+            {isCurrentUser && (
+              <View style={styles.youBadge}>
+                <Text style={styles.youBadgeText}>YOU</Text>
               </View>
             )}
+            {isOrganizer ? (
+              <View style={styles.organizerBadge}>
+                <Text style={styles.organizerText}>HOST</Text>
+              </View>
+            ) : !isCurrentUser ? (
+              <View style={styles.crewBadge}>
+                <Text style={styles.crewBadgeText}>CREW</Text>
+              </View>
+            ) : null}
             {member.isSafe && (
               <ShieldCheck size={14} color={COLORS.success} style={styles.safeIcon} />
             )}
@@ -95,6 +108,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     backgroundColor: '#F8FAFF',
   },
+  cardCurrentUser: {
+    borderColor: '#93C5FD',
+    backgroundColor: '#F0F7FF',
+  },
   leftRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -112,17 +129,45 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.h3,
     fontSize: 16,
   },
+  youBadge: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  youBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.white,
+    letterSpacing: 0.5,
+  },
   organizerBadge: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  organizerText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#B45309',
+    letterSpacing: 0.5,
+  },
+  crewBadge: {
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
     marginLeft: 6,
   },
-  organizerText: {
+  crewBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: '#64748B',
   },
   safeIcon: {
     marginLeft: 6,

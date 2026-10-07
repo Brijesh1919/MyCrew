@@ -30,6 +30,8 @@ import { useUserStore } from '../../src/store/useUserStore';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
+import { tripService } from '../../src/services/tripService';
+import { locationService } from '../../src/services/locationService';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -68,6 +70,43 @@ export default function ProfileScreen() {
       router.replace('/(auth)');
     } finally {
       setIsLoggingOut(false);
+    }
+  };
+
+  const handleToggleLocationSharing = async (val) => {
+    triggerLight();
+    setIsSharing(val);
+
+    if (!activeTrip?.id || !currentUser?.id) return;
+
+    if (!val) {
+      try {
+        await tripService.pauseLocationSharing({
+          tripId: activeTrip.id,
+          userId: currentUser.id,
+        });
+      } catch (err) {
+        console.warn('Error pausing location sharing:', err);
+      }
+    } else {
+      try {
+        const pos = await locationService.getCurrentPosition(true);
+        if (pos) {
+          useLocationStore.getState().setUserLocation(pos);
+          await tripService.updateMemberLocation({
+            tripId: activeTrip.id,
+            userId: currentUser.id,
+            latitude: pos.latitude,
+            longitude: pos.longitude,
+            accuracy: pos.accuracy,
+            heading: pos.heading,
+            speed: pos.speed,
+            force: true,
+          });
+        }
+      } catch (err) {
+        console.warn('Error resuming location sharing:', err);
+      }
     }
   };
 
@@ -199,10 +238,7 @@ export default function ProfileScreen() {
           <Switch
             value={Boolean(activeTrip && isSharing)}
             disabled={!activeTrip}
-            onValueChange={(val) => {
-              triggerLight();
-              setIsSharing(val);
-            }}
+            onValueChange={handleToggleLocationSharing}
             trackColor={{ false: '#CBD5E1', true: COLORS.primaryLight }}
             thumbColor={isSharing && activeTrip ? COLORS.primary : '#F1F5F9'}
           />

@@ -23,6 +23,7 @@ import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useMeetingPointStore } from '../../src/store/useMeetingPointStore';
 import { useTripStore } from '../../src/store/useTripStore';
+import { useUserStore } from '../../src/store/useUserStore';
 import { calculateDistanceMeters } from '../../src/utils/distance';
 import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { LocationPermissionModal } from '../../src/components/LocationPermissionModal';
@@ -33,6 +34,7 @@ export default function MapScreen() {
 
   // Stores
   const activeTrip = useTripStore((state) => state.activeTrip);
+  const currentUser = useUserStore((state) => state.currentUser);
   const members = useCrewStore((state) => state.members);
   const getClusters = useCrewStore((state) => state.getClusters);
   const getStatusCounts = useCrewStore((state) => state.getStatusCounts);
@@ -74,6 +76,7 @@ export default function MapScreen() {
     const res = await locationService.requestPermission();
     if (res.granted) {
       setPermissionState('granted');
+      useLocationStore.getState().setPermissionStatus('granted');
       setShowPermissionModal(false);
       const pos = await locationService.getCurrentPosition(true);
       if (pos) {
@@ -120,7 +123,7 @@ export default function MapScreen() {
     );
   }
 
-  const clusters = getClusters();
+  const clusters = getClusters(currentUser?.id);
   const counts = getStatusCounts();
 
   const handleNavigateTo = (member) => {
@@ -147,6 +150,8 @@ export default function MapScreen() {
         interactive={true}
         showClusters={clusterMode}
         showMeetingPoints={true}
+        providerBadgeTop={100}
+        controlsBottomOffset={84}
         style={{ flex: 1 }}
       />
 

@@ -16,6 +16,7 @@ import { EmptyState } from '../../src/components/EmptyState';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useTripStore } from '../../src/store/useTripStore';
+import { useUserStore } from '../../src/store/useUserStore';
 import { memberService } from '../../src/services/memberService';
 import { calculateDistanceMeters } from '../../src/utils/distance';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
@@ -24,6 +25,7 @@ export default function PeopleScreen() {
   const router = useRouter();
 
   // Stores
+  const currentUser = useUserStore((state) => state.currentUser);
   const activeTrip = useTripStore((state) => state.activeTrip);
   const members = useCrewStore((state) => state.members);
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
@@ -60,13 +62,27 @@ export default function PeopleScreen() {
   // Filter & sort members
   const filtered = memberService.filterMembers(members, activeFilter, searchQuery);
 
-  // Calculate distance & sort by nearest
+  // Calculate distance & sort: YOU at top, then ORGANIZER, then nearest
   const membersWithDistance = filtered.map((m) => ({
     ...m,
     distanceMeters: calculateDistanceMeters(userLocation, m.coordinates),
   }));
 
-  membersWithDistance.sort((a, b) => a.distanceMeters - b.distanceMeters);
+  membersWithDistance.sort((a, b) => {
+    const aIsMe = a.id === currentUser?.id || a.id === 'user';
+    const bIsMe = b.id === currentUser?.id || b.id === 'user';
+    if (aIsMe) return -1;
+    if (bIsMe) return 1;
+
+    const aIsOrg = a.role === 'organizer' || a.isOrganizer;
+    const bIsOrg = b.role === 'organizer' || b.isOrganizer;
+    if (aIsOrg && !bIsOrg) return -1;
+    if (!aIsOrg && bIsOrg) return 1;
+
+    const distA = a.distanceMeters !== undefined && a.distanceMeters !== null ? a.distanceMeters : 999999;
+    const distB = b.distanceMeters !== undefined && b.distanceMeters !== null ? b.distanceMeters : 999999;
+    return distA - distB;
+  });
 
   const filterTabs = [
     { id: 'all', label: 'All', count: members.length },
@@ -162,6 +178,7 @@ export default function PeopleScreen() {
             <MemberCard
               member={item}
               distanceMeters={item.distanceMeters}
+              isCurrentUser={item.id === currentUser?.id || item.id === 'user'}
               onPress={handleSelectMember}
             />
           )}

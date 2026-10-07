@@ -14,23 +14,35 @@
         {
           "locationWhenInUsePermission": "MyCrew uses your location while you're part of an active crew so your friends can find you."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow MyCrew to access your camera to scan crew QR codes."
+        }
       ]
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mycrew.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "MyCrew uses your location while you're part of an active crew so your friends can find you."
+        "NSLocationWhenInUseUsageDescription": "MyCrew uses your location while you're part of an active crew so your friends can find you.",
+        "NSCameraUsageDescription": "Allow MyCrew to access your camera to scan crew QR codes."
       }
     },
     "android": {
       "package": "com.mycrew.app",
+      "versionCode": 1,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "android.permission.CAMERA"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#2563EB",
+        "backgroundColor": "#F1F5F9",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -39,6 +51,12 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "daf61520-b582-4e3a-bee2-5d0cb933a028"
+      }
     }
   }
 }

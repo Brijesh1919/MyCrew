@@ -63,7 +63,7 @@ export default function HomeScreen() {
   const [showTripPicker, setShowTripPicker] = useState(false);
 
   const statusCounts = getStatusCounts();
-  const clusters = getClusters();
+  const clusters = getClusters(currentUser?.id);
   const timeLeft = formatRemainingTime(activeTrip?.endTime);
 
   // Greeting based on hour
@@ -274,6 +274,7 @@ export default function HomeScreen() {
               height={270}
               interactive={true}
               showClusters={true}
+              controlsBottomOffset={12}
             />
 
             {/* Quick Live Members Overlay Strip */}
@@ -707,7 +708,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 8,
     left: 8,
-    right: 8,
+    right: 64, // Leave clear column on the right for map controls
     backgroundColor: 'rgba(15, 23, 42, 0.78)',
     borderRadius: RADIUS.pill,
     paddingVertical: 5,

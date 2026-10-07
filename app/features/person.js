@@ -26,6 +26,7 @@ import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
+import { useUserStore } from '../../src/store/useUserStore';
 import { calculateDistanceMeters, formatDistance } from '../../src/utils/distance';
 
 export default function PersonDetailScreen() {
@@ -35,12 +36,14 @@ export default function PersonDetailScreen() {
   const members = useCrewStore((state) => state.members);
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
   const userLocation = useLocationStore((state) => state.userLocation);
+  const currentUser = useUserStore((state) => state.currentUser);
 
   const member =
     members.find((m) => m.id === params.memberId) ||
     useCrewStore.getState().selectedMember ||
     members[0];
 
+  const isSelf = member?.id === currentUser?.id || member?.id === 'user';
   const distanceMeters = calculateDistanceMeters(userLocation, member?.coordinates);
 
   const handleNavigate = () => {
@@ -58,7 +61,7 @@ export default function PersonDetailScreen() {
       params: {
         customLat: member.coordinates.latitude,
         customLon: member.coordinates.longitude,
-        suggestedName: `Meet near ${member.name}`,
+        suggestedName: isSelf ? 'Meet at My Location' : `Meet near ${member.name}`,
       },
     });
   };
@@ -68,11 +71,19 @@ export default function PersonDetailScreen() {
     router.push('/(tabs)/map');
   };
 
+  const subtitleText = isSelf
+    ? member?.role === 'organizer'
+      ? 'You (Trip Host)'
+      : 'You (Crew Member)'
+    : member?.role === 'organizer'
+    ? 'Trip Host'
+    : 'Crew Member';
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <AppHeader
         title={member?.name?.toUpperCase() || 'PERSON'}
-        subtitle="Crew Member"
+        subtitle={subtitleText}
         showBack={true}
       />
 
@@ -99,8 +110,17 @@ export default function PersonDetailScreen() {
 
           {/* Distance Callout */}
           <View style={styles.distanceBox}>
-            <Text style={styles.distanceValue}>{formatDistance(distanceMeters)}</Text>
-            <Text style={styles.distanceLabel}>away from you</Text>
+            {isSelf ? (
+              <>
+                <Text style={styles.distanceValue}>Your Location</Text>
+                <Text style={styles.distanceLabel}>Active & visible to crew</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.distanceValue}>{formatDistance(distanceMeters)}</Text>
+                <Text style={styles.distanceLabel}>away from you</Text>
+              </>
+            )}
           </View>
         </View>
 
@@ -112,7 +132,7 @@ export default function PersonDetailScreen() {
               <Text style={styles.detailTitle}>Current Area</Text>
             </View>
             <Text style={styles.detailValue}>
-              {member?.cluster || 'Main Stage Grounds'}
+              {member?.cluster || 'Active Crew'}
             </Text>
           </View>
 
@@ -141,33 +161,64 @@ export default function PersonDetailScreen() {
 
         {/* CORE ACTIONS: NAVIGATE | MEET HERE | VIEW ON MAP */}
         <View style={styles.actionsSection}>
-          <PrimaryButton
-            title={`Walk to ${member?.name}`}
-            onPress={handleNavigate}
-            icon={Navigation}
-            size="lg"
-            style={{ marginBottom: 10 }}
-          />
-
-          <View style={styles.btnRow}>
-            <SecondaryButton
-              title="Meet Here"
-              onPress={handleMeetHere}
-              icon={MapPin}
-              size="md"
-              variant="subtle"
-              style={styles.halfBtn}
-            />
-            <View style={{ width: 10 }} />
-            <SecondaryButton
-              title="View on Map"
-              onPress={handleViewOnMap}
-              icon={Compass}
-              size="md"
-              variant="outline"
-              style={styles.halfBtn}
-            />
-          </View>
+          {isSelf ? (
+            <>
+              <PrimaryButton
+                title="View My Location on Map"
+                onPress={handleViewOnMap}
+                icon={Compass}
+                size="lg"
+                style={{ marginBottom: 10 }}
+              />
+              <View style={styles.btnRow}>
+                <SecondaryButton
+                  title="Meet Here"
+                  onPress={handleMeetHere}
+                  icon={MapPin}
+                  size="md"
+                  variant="subtle"
+                  style={styles.halfBtn}
+                />
+                <View style={{ width: 10 }} />
+                <SecondaryButton
+                  title="My Profile"
+                  onPress={() => router.push('/(tabs)/profile')}
+                  size="md"
+                  variant="outline"
+                  style={styles.halfBtn}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <PrimaryButton
+                title={`Walk to ${member?.name}`}
+                onPress={handleNavigate}
+                icon={Navigation}
+                size="lg"
+                style={{ marginBottom: 10 }}
+              />
+              <View style={styles.btnRow}>
+                <SecondaryButton
+                  title="Meet Here"
+                  onPress={handleMeetHere}
+                  icon={MapPin}
+                  size="md"
+                  variant="subtle"
+                  style={styles.halfBtn}
+                />
+                <View style={{ width: 10 }} />
+                <SecondaryButton
+                  title="View on Map"
+                  onPress={handleViewOnMap}
+                  icon={Compass}
+                  size="md"
+                  variant="outline"
+                  style={styles.halfBtn}
+                />
+              </View>
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

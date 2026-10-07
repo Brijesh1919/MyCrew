@@ -36,13 +36,20 @@ export const MapView = ({
   zoom = 16,
   height = 360,
   interactive = true,
+  providerBadgeTop = 14,
+  controlsBottomOffset = 24,
   style,
 }) => {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
   // Dynamic layout measurements
   const initialWidth = Math.min(windowWidth, 460);
-  const initialHeight = typeof height === 'number' ? height : Math.min(windowHeight * 0.45, 360);
+  const initialHeight =
+    typeof height === 'number'
+      ? height
+      : height === '100%'
+      ? windowHeight
+      : Math.min(windowHeight * 0.45, 360);
 
   const [layoutSize, setLayoutSize] = useState({
     width: initialWidth,
@@ -58,6 +65,7 @@ export const MapView = ({
 
   const containerWidth = layoutSize.width;
   const containerHeight = layoutSize.height;
+  const isCompact = typeof height === 'number' && height <= 320;
 
   // Active geographic center & zoom
   const getInitialCoord = () => {
@@ -75,6 +83,25 @@ export const MapView = ({
   const [currentZoom, setCurrentZoom] = useState(zoom);
   const [showPointsToggle, setShowPointsToggle] = useState(showMeetingPoints);
   const hasInitiallyCenteredRef = useRef(false);
+
+  // Mutable ref so PanResponder never reads stale closure variables
+  const stateRef = useRef({
+    mapCenterCoord,
+    currentZoom,
+    containerWidth,
+    containerHeight,
+    mapOffset,
+  });
+
+  useEffect(() => {
+    stateRef.current = {
+      mapCenterCoord,
+      currentZoom,
+      containerWidth,
+      containerHeight,
+      mapOffset,
+    };
+  });
 
   // Auto-center on userLocation as soon as GPS arrives if center wasn't explicitly given
   useEffect(() => {
@@ -127,7 +154,7 @@ export const MapView = ({
     };
   };
 
-  // Pan Responder with drag update and release centering
+  // Pan Responder with drag update and release centering using fresh stateRef
   const panStartRef = useRef({ x: 0, y: 0 });
   const panResponder = useRef(
     PanResponder.create({
@@ -135,7 +162,7 @@ export const MapView = ({
       onMoveShouldSetPanResponder: (_, gesture) =>
         interactive && (Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5),
       onPanResponderGrant: () => {
-        panStartRef.current = { ...mapOffset };
+        panStartRef.current = { ...stateRef.current.mapOffset };
       },
       onPanResponderMove: (_, gesture) => {
         setMapOffset({
@@ -145,17 +172,23 @@ export const MapView = ({
       },
       onPanResponderRelease: (_, gesture) => {
         if (Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5) {
+          const {
+            mapCenterCoord: curCenter,
+            currentZoom: curZoom,
+            containerWidth: curW,
+            containerHeight: curH,
+          } = stateRef.current;
           const totalDx = panStartRef.current.x + gesture.dx;
           const totalDy = panStartRef.current.y + gesture.dy;
           const newCenter = mapService.unproject(
             {
-              x: containerWidth / 2 - totalDx,
-              y: containerHeight / 2 - totalDy,
+              x: curW / 2 - totalDx,
+              y: curH / 2 - totalDy,
             },
-            mapCenterCoord,
-            currentZoom,
-            containerWidth,
-            containerHeight
+            curCenter,
+            curZoom,
+            curW,
+            curH
           );
           setMapCenterCoord(newCenter);
           setMapOffset({ x: 0, y: 0 });
@@ -224,7 +257,7 @@ export const MapView = ({
           95,
           Math.round(
             userLocation.accuracy /
-              ((156543.03392 * Math.cos(((userLocation.latitude || 20) * Math.PI) / 180)) /
+              ((78271.51696 * Math.cos(((userLocation.latitude || 20) * Math.PI) / 180)) /
                 Math.pow(2, currentZoom))
           )
         )
@@ -255,25 +288,34 @@ export const MapView = ({
     >
       {/* 1. REAL MAPBOX LAYER */}
       {isMapbox && mapUrl ? (
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        <View
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: containerWidth || '100%',
+            height: containerHeight || '100%',
+          }}
+          pointerEvents="none"
+        >
           <Image
-            key={`${activeStyle}-${mapCenterCoord.latitude.toFixed(4)}-${mapCenterCoord.longitude.toFixed(4)}-${currentZoom.toFixed(1)}`}
             source={{ uri: mapUrl }}
-            style={[
-              StyleSheet.absoluteFillObject,
-              {
-                transform: [
-                  { translateX: mapOffset.x },
-                  { translateY: mapOffset.y },
-                ],
-              },
-            ]}
+            style={{
+              width: '100%',
+              height: '100%',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              transform: [
+                { translateX: mapOffset.x },
+                { translateY: mapOffset.y },
+              ],
+            }}
             resizeMode="cover"
             onLoadStart={() => setIsTileLoading(true)}
             onLoadEnd={() => setIsTileLoading(false)}
             onError={(e) => {
-              console.warn('Mapbox tile load warning, fallback to vector engine:', e.nativeEvent?.error);
-              setMapboxError(true);
+              console.warn('Mapbox tile load warning:', e.nativeEvent?.error);
             }}
           />
           {/* Subtle tint according to active style */}
@@ -375,7 +417,7 @@ export const MapView = ({
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={isMapbox ? handleCycleStyle : null}
-        style={styles.providerBadge}
+        style={[styles.providerBadge, { top: providerBadgeTop }]}
       >
         <View style={[styles.providerDot, !isMapbox && { backgroundColor: '#F59E0B' }]} />
         <Text style={styles.providerText}>
@@ -520,6 +562,8 @@ export const MapView = ({
           onFitGroup={handleFitGroup}
           onToggleMeetingPoints={() => setShowPointsToggle((prev) => !prev)}
           isMeetingPointsActive={showPointsToggle}
+          bottomOffset={controlsBottomOffset}
+          compact={isCompact}
         />
       )}
     </View>

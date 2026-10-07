@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTripStore } from '../src/store/useTripStore';
 import { useUserStore } from '../src/store/useUserStore';
@@ -45,9 +45,11 @@ export default function IndexScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.splashContent}>
-        <View style={styles.logoBadge}>
-          <Text style={styles.logoBadgeText}>MC</Text>
-        </View>
+        <Image
+          source={require('../assets/icon.png')}
+          style={styles.logoImage}
+          resizeMode="cover"
+        />
         <Text style={styles.brandTitle}>MyCrew</Text>
         <Text style={styles.tagline}>Keeping your crew{'\n'}together.</Text>
 
@@ -70,32 +72,23 @@ const styles = StyleSheet.create({
   splashContent: {
     alignItems: 'center',
   },
-  logoBadge: {
-    width: 68,
-    height: 68,
-    borderRadius: 20,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 22,
     marginBottom: 16,
     ...Platform.select({
       web: {
-        boxShadow: '0px 8px 16px rgba(37, 99, 235, 0.28)',
+        boxShadow: '0px 8px 20px rgba(15, 23, 42, 0.12)',
       },
       default: {
-        shadowColor: COLORS.primary,
+        shadowColor: '#0F172A',
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.28,
+        shadowOpacity: 0.15,
         shadowRadius: 16,
         elevation: 8,
       },
     }),
-  },
-  logoBadgeText: {
-    color: COLORS.white,
-    fontSize: 26,
-    fontWeight: '900',
-    letterSpacing: 1,
   },
   brandTitle: {
     ...TYPOGRAPHY.h1,

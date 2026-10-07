@@ -11,6 +11,8 @@ export const MapControls = ({
   onFitGroup,
   onToggleMeetingPoints,
   isMeetingPointsActive = true,
+  bottomOffset = 24,
+  compact = false,
   style,
 }) => {
   const { triggerLight } = useHapticFeedback();
@@ -20,58 +22,65 @@ export const MapControls = ({
     callback && callback();
   };
 
+  const btnStyle = compact ? styles.btnCompact : styles.btn;
+  const singleBtnStyle = compact ? styles.singleBtnCompact : styles.singleBtn;
+  const iconSize = compact ? 15 : 18;
+
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, { bottom: bottomOffset }, style]}>
       {/* Zoom In & Out Group */}
-      <View style={styles.buttonGroup}>
+      <View style={[styles.buttonGroup, compact && styles.buttonGroupCompact]}>
         <TouchableOpacity
-          style={[styles.btn, styles.btnTop]}
+          style={[btnStyle, styles.btnTop]}
           activeOpacity={0.75}
           onPress={() => handleAction(onZoomIn)}
         >
-          <Plus size={18} color={COLORS.textPrimary} />
+          <Plus size={iconSize} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <View style={styles.divider} />
         <TouchableOpacity
-          style={[styles.btn, styles.btnBottom]}
+          style={[btnStyle, styles.btnBottom]}
           activeOpacity={0.75}
           onPress={() => handleAction(onZoomOut)}
         >
-          <Minus size={18} color={COLORS.textPrimary} />
+          <Minus size={iconSize} color={COLORS.textPrimary} />
         </TouchableOpacity>
       </View>
 
-      {/* Fit Group on Screen */}
-      <TouchableOpacity
-        style={styles.singleBtn}
-        activeOpacity={0.75}
-        onPress={() => handleAction(onFitGroup)}
-      >
-        <Maximize2 size={18} color={COLORS.textPrimary} />
-      </TouchableOpacity>
+      {/* Non-compact only: Fit Group & Meeting Points */}
+      {!compact && (
+        <>
+          <TouchableOpacity
+            style={singleBtnStyle}
+            activeOpacity={0.75}
+            onPress={() => handleAction(onFitGroup)}
+          >
+            <Maximize2 size={iconSize} color={COLORS.textPrimary} />
+          </TouchableOpacity>
 
-      {/* Toggle Meeting Points */}
-      <TouchableOpacity
-        style={[
-          styles.singleBtn,
-          isMeetingPointsActive && styles.activeBtn,
-        ]}
-        activeOpacity={0.75}
-        onPress={() => handleAction(onToggleMeetingPoints)}
-      >
-        <MapPin
-          size={18}
-          color={isMeetingPointsActive ? COLORS.primary : COLORS.textMuted}
-        />
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              singleBtnStyle,
+              isMeetingPointsActive && styles.activeBtn,
+            ]}
+            activeOpacity={0.75}
+            onPress={() => handleAction(onToggleMeetingPoints)}
+          >
+            <MapPin
+              size={iconSize}
+              color={isMeetingPointsActive ? COLORS.primary : COLORS.textMuted}
+            />
+          </TouchableOpacity>
+        </>
+      )}
 
       {/* Recenter on User Location */}
       <TouchableOpacity
-        style={[styles.singleBtn, styles.recenterBtn]}
+        style={[singleBtnStyle, styles.recenterBtn]}
         activeOpacity={0.75}
         onPress={() => handleAction(onRecenter)}
       >
-        <Locate size={18} color={COLORS.primary} />
+        <Locate size={iconSize} color={COLORS.primary} />
       </TouchableOpacity>
     </View>
   );
@@ -130,5 +139,26 @@ const styles = StyleSheet.create({
   },
   recenterBtn: {
     borderColor: COLORS.primaryLight,
+  },
+  buttonGroupCompact: {
+    marginBottom: 6,
+  },
+  btnCompact: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  singleBtnCompact: {
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    ...SHADOWS.md,
   },
 });

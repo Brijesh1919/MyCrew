@@ -26,7 +26,11 @@ export const useLocationEngine = () => {
   const updateMemberLocationFromRemote = useCrewStore((state) => state.updateMemberLocationFromRemote);
   const refreshFreshness = useCrewStore((state) => state.refreshFreshness);
 
+  const permissionStatus = useLocationStore((state) => state.permissionStatus);
+  const setPermissionStatus = useLocationStore((state) => state.setPermissionStatus);
+
   const timerRef = useRef(null);
+  const heartbeatRef = useRef(null);
   const isWatchingGpsRef = useRef(false);
 
   // 1. TRIP EXPIRATION & FRESHNESS CHECK TIMER (every 4 seconds)
@@ -87,7 +91,7 @@ export const useLocationEngine = () => {
     };
   }, [activeTrip?.id, currentUser?.id, updateMemberLocationFromRemote]);
 
-  // 3. REAL DEVICE GPS TRACKING
+  // 3. REAL DEVICE GPS TRACKING & HEARTBEAT
   useEffect(() => {
     const isTripActive = Boolean(activeTrip && getTripStatus(activeTrip) !== 'expired');
     const shouldTrack = isTripActive && isLocationSharingActive && Boolean(currentUser?.id);
@@ -98,6 +102,13 @@ export const useLocationEngine = () => {
         locationService.stopLocationWatch();
         isWatchingGpsRef.current = false;
         setIsLocating(false);
+      }
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+      if (currentUser?.id) {
+        useCrewStore.getState().setUserLocationSharingState(currentUser.id, false);
       }
       return;
     }
@@ -114,12 +125,19 @@ export const useLocationEngine = () => {
         return;
       }
 
+      if (permissionStatus !== 'granted') {
+        setPermissionStatus('granted');
+      }
+
       // 2. Get immediate initial fix
       try {
         const initialPos = await locationService.getCurrentPosition(true);
         if (initialPos && isMounted) {
           setUserLocation(initialPos);
           setIsLocating(false);
+
+          // Update local crew store entry immediately
+          useCrewStore.getState().updateCurrentUserLocation(currentUser.id, initialPos);
 
           // Push to Supabase immediately
           tripService.updateMemberLocation({
@@ -130,20 +148,24 @@ export const useLocationEngine = () => {
             accuracy: initialPos.accuracy,
             heading: initialPos.heading,
             speed: initialPos.speed,
+            force: true,
           });
         }
       } catch (err) {
         console.warn('[LocationEngine] Initial GPS fix failed:', err);
       }
 
-      // 3. Start continuous foreground watch (every ~4000ms or 8 meters)
+      // 3. Start continuous foreground watch
       const watchStarted = await locationService.startLocationWatch(
         (loc) => {
           if (!isMounted) return;
           setUserLocation(loc);
           setIsLocating(false);
 
-          // Stream real coordinates to Supabase (throttled inside tripService)
+          // Update local crew store entry immediately
+          useCrewStore.getState().updateCurrentUserLocation(currentUser.id, loc);
+
+          // Stream real coordinates to Supabase
           tripService.updateMemberLocation({
             tripId: activeTrip.id,
             userId: currentUser.id,
@@ -156,7 +178,7 @@ export const useLocationEngine = () => {
         },
         {
           timeInterval: 4000,
-          distanceInterval: 8,
+          distanceInterval: 1, // 1 meter so regular updates emit on Android
         }
       );
 
@@ -166,12 +188,47 @@ export const useLocationEngine = () => {
       } else {
         if (isMounted) setIsLocating(false);
       }
+
+      // 4. HEARTBEAT TIMER (every 10 seconds):
+      // Ensures user's location timestamp stays fresh even when stationary
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      heartbeatRef.current = setInterval(() => {
+        if (!isMounted) return;
+        const currentLoc = useLocationStore.getState().userLocation || useLocationStore.getState().lastKnownLocation;
+        if (currentLoc && activeTrip?.id && currentUser?.id) {
+          // Keep local user entry fresh
+          useCrewStore.getState().updateCurrentUserLocation(currentUser.id, currentLoc);
+
+          tripService.updateMemberLocation({
+            tripId: activeTrip.id,
+            userId: currentUser.id,
+            latitude: currentLoc.latitude,
+            longitude: currentLoc.longitude,
+            accuracy: currentLoc.accuracy,
+            heading: currentLoc.heading,
+            speed: currentLoc.speed,
+            force: true,
+          });
+        }
+      }, 10000);
     };
 
     startTracking();
 
+    // Check permission again in 3s in case user was prompted by OS dialog
+    const retryTimeout = setTimeout(() => {
+      if (isMounted && !isWatchingGpsRef.current) {
+        startTracking();
+      }
+    }, 3000);
+
     return () => {
       isMounted = false;
+      clearTimeout(retryTimeout);
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
       if (isWatchingGpsRef.current) {
         locationService.stopLocationWatch();
         isWatchingGpsRef.current = false;
@@ -181,7 +238,9 @@ export const useLocationEngine = () => {
     activeTrip?.id,
     isLocationSharingActive,
     currentUser?.id,
+    permissionStatus,
     setUserLocation,
     setIsLocating,
+    setPermissionStatus,
   ]);
 };

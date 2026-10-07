@@ -549,6 +549,7 @@ class TripService {
     accuracy = null,
     heading = null,
     speed = null,
+    force = false,
   }) {
     if (!tripId || !userId) return;
     if (isNaN(latitude) || isNaN(longitude)) return;
@@ -558,19 +559,21 @@ class TripService {
     const now = Date.now();
     const timeSinceLast = now - this.lastLocationWriteTime;
 
-    // Minimum 3 seconds between writes
-    if (timeSinceLast < 3000) {
-      return;
-    }
+    if (!force) {
+      // Minimum 3 seconds between writes
+      if (timeSinceLast < 3000) {
+        return;
+      }
 
-    // If less than 6 seconds, check if movement is meaningful (> 5 meters)
-    if (timeSinceLast < 6000 && this.lastSentLocation) {
-      const movedMeters = calculateDistanceMeters(
-        this.lastSentLocation,
-        { latitude, longitude }
-      );
-      if (movedMeters < 5) {
-        return; // Skip write: user hasn't moved meaningfully
+      // If less than 6 seconds, check if movement is meaningful (> 5 meters)
+      if (timeSinceLast < 6000 && this.lastSentLocation) {
+        const movedMeters = calculateDistanceMeters(
+          this.lastSentLocation,
+          { latitude, longitude }
+        );
+        if (movedMeters < 5) {
+          return; // Skip write: user hasn't moved meaningfully
+        }
       }
     }
 
@@ -596,6 +599,32 @@ class TripService {
       }
     } catch (err) {
       console.warn('updateMemberLocation exception:', err);
+    }
+  }
+
+  /**
+   * Pauses location sharing in Supabase by setting coordinates and location_updated_at to null
+   * This immediately hides the user's live pin from other crew members
+   */
+  async pauseLocationSharing({ tripId, userId }) {
+    if (!tripId || !userId) return;
+    if (String(tripId).startsWith('trip_goa') || tripId === 'demo') return;
+
+    try {
+      const { error } = await supabase
+        .from('trip_members')
+        .update({
+          latitude: null,
+          longitude: null,
+          location_updated_at: null,
+        })
+        .match({ trip_id: tripId, user_id: userId });
+
+      if (error) {
+        console.warn('pauseLocationSharing Supabase error:', error.message);
+      }
+    } catch (err) {
+      console.warn('pauseLocationSharing exception:', err);
     }
   }
 

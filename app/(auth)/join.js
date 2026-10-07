@@ -22,7 +22,10 @@ import {
   Clock,
   User,
   ShieldCheck,
+  Camera,
+  RefreshCw,
 } from 'lucide-react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { AppHeader } from '../../src/components/AppHeader';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
@@ -53,6 +56,8 @@ export default function JoinTripScreen() {
   const [error, setError] = useState('');
 
   const [isVerifying, setIsVerifying] = useState(false);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [isScanningActive, setIsScanningActive] = useState(true);
 
   const handleGoBack = () => {
     triggerLight();
@@ -60,6 +65,38 @@ export default function JoinTripScreen() {
       router.back();
     } else {
       router.replace('/(tabs)/home');
+    }
+  };
+
+  const extractCodeFromQr = (raw) => {
+    if (!raw) return '';
+    const str = String(raw).trim();
+    if (str.includes('code=')) {
+      const match = str.match(/[?&]code=([a-zA-Z0-9_-]+)/i);
+      if (match) return match[1].toUpperCase();
+    }
+    if (str.startsWith('{') && str.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(str);
+        if (parsed.code) return String(parsed.code).toUpperCase();
+        if (parsed.tripCode) return String(parsed.tripCode).toUpperCase();
+      } catch (e) {}
+    }
+    const clean = str.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    return clean;
+  };
+
+  const handleBarcodeScanned = ({ data }) => {
+    if (!isScanningActive || isVerifying || !data) return;
+    setIsScanningActive(false);
+    triggerSuccess();
+    const code = extractCodeFromQr(data);
+    if (code) {
+      setTripCode(code);
+      handleVerifyCode(code);
+    } else {
+      setError('Unrecognized QR code. Please try again.');
+      setTimeout(() => setIsScanningActive(true), 2500);
     }
   };
 
@@ -83,6 +120,7 @@ export default function JoinTripScreen() {
     if (!preview) {
       setError('Trip not found. Check the code with your organizer and try again.');
       triggerWarning();
+      setIsScanningActive(true);
       return;
     }
 
@@ -190,14 +228,69 @@ export default function JoinTripScreen() {
             {scanMode ? (
               <View style={styles.scannerBox}>
                 <View style={styles.viewfinder}>
-                  <View style={[styles.finderCorner, styles.finderTL]} />
-                  <View style={[styles.finderCorner, styles.finderTR]} />
-                  <View style={[styles.finderCorner, styles.finderBL]} />
-                  <View style={[styles.finderCorner, styles.finderBR]} />
-                  <QrCode size={72} color="rgba(255, 255, 255, 0.3)" />
-                  <View style={styles.scanBeam} />
-                  <Text style={styles.scanPrompt}>Point your camera at the QR code shared by your organizer</Text>
+                  {cameraPermission?.granted ? (
+                    <>
+                      <CameraView
+                        style={StyleSheet.absoluteFillObject}
+                        facing="back"
+                        barcodeScannerSettings={{
+                          barcodeTypes: ['qr'],
+                        }}
+                        onBarcodeScanned={isScanningActive ? handleBarcodeScanned : undefined}
+                      />
+                      <View style={styles.viewfinderOverlay} pointerEvents="none">
+                        <View style={[styles.finderCorner, styles.finderTL]} />
+                        <View style={[styles.finderCorner, styles.finderTR]} />
+                        <View style={[styles.finderCorner, styles.finderBL]} />
+                        <View style={[styles.finderCorner, styles.finderBR]} />
+                        <View style={styles.scanBeam} />
+                      </View>
+                    </>
+                  ) : (
+                    <View style={styles.cameraPermissionPrompt}>
+                      <Camera size={38} color={COLORS.primary} style={{ marginBottom: 12 }} />
+                      <Text style={styles.cameraPermissionTitle}>Camera Access Required</Text>
+                      <Text style={styles.cameraPermissionSub}>
+                        Allow camera access to scan your crew's invite QR code directly.
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.enableCameraBtn}
+                        onPress={requestCameraPermission}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.enableCameraBtnText}>Enable Camera</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
+
+                {error ? (
+                  <View style={[styles.errorBox, { marginTop: 14, width: '100%', maxWidth: 300 }]}>
+                    <Text style={styles.errorTitle}>Scan Error</Text>
+                    <Text style={styles.errorDesc}>{error}</Text>
+                  </View>
+                ) : null}
+
+                <Text style={styles.scanPrompt}>
+                  {isVerifying
+                    ? 'Verifying scanned trip code...'
+                    : cameraPermission?.granted
+                    ? 'Point your camera directly at the crew QR code'
+                    : 'Grant camera access to start scanning'}
+                </Text>
+
+                {!isScanningActive && !isVerifying && (
+                  <TouchableOpacity
+                    style={styles.rescanBtn}
+                    onPress={() => {
+                      setIsScanningActive(true);
+                      setError('');
+                    }}
+                  >
+                    <RefreshCw size={14} color={COLORS.primary} />
+                    <Text style={styles.rescanBtnText}>Scan Again</Text>
+                  </TouchableOpacity>
+                )}
 
                 <TouchableOpacity
                   style={styles.simScanBtn}
@@ -205,11 +298,11 @@ export default function JoinTripScreen() {
                   onPress={handleSimulateScan}
                 >
                   <Sparkles size={16} color={COLORS.primary} />
-                  <Text style={styles.simScanText}>Scan Crew QR (Simulation)</Text>
+                  <Text style={styles.simScanText}>Test Demo QR (Simulation)</Text>
                 </TouchableOpacity>
 
                 <Text style={styles.scanHelpSub}>
-                  In this demo environment, tapping above scans the active Goa Music Festival QR code.
+                  You can point your phone at the organizer's QR code, or tap above to test with the Goa Demo trip.
                 </Text>
               </View>
             ) : (
@@ -501,6 +594,58 @@ const styles = StyleSheet.create({
     right: 14,
     borderBottomWidth: 3,
     borderRightWidth: 3,
+  },
+  viewfinderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  cameraPermissionPrompt: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraPermissionTitle: {
+    ...TYPOGRAPHY.h3,
+    color: COLORS.white,
+    fontSize: 16,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  cameraPermissionSub: {
+    ...TYPOGRAPHY.caption,
+    color: '#94A3B8',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  enableCameraBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: RADIUS.pill,
+  },
+  enableCameraBtnText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  rescanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 14,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  rescanBtnText: {
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontSize: 13,
+    marginLeft: 6,
   },
   scanPrompt: {
     color: '#94A3B8',
