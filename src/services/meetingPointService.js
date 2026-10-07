@@ -3,7 +3,6 @@
 // Synchronized with Supabase public.meeting_points table
 
 import { supabase } from './supabase';
-import { INITIAL_MEETING_POINTS } from '../data/mockData';
 import { calculateDistanceMeters } from '../utils/distance';
 
 class MeetingPointService {
@@ -15,18 +14,13 @@ class MeetingPointService {
     return this.meetingPoints;
   }
 
-  loadDemoMeetingPoints() {
-    this.meetingPoints = [...INITIAL_MEETING_POINTS];
-    return this.meetingPoints;
-  }
-
   clearMeetingPoints() {
     this.meetingPoints = [];
     return this.meetingPoints;
   }
 
   getMeetingPointById(id) {
-    return this.meetingPoints.find((mp) => mp.id === id) || null;
+    return this.meetingPoints.find((mp) => String(mp.id) === String(id)) || null;
   }
 
   formatDbRow(row, members = []) {
@@ -60,8 +54,8 @@ class MeetingPointService {
    * Fetches meeting points for a trip from Supabase
    */
   async fetchMeetingPoints(tripId, members = []) {
-    if (!tripId || String(tripId).startsWith('trip_goa') || tripId === 'demo') {
-      return this.meetingPoints.length > 0 ? this.meetingPoints : this.loadDemoMeetingPoints();
+    if (!tripId) {
+      return this.meetingPoints;
     }
 
     try {
@@ -151,26 +145,22 @@ class MeetingPointService {
    * Deletes a meeting point from Supabase and local store
    */
   async deleteMeetingPoint(id) {
-    if (!id) return;
+    if (!id) return this.meetingPoints;
 
     // Optimistically update local array
-    this.meetingPoints = this.meetingPoints.filter((mp) => mp.id !== id);
+    this.meetingPoints = this.meetingPoints.filter((mp) => String(mp.id) !== String(id));
 
-    // If it's a UUID, delete from Supabase
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    if (isUuid) {
-      try {
-        const { error } = await supabase
-          .from('meeting_points')
-          .delete()
-          .eq('id', id);
+    try {
+      const { error } = await supabase
+        .from('meeting_points')
+        .delete()
+        .eq('id', id);
 
-        if (error) {
-          console.warn('deleteMeetingPoint Supabase error:', error.message);
-        }
-      } catch (err) {
-        console.warn('deleteMeetingPoint exception:', err);
+      if (error) {
+        console.warn('deleteMeetingPoint Supabase error:', error.message);
       }
+    } catch (err) {
+      console.warn('deleteMeetingPoint exception:', err);
     }
 
     return this.meetingPoints;

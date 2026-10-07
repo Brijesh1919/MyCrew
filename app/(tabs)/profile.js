@@ -27,7 +27,11 @@ import {
   Phone,
   User,
   Check,
+  Camera,
+  Trash2,
 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../../src/services/supabase';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { TripHistoryCard } from '../../src/components/TripHistoryCard';
@@ -61,6 +65,7 @@ export default function ProfileScreen() {
   const [editPhone, setEditPhone] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const PRESET_AVATARS = [
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
@@ -98,6 +103,75 @@ export default function ProfileScreen() {
       Alert.alert('Error', 'Could not update profile. Please try again.');
     } finally {
       setIsSavingProfile(false);
+    }
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Needed',
+          'Please allow photo gallery access in settings to upload your profile picture.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      setIsUploadingPhoto(true);
+
+      let targetUrl = asset.uri;
+
+      // Upload to Supabase storage 'avatars' bucket
+      if (asset.base64 && currentUser?.id) {
+        try {
+          const filePath = `${currentUser.id}_${Date.now()}.jpg`;
+          const byteCharacters = atob(asset.base64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+
+          const { error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, byteArray, {
+              contentType: 'image/jpeg',
+              upsert: true,
+            });
+
+          if (!uploadError) {
+            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+            if (data?.publicUrl) {
+              targetUrl = data.publicUrl;
+            }
+          } else {
+            console.warn('Supabase avatar upload error:', uploadError.message);
+          }
+        } catch (storageErr) {
+          console.warn('Avatar storage error:', storageErr);
+        }
+      }
+
+      setEditAvatar(targetUrl);
+      triggerSuccess();
+    } catch (err) {
+      console.warn('Image picker error:', err);
+      Alert.alert('Error', 'Could not access device photos.');
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -586,17 +660,36 @@ export default function ProfileScreen() {
               ))}
             </ScrollView>
 
-            {/* Custom Avatar URL input (optional) */}
-            <Text style={styles.fieldLabel}>OR CUSTOM AVATAR URL</Text>
-            <TextInput
-              style={styles.editInput}
-              value={editAvatar}
-              onChangeText={setEditAvatar}
-              placeholder="https://example.com/avatar.jpg"
-              placeholderTextColor={COLORS.textMuted}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            {/* Upload Photo from Device Button (replaces manual link input) */}
+            <TouchableOpacity
+              style={styles.uploadDeviceBtn}
+              onPress={handlePickImage}
+              disabled={isUploadingPhoto}
+              activeOpacity={0.8}
+            >
+              {isUploadingPhoto ? (
+                <ActivityIndicator size="small" color={COLORS.primary} style={{ marginRight: 8 }} />
+              ) : (
+                <Camera size={18} color={COLORS.primary} style={{ marginRight: 8 }} />
+              )}
+              <Text style={styles.uploadDeviceBtnText}>
+                {isUploadingPhoto ? 'Uploading from device…' : 'Upload Photo from Device'}
+              </Text>
+            </TouchableOpacity>
+
+            {editAvatar ? (
+              <TouchableOpacity
+                style={styles.removePhotoBtn}
+                onPress={() => {
+                  triggerLight();
+                  setEditAvatar('');
+                }}
+                activeOpacity={0.7}
+              >
+                <Trash2 size={13} color={COLORS.textMuted} style={{ marginRight: 4 }} />
+                <Text style={styles.removePhotoText}>Remove photo</Text>
+              </TouchableOpacity>
+            ) : null}
 
             {/* Full Name Input */}
             <Text style={styles.fieldLabel}>FULL NAME *</Text>
@@ -1139,6 +1232,40 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.caption,
     color: '#1E40AF',
     lineHeight: 18,
+    fontSize: 12,
+  },
+  uploadDeviceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+    borderStyle: 'dashed',
+    borderRadius: RADIUS.lg,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  uploadDeviceBtnText: {
+    ...TYPOGRAPHY.button,
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  removePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  removePhotoText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textMuted,
     fontSize: 12,
   },
 });

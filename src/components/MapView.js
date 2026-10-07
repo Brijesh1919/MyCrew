@@ -224,26 +224,12 @@ export const MapView = ({
     ];
   };
 
-  // Calculate live effective center (for pin drop mode and camera callbacks)
-  const effectiveCenter =
-    mapOffset.x === 0 && mapOffset.y === 0
-      ? mapCenterCoord
-      : mapService.unproject(
-          {
-            x: containerWidth / 2 - mapOffset.x,
-            y: containerHeight / 2 - mapOffset.y,
-          },
-          mapCenterCoord,
-          currentZoom,
-          containerWidth,
-          containerHeight
-        );
-
+  // Camera change notification: only fired on stable coordinate changes (release or programmatically), NEVER on per-pixel drag
   useEffect(() => {
-    if (onCameraChange && effectiveCenter) {
-      onCameraChange(effectiveCenter);
+    if (onCameraChange && mapCenterCoord) {
+      onCameraChange(mapCenterCoord);
     }
-  }, [effectiveCenter?.latitude, effectiveCenter?.longitude]);
+  }, [mapCenterCoord.latitude, mapCenterCoord.longitude]);
 
   // Pan Responder with drag update and release centering using fresh stateRef
   const panStartRef = useRef({ x: 0, y: 0 });
@@ -284,6 +270,9 @@ export const MapView = ({
           );
           setMapCenterCoord(newCenter);
           setMapOffset({ x: 0, y: 0 });
+          if (onCameraChange) {
+            onCameraChange(newCenter);
+          }
         }
       },
     })
@@ -671,13 +660,13 @@ export const MapView = ({
       {/* 11. PIN PLACEMENT MODE CENTER TARGET PIN */}
       {isPinDropMode && (
         <View
+          pointerEvents="none"
           style={{
             position: 'absolute',
             top: containerHeight / 2 - 46,
             left: containerWidth / 2 - 20,
             alignItems: 'center',
             justifyContent: 'center',
-            pointerEvents: 'none',
             zIndex: 40,
           }}
         >

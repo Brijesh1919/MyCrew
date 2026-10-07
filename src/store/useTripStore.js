@@ -499,7 +499,7 @@ export const useTripStore = create((set, get) => ({
     const demo = tripService.getDemoTrip();
     tripService.setActiveTrip(demo);
     useCrewStore.getState().loadDemoMembers();
-    useMeetingPointStore.getState().loadDemoMeetingPoints();
+    useMeetingPointStore.getState().clearMeetingPoints();
 
     set({
       activeTrip: demo,

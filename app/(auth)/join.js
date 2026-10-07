@@ -17,7 +17,6 @@ import {
   Users,
   Shield,
   Check,
-  Sparkles,
   ArrowRight,
   Clock,
   User,
@@ -127,13 +126,6 @@ export default function JoinTripScreen() {
     setTripPreview(preview);
     triggerSuccess();
     setStep(2); // Move to Confirmation Preview
-  };
-
-  // Step 1: Simulated QR code scan
-  const handleSimulateScan = () => {
-    triggerLight();
-    setTripCode('GOA7K2');
-    handleVerifyCode('GOA7K2');
   };
 
   // Step 2: From Confirmation Preview -> Proceed to Name & Permission
@@ -292,17 +284,8 @@ export default function JoinTripScreen() {
                   </TouchableOpacity>
                 )}
 
-                <TouchableOpacity
-                  style={styles.simScanBtn}
-                  activeOpacity={0.8}
-                  onPress={handleSimulateScan}
-                >
-                  <Sparkles size={16} color={COLORS.primary} />
-                  <Text style={styles.simScanText}>Test Demo QR (Simulation)</Text>
-                </TouchableOpacity>
-
                 <Text style={styles.scanHelpSub}>
-                  You can point your phone at the organizer's QR code, or tap above to test with the Goa Demo trip.
+                  Point your camera at the QR code displayed on the organizer's MyCrew screen to automatically join.
                 </Text>
               </View>
             ) : (
@@ -311,7 +294,7 @@ export default function JoinTripScreen() {
                 <Text style={styles.inputLabel}>ENTER TRIP CODE</Text>
                 <TextInput
                   style={[styles.codeInput, error && styles.codeInputError]}
-                  placeholder="e.g. GOA7K2"
+                  placeholder="e.g. 6-CHARACTER CODE"
                   placeholderTextColor={COLORS.textMuted}
                   value={tripCode}
                   onChangeText={(text) => {
@@ -339,20 +322,6 @@ export default function JoinTripScreen() {
                   size="lg"
                   style={styles.actionButton}
                 />
-
-                {/* Helpful Developer Hint */}
-                <TouchableOpacity
-                  style={styles.codeHintBox}
-                  onPress={() => {
-                    setTripCode('GOA7K2');
-                    setError('');
-                  }}
-                >
-                  <Text style={styles.codeHintLabel}>DEMO CODE</Text>
-                  <Text style={styles.codeHintValue}>
-                    Tap to use <Text style={{ fontWeight: '800', color: COLORS.primary }}>GOA7K2</Text> for Goa Music Festival
-                  </Text>
-                </TouchableOpacity>
               </View>
             )}
           </View>

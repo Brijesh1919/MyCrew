@@ -32,21 +32,24 @@ export const useMeetingPointStore = create((set, get) => ({
   },
 
   deleteMeetingPoint: async (id) => {
+    if (!id) return;
+    // 1. Immediately remove from active state
+    set((state) => ({
+      meetingPoints: state.meetingPoints.filter((mp) => String(mp.id) !== String(id)),
+      selectedMeetingPoint:
+        String(state.selectedMeetingPoint?.id) === String(id) ? null : state.selectedMeetingPoint,
+    }));
+    // 2. Perform background delete
     await meetingPointService.deleteMeetingPoint(id);
+    // 3. Sync state with service
     const updated = meetingPointService.getMeetingPoints();
     set({
       meetingPoints: [...updated],
-      selectedMeetingPoint: get().selectedMeetingPoint?.id === id ? null : get().selectedMeetingPoint,
     });
   },
 
   clearMeetingPoints: () => {
     meetingPointService.clearMeetingPoints();
     set({ meetingPoints: [], selectedMeetingPoint: null });
-  },
-
-  loadDemoMeetingPoints: () => {
-    const pts = meetingPointService.loadDemoMeetingPoints();
-    set({ meetingPoints: [...pts] });
   },
 }));

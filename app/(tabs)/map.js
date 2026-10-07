@@ -65,10 +65,11 @@ export default function MapScreen() {
   const [isPinDropMode, setIsPinDropMode] = useState(false);
   const [pinCenterCoord, setPinCenterCoord] = useState(null);
   const [showCreatePointModal, setShowCreatePointModal] = useState(false);
-  const [newPointName, setNewPointName] = useState('Gate 3 Regroup Point');
+  const [newPointName, setNewPointName] = useState('Crew Regroup Spot');
   const [newPointDesc, setNewPointDesc] = useState('');
   const [newPointRadius, setNewPointRadius] = useState(500);
   const [isCreatingPoint, setIsCreatingPoint] = useState(false);
+  const [confirmDeletePointId, setConfirmDeletePointId] = useState(null);
 
   // Location permission states
   const [permissionState, setPermissionState] = useState('granted');
@@ -501,14 +502,45 @@ export default function MapScreen() {
               style={{ marginTop: 12 }}
             />
 
-            <TouchableOpacity
-              style={styles.deletePointBtn}
-              onPress={handleDeleteMeetingPoint}
-              activeOpacity={0.75}
-            >
-              <Trash2 size={16} color={COLORS.danger} style={{ marginRight: 6 }} />
-              <Text style={styles.deletePointBtnText}>Delete Meeting Point</Text>
-            </TouchableOpacity>
+            {confirmDeletePointId === selectedPointModal.id ? (
+              <View style={styles.confirmDeleteContainer}>
+                <Text style={styles.confirmDeletePrompt}>
+                  Delete "{selectedPointModal.name}" for the entire crew?
+                </Text>
+                <View style={styles.confirmDeleteBtnRow}>
+                  <TouchableOpacity
+                    style={styles.cancelDeleteBtn}
+                    onPress={() => setConfirmDeletePointId(null)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.cancelDeleteBtnText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.confirmDeleteBtn}
+                    onPress={async () => {
+                      const idToDelete = selectedPointModal.id;
+                      setSelectedPointModal(null);
+                      setConfirmDeletePointId(null);
+                      triggerWarning();
+                      await deleteMeetingPoint(idToDelete);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Trash2 size={14} color={COLORS.white} style={{ marginRight: 6 }} />
+                    <Text style={styles.confirmDeleteBtnText}>Confirm Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.deletePointBtn}
+                onPress={() => setConfirmDeletePointId(selectedPointModal.id)}
+                activeOpacity={0.75}
+              >
+                <Trash2 size={16} color={COLORS.danger} style={{ marginRight: 6 }} />
+                <Text style={styles.deletePointBtnText}>Delete Meeting Point</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </BottomSheet>
@@ -1111,5 +1143,56 @@ const styles = StyleSheet.create({
   radiusChipTextActive: {
     color: COLORS.primary,
     fontWeight: '700',
+  },
+  confirmDeleteContainer: {
+    marginTop: 14,
+    padding: 12,
+    backgroundColor: '#FEF2F2',
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  confirmDeletePrompt: {
+    ...TYPOGRAPHY.caption,
+    color: '#991B1B',
+    fontWeight: '600',
+    fontSize: 12,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  confirmDeleteBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cancelDeleteBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  cancelDeleteBtnText: {
+    ...TYPOGRAPHY.caption,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    fontSize: 13,
+  },
+  confirmDeleteBtn: {
+    flex: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.danger,
+  },
+  confirmDeleteBtnText: {
+    ...TYPOGRAPHY.caption,
+    fontWeight: '700',
+    color: COLORS.white,
+    fontSize: 13,
   },
 });

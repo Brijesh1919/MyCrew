@@ -174,24 +174,6 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
-
-          {/* Quick Demo Testing Hint Card */}
-          <TouchableOpacity
-            style={styles.demoTestingCard}
-            onPress={() => router.push({ pathname: '/(auth)/join', params: { code: 'GOA7K2' } })}
-            activeOpacity={0.8}
-          >
-            <View style={styles.demoTestingHeader}>
-              <Text style={styles.demoTestingEmoji}>🎪</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.demoTestingTitle}>Looking for the demo trip?</Text>
-                <Text style={styles.demoTestingSub}>
-                  Enter code <Text style={styles.demoCodeBold}>GOA7K2</Text> in Join Crew to test Goa Music Festival.
-                </Text>
-              </View>
-              <ArrowRight size={16} color={COLORS.primary} />
-            </View>
-          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     );
@@ -1113,35 +1095,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 8,
     fontWeight: '500',
-  },
-  demoTestingCard: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: RADIUS.lg,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  demoTestingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  demoTestingEmoji: {
-    fontSize: 22,
-    marginRight: 10,
-  },
-  demoTestingTitle: {
-    ...TYPOGRAPHY.h3,
-    fontSize: 13,
-    color: COLORS.primary,
-  },
-  demoTestingSub: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  demoCodeBold: {
-    fontWeight: '800',
-    color: COLORS.primary,
   },
 });

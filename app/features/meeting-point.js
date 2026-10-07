@@ -47,8 +47,9 @@ export default function MeetingPointScreen() {
   const activeTrip = useTripStore((state) => state.activeTrip);
 
   const [isCreating, setIsCreating] = useState(Boolean(params.customLat));
-  const [pointName, setPointName] = useState(params.suggestedName || 'Gate 3 Regroup Point');
-  const [pointDesc, setPointDesc] = useState('Near the big neon sign and medical booth');
+  const [pointName, setPointName] = useState(params.suggestedName || 'Crew Meeting Point');
+  const [pointDesc, setPointDesc] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const handleCreatePoint = () => {
     if (!pointName.trim()) return;
@@ -225,31 +226,58 @@ export default function MeetingPointScreen() {
               </View>
 
               {/* Buttons: Navigate, Share & Delete */}
-              <View style={styles.actionsRow}>
-                <PrimaryButton
-                  title="Navigate"
-                  onPress={() => handleNavigateToPoint(point)}
-                  icon={Navigation}
-                  size="sm"
-                  style={{ flex: 1, marginRight: 8 }}
-                />
-                <SecondaryButton
-                  title="Share"
-                  onPress={() => handleSharePoint(point)}
-                  icon={Share2}
-                  size="sm"
-                  variant="subtle"
-                  style={{ flex: 0.9, marginRight: 8 }}
-                />
-                <TouchableOpacity
-                  style={styles.deleteCardBtn}
-                  onPress={() => handleDeletePoint(point)}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Trash2 size={16} color={COLORS.danger} />
-                </TouchableOpacity>
-              </View>
+              {confirmDeleteId === point.id ? (
+                <View style={styles.cardConfirmBox}>
+                  <Text style={styles.cardConfirmPrompt}>Delete for whole crew?</Text>
+                  <View style={styles.cardConfirmActions}>
+                    <TouchableOpacity
+                      style={styles.cardCancelBtn}
+                      onPress={() => setConfirmDeleteId(null)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.cardCancelBtnText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.cardDoDeleteBtn}
+                      onPress={async () => {
+                        setConfirmDeleteId(null);
+                        triggerWarning();
+                        await deleteMeetingPoint(point.id);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Trash2 size={13} color={COLORS.white} style={{ marginRight: 4 }} />
+                      <Text style={styles.cardDoDeleteBtnText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.actionsRow}>
+                  <PrimaryButton
+                    title="Navigate"
+                    onPress={() => handleNavigateToPoint(point)}
+                    icon={Navigation}
+                    size="sm"
+                    style={{ flex: 1, marginRight: 8 }}
+                  />
+                  <SecondaryButton
+                    title="Share"
+                    onPress={() => handleSharePoint(point)}
+                    icon={Share2}
+                    size="sm"
+                    variant="subtle"
+                    style={{ flex: 0.9, marginRight: 8 }}
+                  />
+                  <TouchableOpacity
+                    style={styles.deleteCardBtn}
+                    onPress={() => setConfirmDeleteId(point.id)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Trash2 size={16} color={COLORS.danger} />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           );
         })}
@@ -405,5 +433,54 @@ const styles = StyleSheet.create({
     borderColor: '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cardConfirmBox: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: RADIUS.md,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardConfirmPrompt: {
+    ...TYPOGRAPHY.caption,
+    color: '#991B1B',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  cardConfirmActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardCancelBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    marginRight: 6,
+  },
+  cardCancelBtnText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  cardDoDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.danger,
+  },
+  cardDoDeleteBtnText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 11,
   },
 });

@@ -10,8 +10,8 @@ import { getTripTypeConfig } from '../constants/tripTypes';
 import { getTripStatus } from '../utils/tripStatus';
 import { calculateDistanceMeters } from '../utils/distance';
 
-// Predefined demo/testing codes that activate the Goa Music Festival mock trip
-export const DEMO_TRIP_CODES = ['GOA7K2', 'GOA2026'];
+// Predefined demo/testing codes (disabled - only real Supabase trips)
+export const DEMO_TRIP_CODES = [];
 
 class TripService {
   constructor() {
