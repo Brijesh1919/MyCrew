@@ -83,6 +83,7 @@ export const useCrewStore = create((set, get) => ({
       id: row.user_id,
       name: row.user_name || (existingIndex >= 0 ? current[existingIndex].name : 'Crew Member'),
       avatar: row.avatar_url || (existingIndex >= 0 ? current[existingIndex].avatar : null),
+      phone: row.phone !== undefined ? row.phone : (existingIndex >= 0 ? current[existingIndex].phone : null),
       role: row.role || 'participant',
       status: freshness.state,
       freshness,

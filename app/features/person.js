@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ScrollView,
   Share,
+  Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -150,6 +152,18 @@ export default function PersonDetailScreen() {
 
           <View style={styles.detailRow}>
             <View style={styles.detailLeft}>
+              <Phone size={18} color={COLORS.primary} />
+              <Text style={styles.detailTitle}>Contact Number</Text>
+            </View>
+            <Text style={styles.detailValue}>
+              {member?.phone || 'Not provided'}
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.detailRow}>
+            <View style={styles.detailLeft}>
               <ShieldCheck size={18} color={COLORS.success} />
               <Text style={styles.detailTitle}>Safety Check-in</Text>
             </View>
@@ -198,6 +212,29 @@ export default function PersonDetailScreen() {
                 size="lg"
                 style={{ marginBottom: 10 }}
               />
+
+              <SecondaryButton
+                title={
+                  member?.phone
+                    ? `Call ${member?.name?.split(' ')[0] || 'Member'} (${member.phone})`
+                    : `Call ${member?.name?.split(' ')[0] || 'Member'}`
+                }
+                onPress={() => {
+                  if (member?.phone) {
+                    Linking.openURL(`tel:${member.phone}`);
+                  } else {
+                    Alert.alert(
+                      'No Contact Number',
+                      `${member?.name || 'This member'} has not added a contact number yet.`
+                    );
+                  }
+                }}
+                icon={Phone}
+                size="md"
+                variant="subtle"
+                style={{ marginBottom: 10 }}
+              />
+
               <View style={styles.btnRow}>
                 <SecondaryButton
                   title="Meet Here"

@@ -38,6 +38,7 @@ export const useUserStore = create((set, get) => ({
             email: user.email,
             name: displayName,
             avatar: profile?.avatar_url || user.user_metadata?.avatar_url || null,
+            phone: profile?.phone || user.user_metadata?.phone || null,
             isSafe: true,
             trackingMode: 'crowded',
           },
@@ -77,6 +78,7 @@ export const useUserStore = create((set, get) => ({
               email: newSession.user.email,
               name: displayName,
               avatar: profile?.avatar_url || newSession.user.user_metadata?.avatar_url || null,
+              phone: profile?.phone || newSession.user.user_metadata?.phone || null,
               isSafe: true,
               trackingMode: 'crowded',
             },
@@ -130,6 +132,7 @@ export const useUserStore = create((set, get) => ({
             email: user.email,
             name: displayName,
             avatar: profile?.avatar_url || user.user_metadata?.avatar_url || null,
+            phone: profile?.phone || user.user_metadata?.phone || null,
             isSafe: true,
             trackingMode: 'crowded',
           }
@@ -159,11 +162,50 @@ export const useUserStore = create((set, get) => ({
     }));
 
     // Sync to Supabase public.profiles
-    if (updates.name) {
-      await authService.upsertProfile(current.id, { full_name: updates.name });
+    const profilePayload = {};
+    if (updates.name !== undefined) profilePayload.full_name = updates.name.trim();
+    if (updates.avatar !== undefined) profilePayload.avatar_url = updates.avatar;
+    if (updates.phone !== undefined) profilePayload.phone = updates.phone ? updates.phone.trim() : null;
+
+    if (Object.keys(profilePayload).length > 0) {
+      await authService.upsertProfile(current.id, profilePayload);
     }
-    if (updates.avatar) {
-      await authService.upsertProfile(current.id, { avatar_url: updates.avatar });
+
+    // Also sync to public.trip_members if in an active trip
+    try {
+      const { useTripStore } = require('./useTripStore');
+      const activeTrip = useTripStore.getState().activeTrip;
+      if (activeTrip?.id && !String(activeTrip.id).startsWith('trip_goa')) {
+        const { supabase } = require('../services/supabase');
+        const memberPayload = {};
+        if (updates.name !== undefined) memberPayload.user_name = updates.name.trim();
+        if (updates.avatar !== undefined) memberPayload.avatar_url = updates.avatar;
+        if (updates.phone !== undefined) memberPayload.phone = updates.phone ? updates.phone.trim() : null;
+
+        if (Object.keys(memberPayload).length > 0) {
+          await supabase
+            .from('trip_members')
+            .update(memberPayload)
+            .match({ trip_id: activeTrip.id, user_id: current.id });
+        }
+      }
+
+      // Update in useCrewStore
+      const { useCrewStore } = require('./useCrewStore');
+      const members = useCrewStore.getState().members;
+      const idx = members.findIndex((m) => m.id === current.id || m.id === 'user');
+      if (idx >= 0) {
+        const updatedMembers = [...members];
+        updatedMembers[idx] = {
+          ...updatedMembers[idx],
+          name: updates.name !== undefined ? updates.name : updatedMembers[idx].name,
+          avatar: updates.avatar !== undefined ? updates.avatar : updatedMembers[idx].avatar,
+          phone: updates.phone !== undefined ? updates.phone : updatedMembers[idx].phone,
+        };
+        useCrewStore.getState().setMembers(updatedMembers);
+      }
+    } catch (e) {
+      console.warn('Error syncing member updates:', e);
     }
   },
 

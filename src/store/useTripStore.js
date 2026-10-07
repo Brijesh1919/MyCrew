@@ -110,6 +110,7 @@ export const useTripStore = create((set, get) => ({
                 id: m.user_id,
                 name: m.user_name || (m.role === 'organizer' ? 'Organizer' : 'Crew Member'),
                 avatar: m.avatar_url || null,
+                phone: m.phone || null,
                 role: m.role || 'participant',
                 status: freshness.state,
                 freshness,
@@ -130,7 +131,15 @@ export const useTripStore = create((set, get) => ({
                   : null,
               };
             });
+
+            // Find organizer phone if present and update primaryTrip.organizer
+            const org = formattedMembers.find((m) => m.role === 'organizer');
+            if (org?.phone && primaryTrip.organizer) {
+              primaryTrip.organizer.phone = org.phone;
+            }
+
             useCrewStore.getState().setMembers(formattedMembers);
+            useMeetingPointStore.getState().fetchTripMeetingPoints(primaryTrip.id, formattedMembers);
           }
 
           try {
@@ -344,6 +353,7 @@ export const useTripStore = create((set, get) => ({
             id: m.user_id,
             name: m.user_name || (m.role === 'organizer' ? 'Organizer' : 'Crew Member'),
             avatar: m.avatar_url || null,
+            phone: m.phone || null,
             role: m.role || 'participant',
             status: freshness.state,
             freshness,
@@ -365,6 +375,7 @@ export const useTripStore = create((set, get) => ({
           };
         });
         useCrewStore.getState().setMembers(formattedMembers);
+        useMeetingPointStore.getState().fetchTripMeetingPoints(trip.id, formattedMembers);
       }
 
       try {

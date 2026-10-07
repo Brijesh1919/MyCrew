@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Svg, { Circle, Line, Rect, G } from 'react-native-svg';
+import { MapPin } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
 import { MemberMarker } from './MemberMarker';
 import { ClusterMarker } from './ClusterMarker';
@@ -38,6 +39,8 @@ export const MapView = ({
   interactive = true,
   providerBadgeTop = 14,
   controlsBottomOffset = 24,
+  isPinDropMode = false,
+  onCameraChange = null,
   style,
 }) => {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -66,6 +69,11 @@ export const MapView = ({
   const containerWidth = layoutSize.width;
   const containerHeight = layoutSize.height;
   const isCompact = typeof height === 'number' && height <= 320;
+
+  // Oversized tile buffer to completely prevent dark edges during panning
+  const BUFFER = 180;
+  const tileWidth = Math.min(1280, Math.round(containerWidth + BUFFER * 2));
+  const tileHeight = Math.min(1280, Math.round(containerHeight + BUFFER * 2));
 
   // Active geographic center & zoom
   const getInitialCoord = () => {
@@ -127,20 +135,70 @@ export const MapView = ({
     }
   }, [center?.latitude, center?.longitude]);
 
-  // Check if Mapbox is available
+  // Check if Mapbox is configured
   const isMapbox = mapService.isMapboxConfigured() && !mapboxError;
 
-  // Mapbox Static Tile URL
-  const mapUrl = isMapbox
+  // DOUBLE-BUFFERED TILE MANAGEMENT (ZERO BLACK FLASHES)
+  // displayedTile: The stable, fully decoded tile currently visible
+  // pendingTile: The incoming tile downloading in the background
+  const [displayedTile, setDisplayedTile] = useState(() => {
+    const initCoord = getInitialCoord();
+    const url = isMapbox
+      ? mapService.getStaticMapUrl({
+          latitude: initCoord.latitude,
+          longitude: initCoord.longitude,
+          zoom: currentZoom,
+          width: tileWidth,
+          height: tileHeight,
+          style: activeStyle,
+        })
+      : null;
+    return {
+      url,
+      coord: initCoord,
+      zoom: currentZoom,
+      style: activeStyle,
+    };
+  });
+
+  const [pendingTile, setPendingTile] = useState(null);
+
+  // Desired static URL for current camera state
+  const targetTileUrl = isMapbox
     ? mapService.getStaticMapUrl({
         latitude: mapCenterCoord.latitude,
         longitude: mapCenterCoord.longitude,
         zoom: currentZoom,
-        width: containerWidth,
-        height: containerHeight,
+        width: tileWidth,
+        height: tileHeight,
         style: activeStyle,
       })
     : null;
+
+  // Whenever targetTileUrl changes, initiate background load without clearing displayedTile
+  useEffect(() => {
+    if (!targetTileUrl) return;
+    if (targetTileUrl === displayedTile?.url) return;
+
+    setPendingTile({
+      url: targetTileUrl,
+      coord: { ...mapCenterCoord },
+      zoom: currentZoom,
+      style: activeStyle,
+    });
+  }, [targetTileUrl, displayedTile?.url]);
+
+  // Initialize displayedTile if initially empty
+  useEffect(() => {
+    if (!displayedTile?.url && targetTileUrl) {
+      setDisplayedTile({
+        url: targetTileUrl,
+        coord: { ...mapCenterCoord },
+        zoom: currentZoom,
+        style: activeStyle,
+      });
+    }
+  }, [targetTileUrl, displayedTile?.url]);
 
   // Project geographic coordinate to viewport screen position
   const projectToScreen = (coord) => {
@@ -154,13 +212,46 @@ export const MapView = ({
     };
   };
 
+  // Screen transform for any tile based on its geographic center
+  const getTileTransform = (tileCoord) => {
+    if (!tileCoord || isNaN(tileCoord.latitude) || isNaN(tileCoord.longitude)) {
+      return [{ translateX: mapOffset.x }, { translateY: mapOffset.y }];
+    }
+    const pt = projectToScreen(tileCoord);
+    return [
+      { translateX: pt.x - containerWidth / 2 },
+      { translateY: pt.y - containerHeight / 2 },
+    ];
+  };
+
+  // Calculate live effective center (for pin drop mode and camera callbacks)
+  const effectiveCenter =
+    mapOffset.x === 0 && mapOffset.y === 0
+      ? mapCenterCoord
+      : mapService.unproject(
+          {
+            x: containerWidth / 2 - mapOffset.x,
+            y: containerHeight / 2 - mapOffset.y,
+          },
+          mapCenterCoord,
+          currentZoom,
+          containerWidth,
+          containerHeight
+        );
+
+  useEffect(() => {
+    if (onCameraChange && effectiveCenter) {
+      onCameraChange(effectiveCenter);
+    }
+  }, [effectiveCenter?.latitude, effectiveCenter?.longitude]);
+
   // Pan Responder with drag update and release centering using fresh stateRef
   const panStartRef = useRef({ x: 0, y: 0 });
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (_, gesture) =>
-        interactive && (Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5),
+        interactive && (Math.abs(gesture.dx) > 4 || Math.abs(gesture.dy) > 4),
       onPanResponderGrant: () => {
         panStartRef.current = { ...stateRef.current.mapOffset };
       },
@@ -171,7 +262,8 @@ export const MapView = ({
         });
       },
       onPanResponderRelease: (_, gesture) => {
-        if (Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5) {
+        const dist = Math.hypot(gesture.dx, gesture.dy);
+        if (dist > 8) {
           const {
             mapCenterCoord: curCenter,
             currentZoom: curZoom,
@@ -287,7 +379,7 @@ export const MapView = ({
       {...(interactive ? panResponder.panHandlers : {})}
     >
       {/* 1. REAL MAPBOX LAYER */}
-      {isMapbox && mapUrl ? (
+      {isMapbox && (displayedTile?.url || pendingTile?.url) ? (
         <View
           style={{
             position: 'absolute',
@@ -295,29 +387,57 @@ export const MapView = ({
             left: 0,
             width: containerWidth || '100%',
             height: containerHeight || '100%',
+            overflow: 'hidden',
           }}
           pointerEvents="none"
         >
-          <Image
-            source={{ uri: mapUrl }}
-            style={{
-              width: '100%',
-              height: '100%',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              transform: [
-                { translateX: mapOffset.x },
-                { translateY: mapOffset.y },
-              ],
-            }}
-            resizeMode="cover"
-            onLoadStart={() => setIsTileLoading(true)}
-            onLoadEnd={() => setIsTileLoading(false)}
-            onError={(e) => {
-              console.warn('Mapbox tile load warning:', e.nativeEvent?.error);
-            }}
-          />
+          {/* DISPLAYED TILE (Keeps showing smoothly during any pan or network load) */}
+          {displayedTile?.url ? (
+            <Image
+              key={`disp-${displayedTile.url}`}
+              source={{ uri: displayedTile.url }}
+              style={{
+                width: tileWidth,
+                height: tileHeight,
+                position: 'absolute',
+                top: -BUFFER,
+                left: -BUFFER,
+                transform: getTileTransform(displayedTile.coord),
+              }}
+              resizeMode="cover"
+            />
+          ) : null}
+
+          {/* PENDING TILE (Loads in background; seamlessly promotes to displayedTile on load) */}
+          {pendingTile?.url && pendingTile.url !== displayedTile?.url ? (
+            <Image
+              key={`pend-${pendingTile.url}`}
+              source={{ uri: pendingTile.url }}
+              style={{
+                width: tileWidth,
+                height: tileHeight,
+                position: 'absolute',
+                top: -BUFFER,
+                left: -BUFFER,
+                transform: getTileTransform(pendingTile.coord),
+                opacity: 0.01,
+              }}
+              resizeMode="cover"
+              onLoadStart={() => setIsTileLoading(true)}
+              onLoadEnd={() => setIsTileLoading(false)}
+              onLoad={() => {
+                setDisplayedTile(pendingTile);
+                setPendingTile(null);
+                setIsTileLoading(false);
+              }}
+              onError={(e) => {
+                console.warn('Mapbox tile load warning:', e.nativeEvent?.error);
+                setPendingTile(null);
+                setIsTileLoading(false);
+              }}
+            />
+          ) : null}
+
           {/* Subtle tint according to active style */}
           {activeStyle === 'dark-v11' ? (
             <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(15, 23, 42, 0.25)' }]} />
@@ -328,7 +448,7 @@ export const MapView = ({
       ) : null}
 
       {/* 2. VECTOR BASE FALLBACK (when Mapbox is offline or disabled) */}
-      {(!isMapbox || !mapUrl) && (
+      {(!isMapbox || (!displayedTile?.url && !pendingTile?.url)) && (
         <Svg
           width={containerWidth}
           height={containerHeight}
@@ -548,7 +668,30 @@ export const MapView = ({
         </View>
       )}
 
-      {/* 11. MAPBOX & OSM ATTRIBUTION */}
+      {/* 11. PIN PLACEMENT MODE CENTER TARGET PIN */}
+      {isPinDropMode && (
+        <View
+          style={{
+            position: 'absolute',
+            top: containerHeight / 2 - 46,
+            left: containerWidth / 2 - 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            zIndex: 40,
+          }}
+        >
+          <View style={styles.pinDropBubble}>
+            <Text style={styles.pinDropBubbleText}>Drag map to position pin</Text>
+          </View>
+          <View style={styles.pinDropIconWrap}>
+            <MapPin size={40} color="#EF4444" fill="#EF4444" strokeWidth={1.5} />
+          </View>
+          <View style={styles.pinGroundPulse} />
+        </View>
+      )}
+
+      {/* 12. MAPBOX & OSM ATTRIBUTION */}
       <View style={styles.attributionContainer} pointerEvents="none">
         <Text style={styles.attributionText}>© Mapbox © OpenStreetMap</Text>
       </View>
@@ -657,5 +800,35 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 9,
     fontWeight: '500',
+  },
+  pinDropBubble: {
+    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    marginBottom: 4,
+    ...SHADOWS.md,
+  },
+  pinDropBubbleText: {
+    color: '#F8FAFC',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  pinDropIconWrap: {
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  pinGroundPulse: {
+    width: 14,
+    height: 5,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    marginTop: -2,
   },
 });

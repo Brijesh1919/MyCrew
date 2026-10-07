@@ -5,12 +5,25 @@ export const useMeetingPointStore = create((set, get) => ({
   meetingPoints: meetingPointService.getMeetingPoints(),
   selectedMeetingPoint: null,
   showMeetingPointsOnMap: true,
+  isLoading: false,
 
   setSelectedMeetingPoint: (point) => set({ selectedMeetingPoint: point }),
   toggleShowMeetingPoints: () => set((state) => ({ showMeetingPointsOnMap: !state.showMeetingPointsOnMap })),
 
-  addMeetingPoint: (pointData, members = []) => {
-    const newPoint = meetingPointService.createMeetingPoint(pointData, members);
+  fetchTripMeetingPoints: async (tripId, members = []) => {
+    set({ isLoading: true });
+    try {
+      const points = await meetingPointService.fetchMeetingPoints(tripId, members);
+      set({ meetingPoints: [...points], isLoading: false });
+      return points;
+    } catch (e) {
+      set({ isLoading: false });
+      return get().meetingPoints;
+    }
+  },
+
+  addMeetingPoint: async (pointData, members = []) => {
+    const newPoint = await meetingPointService.createMeetingPoint(pointData, members);
     set({
       meetingPoints: [...meetingPointService.getMeetingPoints()],
       selectedMeetingPoint: newPoint,
@@ -18,9 +31,13 @@ export const useMeetingPointStore = create((set, get) => ({
     return newPoint;
   },
 
-  deleteMeetingPoint: (id) => {
-    meetingPointService.deleteMeetingPoint(id);
-    set({ meetingPoints: [...meetingPointService.getMeetingPoints()] });
+  deleteMeetingPoint: async (id) => {
+    await meetingPointService.deleteMeetingPoint(id);
+    const updated = meetingPointService.getMeetingPoints();
+    set({
+      meetingPoints: [...updated],
+      selectedMeetingPoint: get().selectedMeetingPoint?.id === id ? null : get().selectedMeetingPoint,
+    });
   },
 
   clearMeetingPoints: () => {

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Share,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -18,6 +19,7 @@ import {
   Plus,
   Check,
   Compass,
+  Trash2,
 } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { AppHeader } from '../../src/components/AppHeader';
@@ -27,19 +29,22 @@ import { useMeetingPointStore } from '../../src/store/useMeetingPointStore';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useUserStore } from '../../src/store/useUserStore';
+import { useTripStore } from '../../src/store/useTripStore';
 import { calculateDistanceMeters, formatDistance } from '../../src/utils/distance';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
 export default function MeetingPointScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { triggerSuccess, triggerLight } = useHapticFeedback();
+  const { triggerSuccess, triggerLight, triggerWarning } = useHapticFeedback();
 
   const meetingPoints = useMeetingPointStore((state) => state.meetingPoints);
   const addMeetingPoint = useMeetingPointStore((state) => state.addMeetingPoint);
+  const deleteMeetingPoint = useMeetingPointStore((state) => state.deleteMeetingPoint);
   const members = useCrewStore((state) => state.members);
   const userLocation = useLocationStore((state) => state.userLocation);
   const currentUser = useUserStore((state) => state.currentUser);
+  const activeTrip = useTripStore((state) => state.activeTrip);
 
   const [isCreating, setIsCreating] = useState(Boolean(params.customLat));
   const [pointName, setPointName] = useState(params.suggestedName || 'Gate 3 Regroup Point');
@@ -64,17 +69,36 @@ export default function MeetingPointScreen() {
 
     addMeetingPoint(
       {
+        tripId: activeTrip?.id,
         name: pointName.trim(),
         description: pointDesc.trim(),
         createdBy: currentUser?.name || 'You',
         createdById: currentUser?.id || 'me',
         coordinates: coords,
-        radiusMeters: 600,
+        radiusMeters: 500,
       },
       members
     );
 
     setIsCreating(false);
+  };
+
+  const handleDeletePoint = (point) => {
+    Alert.alert(
+      'Delete Meeting Point',
+      `Are you sure you want to delete "${point.name}"? This regroup spot will be removed for the entire crew.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            triggerWarning();
+            await deleteMeetingPoint(point.id);
+          },
+        },
+      ]
+    );
   };
 
   const handleSharePoint = async (point) => {
@@ -200,24 +224,31 @@ export default function MeetingPointScreen() {
                 </Text>
               </View>
 
-              {/* Buttons: Navigate & Share */}
+              {/* Buttons: Navigate, Share & Delete */}
               <View style={styles.actionsRow}>
                 <PrimaryButton
                   title="Navigate"
                   onPress={() => handleNavigateToPoint(point)}
                   icon={Navigation}
                   size="sm"
-                  style={styles.halfBtn}
+                  style={{ flex: 1, marginRight: 8 }}
                 />
-                <View style={{ width: 10 }} />
                 <SecondaryButton
-                  title="Share with Crew"
+                  title="Share"
                   onPress={() => handleSharePoint(point)}
                   icon={Share2}
                   size="sm"
                   variant="subtle"
-                  style={styles.halfBtn}
+                  style={{ flex: 0.9, marginRight: 8 }}
                 />
+                <TouchableOpacity
+                  style={styles.deleteCardBtn}
+                  onPress={() => handleDeletePoint(point)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Trash2 size={16} color={COLORS.danger} />
+                </TouchableOpacity>
               </View>
             </View>
           );
@@ -360,8 +391,19 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
   halfBtn: {
     flex: 1,
+  },
+  deleteCardBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

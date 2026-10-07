@@ -8,6 +8,8 @@ import {
   Switch,
   Modal,
   ActivityIndicator,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -21,11 +23,17 @@ import {
   AlertCircle,
   History,
   X,
+  Edit3,
+  Phone,
+  User,
+  Check,
 } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { TripHistoryCard } from '../../src/components/TripHistoryCard';
 import { HistoricalTripModal } from '../../src/components/HistoricalTripModal';
+import { PrimaryButton } from '../../src/components/PrimaryButton';
+import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { useUserStore } from '../../src/store/useUserStore';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
@@ -35,16 +43,63 @@ import { locationService } from '../../src/services/locationService';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { triggerLight, triggerWarning } = useHapticFeedback();
+  const { triggerLight, triggerWarning, triggerSuccess } = useHapticFeedback();
 
   // Stores
   const currentUser = useUserStore((state) => state.currentUser);
+  const updateProfile = useUserStore((state) => state.updateProfile);
   const clearAuth = useUserStore((state) => state.clearAuth);
   const activeTrip = useTripStore((state) => state.activeTrip);
   const userRole = useTripStore((state) => state.userRole);
   const tripHistory = useTripStore((state) => state.tripHistory);
   const isSharing = useLocationStore((state) => state.isLocationSharingActive);
   const setIsSharing = useLocationStore((state) => state.setIsLocationSharingActive);
+
+  // Edit Profile state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const PRESET_AVATARS = [
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+    'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150',
+    'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150',
+    'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150',
+    'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150',
+  ];
+
+  const handleOpenEditModal = () => {
+    setEditName(currentUser?.name || '');
+    setEditPhone(currentUser?.phone || '');
+    setEditAvatar(currentUser?.avatar || '');
+    setShowEditModal(true);
+    triggerLight();
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editName.trim()) {
+      Alert.alert('Required', 'Please enter your name.');
+      return;
+    }
+    setIsSavingProfile(true);
+    try {
+      await updateProfile({
+        name: editName.trim(),
+        phone: editPhone.trim() || null,
+        avatar: editAvatar.trim() || null,
+      });
+      triggerSuccess();
+      setShowEditModal(false);
+    } catch (err) {
+      console.warn('Error saving profile:', err);
+      Alert.alert('Error', 'Could not update profile. Please try again.');
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   // Logout state
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -186,12 +241,45 @@ export default function ProfileScreen() {
             isUser={true}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.userName} numberOfLines={1}>
-              {displayName}
-            </Text>
+            <View style={styles.profileHeaderRow}>
+              <Text style={styles.userName} numberOfLines={1}>
+                {displayName}
+              </Text>
+              <TouchableOpacity
+                style={styles.editProfilePill}
+                onPress={handleOpenEditModal}
+                activeOpacity={0.75}
+              >
+                <Edit3 size={12} color={COLORS.primary} style={{ marginRight: 4 }} />
+                <Text style={styles.editProfilePillText}>Edit</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={styles.userEmail} numberOfLines={1}>
               {displayEmail}
             </Text>
+
+            {/* Contact / Phone Row */}
+            <TouchableOpacity
+              style={styles.contactRow}
+              onPress={handleOpenEditModal}
+              activeOpacity={0.7}
+            >
+              <Phone
+                size={12}
+                color={currentUser?.phone ? COLORS.primary : COLORS.textMuted}
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={[
+                  styles.contactText,
+                  !currentUser?.phone && styles.contactTextEmpty,
+                ]}
+                numberOfLines={1}
+              >
+                {currentUser?.phone ? currentUser.phone : '+ Add Contact Number'}
+              </Text>
+            </TouchableOpacity>
+
             <View
               style={[
                 styles.statusPill,
@@ -426,6 +514,134 @@ export default function ProfileScreen() {
         trip={selectedHistoricalTrip}
         onClose={() => setSelectedHistoricalTrip(null)}
       />
+
+      {/* EDIT PROFILE MODAL */}
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <SafeAreaView style={styles.editModalContainer} edges={['top', 'bottom']}>
+          <View style={styles.editModalHeader}>
+            <View>
+              <Text style={styles.editModalTitle}>Edit Profile</Text>
+              <Text style={styles.editModalSub}>
+                Update your personal details & contact number
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowEditModal(false)}
+              style={styles.editModalCloseBtn}
+              activeOpacity={0.7}
+            >
+              <X size={20} color={COLORS.textPrimary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={styles.editModalContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Active Avatar Preview */}
+            <View style={styles.avatarPreviewCenter}>
+              <MemberAvatar
+                uri={editAvatar}
+                name={editName || 'You'}
+                size="xl"
+                status="live"
+                isUser={true}
+              />
+              <Text style={styles.avatarPickerLabel}>CHOOSE YOUR AVATAR</Text>
+            </View>
+
+            {/* Avatar Selector Grid */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.avatarScrollRow}
+            >
+              {PRESET_AVATARS.map((uri, idx) => (
+                <TouchableOpacity
+                  key={`avatar-${idx}`}
+                  style={[
+                    styles.avatarOption,
+                    editAvatar === uri && styles.avatarOptionSelected,
+                  ]}
+                  onPress={() => {
+                    triggerLight();
+                    setEditAvatar(uri);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <MemberAvatar uri={uri} name="Avatar" size="md" />
+                  {editAvatar === uri && (
+                    <View style={styles.avatarCheckBadge}>
+                      <Check size={12} color={COLORS.white} strokeWidth={3} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Custom Avatar URL input (optional) */}
+            <Text style={styles.fieldLabel}>OR CUSTOM AVATAR URL</Text>
+            <TextInput
+              style={styles.editInput}
+              value={editAvatar}
+              onChangeText={setEditAvatar}
+              placeholder="https://example.com/avatar.jpg"
+              placeholderTextColor={COLORS.textMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            {/* Full Name Input */}
+            <Text style={styles.fieldLabel}>FULL NAME *</Text>
+            <TextInput
+              style={styles.editInput}
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="e.g. John Doe"
+              placeholderTextColor={COLORS.textMuted}
+            />
+
+            {/* Contact / Phone Number */}
+            <Text style={styles.fieldLabel}>CONTACT NUMBER (FOR CALLING) *</Text>
+            <TextInput
+              style={styles.editInput}
+              value={editPhone}
+              onChangeText={setEditPhone}
+              placeholder="e.g. +91 98765 43210"
+              placeholderTextColor={COLORS.textMuted}
+              keyboardType="phone-pad"
+            />
+            <View style={styles.phoneNoticeBox}>
+              <Text style={styles.phoneNoticeText}>
+                📞 Your contact number allows fellow crew members and trip hosts to call you directly during emergencies.
+              </Text>
+            </View>
+
+            {/* Save & Cancel */}
+            <PrimaryButton
+              title={isSavingProfile ? 'Saving Changes…' : 'Save Profile Details'}
+              onPress={handleSaveProfile}
+              size="lg"
+              disabled={isSavingProfile}
+              style={{ marginTop: 24, marginBottom: 12 }}
+            />
+
+            <SecondaryButton
+              title="Cancel"
+              onPress={() => setShowEditModal(false)}
+              size="md"
+              variant="outline"
+            />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -774,5 +990,155 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  profileHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  editProfilePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: RADIUS.pill,
+  },
+  editProfilePillText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontSize: 11,
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  contactText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textPrimary,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  contactTextEmpty: {
+    color: COLORS.primary,
+    fontStyle: 'italic',
+  },
+  editModalContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  editModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: COLORS.surface,
+  },
+  editModalTitle: {
+    ...TYPOGRAPHY.h2,
+    fontSize: 20,
+    color: COLORS.textPrimary,
+  },
+  editModalSub: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  editModalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  editModalContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  avatarPreviewCenter: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  avatarPickerLabel: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    letterSpacing: 0.5,
+    marginTop: 10,
+  },
+  avatarScrollRow: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
+  avatarOption: {
+    marginRight: 12,
+    borderRadius: 30,
+    padding: 3,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    position: 'relative',
+  },
+  avatarOptionSelected: {
+    borderColor: COLORS.primary,
+  },
+  avatarCheckBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.white,
+  },
+  fieldLabel: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    letterSpacing: 0.5,
+    marginBottom: 6,
+    marginTop: 8,
+  },
+  editInput: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: COLORS.textPrimary,
+    marginBottom: 10,
+  },
+  phoneNoticeBox: {
+    backgroundColor: '#EFF6FF',
+    padding: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  phoneNoticeText: {
+    ...TYPOGRAPHY.caption,
+    color: '#1E40AF',
+    lineHeight: 18,
+    fontSize: 12,
   },
 });

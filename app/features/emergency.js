@@ -7,6 +7,7 @@ import {
   ScrollView,
   Linking,
   Share,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -43,7 +44,7 @@ export default function EmergencyScreen() {
   const nearestList = userLocation
     ? locationService.getNearestMembers(userLocation, members, 3)
     : [];
-  const organizer = activeTrip?.organizer || { name: 'Organizer', phone: '+91 98200 12345' };
+  const organizer = activeTrip?.organizer || { name: 'Organizer', phone: null };
 
   const handleTriggerAlert = () => {
     triggerDanger();
@@ -55,7 +56,33 @@ export default function EmergencyScreen() {
   };
 
   const handleCallOrganizer = () => {
-    Linking.openURL(`tel:${organizer.phone || '112'}`);
+    if (organizer?.phone) {
+      Linking.openURL(`tel:${organizer.phone}`);
+    } else {
+      Alert.alert(
+        'No Phone Added',
+        `${organizer.name} has not set their contact phone number yet.`,
+        [
+          { text: 'Call Emergency (112)', onPress: () => Linking.openURL('tel:112') },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
+  };
+
+  const handleCallMember = (m) => {
+    if (m?.phone) {
+      Linking.openURL(`tel:${m.phone}`);
+    } else {
+      Alert.alert(
+        'No Phone Number',
+        `${m.name} has not added a contact number yet in their profile.`,
+        [
+          { text: 'Call Emergency (112)', onPress: () => Linking.openURL('tel:112') },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
   };
 
   const handleShareLocation = async () => {
@@ -160,12 +187,12 @@ export default function EmergencyScreen() {
                     <View style={styles.nearbyInfo}>
                       <Text style={styles.nearbyName}>{m.name}</Text>
                       <Text style={styles.nearbyDistance}>
-                        {formatDistance(m.distanceMeters)} away
+                        {formatDistance(m.distanceMeters)} away{m.phone ? ` • 📞 ${m.phone}` : ''}
                       </Text>
                     </View>
                     <TouchableOpacity
                       style={styles.callIconBtn}
-                      onPress={() => Linking.openURL(`tel:${m.phone || '112'}`)}
+                      onPress={() => handleCallMember(m)}
                     >
                       <Phone size={16} color={COLORS.primary} />
                     </TouchableOpacity>
