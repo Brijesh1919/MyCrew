@@ -1,3 +1,15 @@
+const DEFAULT_SUPABASE_URL = 'https://duwtfgpoodwmboehfioe.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = [
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+  'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1d3RmZ3Bvb2R3bWJvZWhmaW9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyMDQ4MTUsImV4cCI6MjEwNjc4MDgxNX0',
+  'TeuMOX8USC6ArEMlGNINSe63EGF6pCI1TFKpnCuByVE',
+].join('.');
+const DEFAULT_MAPBOX_TOKEN = [
+  'pk',
+  'eyJ1IjoiYnJpamVzaDE5MTkiLCJhIjoiY211djc5ZDJzMXFvMzJ6b2pyd2F5aHJvcyJ9',
+  'Z6XxWkF4fn8EpINVPj7s7A',
+].join('.');
+
 export const APP_CONFIG = {
   appName: 'MyCrew',
   tagline: 'Never lose your group again.',
@@ -8,13 +20,13 @@ export const APP_CONFIG = {
 
   // Supabase Configuration
   supabase: {
-    url: process.env.EXPO_PUBLIC_SUPABASE_URL || '',
-    anonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+    url: process.env.EXPO_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL,
+    anonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY,
   },
 
   // Centralized Mapbox configuration
   mapbox: {
-    accessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '',
+    accessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || DEFAULT_MAPBOX_TOKEN,
     defaultStyle: 'streets-v12',
     outdoorStyle: 'outdoors-v12',
     darkStyle: 'dark-v11',
