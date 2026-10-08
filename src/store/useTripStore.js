@@ -12,6 +12,7 @@ import { useMeetingPointStore } from './useMeetingPointStore';
 import { useLocationStore } from './useLocationStore';
 import { getTripStatus } from '../utils/tripStatus';
 import { getLocationFreshness } from '../utils/freshness';
+import { analytics } from '../services/analyticsService';
 
 const STORAGE_KEY_TRIP = '@mycrew_active_trip';
 const STORAGE_KEY_ROLE = '@mycrew_user_role';
@@ -276,6 +277,8 @@ export const useTripStore = create((set, get) => ({
         isLoading: false,
       }));
 
+      analytics.logTripCreated(tripData.name || 'New Trip', tripData.durationHours || 24);
+
       const userLoc = useLocationStore.getState().userLocation;
       useCrewStore.getState().setMembers([
         {
@@ -318,6 +321,7 @@ export const useTripStore = create((set, get) => ({
     });
 
     if (res.success) {
+      analytics.logTripJoined(code);
       const trip = res.trip;
       const role = res.role || 'participant';
 

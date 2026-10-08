@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { authService } from '../services/authService';
+import { analytics } from '../services/analyticsService';
 
 export const useUserStore = create((set, get) => ({
   // Real authentication state (No mock defaults)
@@ -49,6 +50,7 @@ export const useUserStore = create((set, get) => ({
         // Restore user's persistent trips from Supabase
         const { useTripStore } = require('./useTripStore');
         useTripStore.getState().fetchUserTrips(user.id);
+        analytics.setUserId(user.id);
       } else {
         set({
           session: null,
@@ -57,11 +59,14 @@ export const useUserStore = create((set, get) => ({
           authStatus: 'unauthenticated',
           isAuthInitialized: true,
         });
+        analytics.setUserId(null);
       }
 
       // Subscribe to real-time auth changes
       authService.onAuthStateChange(async (event, newSession) => {
         if (event === 'SIGNED_IN' && newSession?.user) {
+          analytics.setUserId(newSession.user.id);
+          analytics.logLogin();
           const profile = await authService.getProfile(newSession.user.id);
           const displayName =
             profile?.full_name ||
@@ -88,6 +93,7 @@ export const useUserStore = create((set, get) => ({
           const { useTripStore } = require('./useTripStore');
           useTripStore.getState().fetchUserTrips(newSession.user.id);
         } else if (event === 'SIGNED_OUT') {
+          analytics.setUserId(null);
           const { useTripStore } = require('./useTripStore');
           useTripStore.getState().clearStoreOnLogout();
 

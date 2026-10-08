@@ -20,7 +20,9 @@
         {
           "cameraPermission": "Allow MyCrew to access your camera to scan crew QR codes."
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/analytics"
     ],
     "ios": {
       "supportsTablet": true,
@@ -33,6 +35,7 @@
     "android": {
       "package": "com.mycrew.app",
       "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",

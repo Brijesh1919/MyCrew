@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { meetingPointService } from '../services/meetingPointService';
+import { analytics } from '../services/analyticsService';
 
 export const useMeetingPointStore = create((set, get) => ({
   meetingPoints: meetingPointService.getMeetingPoints(),
@@ -24,6 +25,7 @@ export const useMeetingPointStore = create((set, get) => ({
 
   addMeetingPoint: async (pointData, members = []) => {
     const newPoint = await meetingPointService.createMeetingPoint(pointData, members);
+    analytics.logMeetingPointSet(newPoint?.title || newPoint?.name || 'Meeting Point');
     set({
       meetingPoints: [...meetingPointService.getMeetingPoints()],
       selectedMeetingPoint: newPoint,
