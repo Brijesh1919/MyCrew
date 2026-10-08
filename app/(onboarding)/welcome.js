@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Users, MapPin, Sparkles, ArrowRight } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Sparkles, ArrowRight } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { useTripStore } from '../../src/store/useTripStore';
@@ -25,220 +26,207 @@ export default function OnboardingScreen1() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* Top Header Row with Skip button */}
-        <View style={styles.topHeader}>
-          {/* Step dots */}
-          <View style={styles.dotsContainer}>
-            <View style={[styles.dot, styles.dotActive]} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
+    <View style={styles.rootContainer}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+      {/* Full-screen Background Photography */}
+      <Image
+        source={require('../../assets/onboarding_1.jpg')}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
+
+      {/* Cinematic Gradient Scrim (Darkens bottom for high-contrast readability) */}
+      <LinearGradient
+        colors={[
+          'rgba(15, 23, 42, 0.45)',
+          'rgba(15, 23, 42, 0.25)',
+          'rgba(15, 23, 42, 0.85)',
+          'rgba(15, 23, 42, 0.98)',
+        ]}
+        locations={[0, 0.38, 0.7, 1]}
+        style={StyleSheet.absoluteFillObject}
+      />
+
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.contentContainer}>
+          {/* Top Bar: Progress Indicator & Skip Pill */}
+          <View style={styles.topHeader}>
+            <View style={styles.dotsContainer}>
+              <View style={[styles.dot, styles.dotActive]} />
+              <View style={styles.dot} />
+              <View style={styles.dot} />
+            </View>
+
+            <TouchableOpacity
+              onPress={handleSkip}
+              style={styles.skipBtn}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.skipText}>Skip</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={handleSkip} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Text style={styles.skipText}>Skip</Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* Visual Map/Crew Illustration */}
-        <View style={styles.graphicContainer}>
-          <View style={styles.outerGlow}>
-            <View style={styles.radarRing}>
-              {/* Surrounding crew marker icons */}
-              <View style={[styles.avatarBadge, styles.badgeTop]}>
-                <Text style={styles.avatarLetter}>A</Text>
-              </View>
-              <View style={[styles.avatarBadge, styles.badgeRight]}>
-                <Text style={styles.avatarLetter}>R</Text>
-              </View>
-              <View style={[styles.avatarBadge, styles.badgeBottom]}>
-                <Text style={styles.avatarLetter}>P</Text>
-              </View>
-              <View style={[styles.avatarBadge, styles.badgeLeft]}>
-                <Text style={styles.avatarLetter}>K</Text>
-              </View>
+          {/* Spacer to push content towards bottom */}
+          <View style={{ flex: 1 }} />
 
-              {/* Central Map Pin Hub */}
-              <View style={styles.centerHub}>
-                <Users size={32} color={COLORS.white} />
-              </View>
+          {/* Bottom Card Content */}
+          <View style={styles.bottomSection}>
+            {/* Brand Concept Tag */}
+            <View style={styles.badgePill}>
+              <Sparkles size={13} color="#38BDF8" style={{ marginRight: 6 }} />
+              <Text style={styles.badgeText}>GROUP LIVE COORDINATION</Text>
+            </View>
+
+            {/* Headline */}
+            <Text style={styles.title}>Stay Together. Without the Stress.</Text>
+
+            {/* Subtitle Description */}
+            <Text style={styles.description}>
+              MyCrew helps your group find each other in crowded places — festivals, road trips, concerts, and adventures.
+            </Text>
+
+            {/* Actions */}
+            <View style={styles.actionSection}>
+              <PrimaryButton
+                title="Next"
+                onPress={handleNext}
+                icon={ArrowRight}
+                size="lg"
+                style={styles.nextBtn}
+              />
+
+              <TouchableOpacity
+                onPress={handleSkip}
+                style={styles.signInRow}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.signInMuted}>Already have an account? </Text>
+                <Text style={styles.signInBold}>Sign In</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
-
-        {/* Text Section */}
-        <View style={styles.textSection}>
-          <View style={styles.taglineBadge}>
-            <Sparkles size={13} color={COLORS.primary} style={{ marginRight: 6 }} />
-            <Text style={styles.taglineText}>GROUP LIVE COORDINATION</Text>
-          </View>
-
-          <Text style={styles.title}>Stay Together. Without the Stress.</Text>
-          <Text style={styles.description}>
-            MyCrew helps your group find each other in crowded places — festivals, trips, weddings, treks and more.
-          </Text>
-        </View>
-
-        {/* Actions */}
-        <View style={styles.actionSection}>
-          <PrimaryButton
-            title="Next"
-            onPress={handleNext}
-            icon={ArrowRight}
-            size="lg"
-          />
-        </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
-  container: {
+  contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingBottom: 28,
+    paddingBottom: 24,
     justifyContent: 'space-between',
   },
   topHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 16,
-    paddingBottom: 10,
+    paddingTop: 12,
   },
   dotsContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   dot: {
     width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#CBD5E1',
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
   },
   dotActive: {
-    width: 24,
-    backgroundColor: COLORS.primary,
+    width: 28,
+    backgroundColor: '#38BDF8',
+  },
+  skipBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: RADIUS.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
   },
   skipText: {
-    ...TYPOGRAPHY.body,
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
+    ...TYPOGRAPHY.caption,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F8FAFC',
   },
-  graphicContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 20,
+  bottomSection: {
+    paddingBottom: 10,
   },
-  outerGlow: {
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(37, 99, 235, 0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.1)',
-  },
-  radarRing: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    backgroundColor: 'rgba(37, 99, 235, 0.08)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.2)',
-    position: 'relative',
-  },
-  centerHub: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...SHADOWS.md,
-  },
-  avatarBadge: {
-    position: 'absolute',
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    ...SHADOWS.sm,
-  },
-  badgeTop: {
-    top: -12,
-    alignSelf: 'center',
-  },
-  badgeRight: {
-    right: -12,
-    top: '42%',
-    borderColor: COLORS.success,
-  },
-  badgeBottom: {
-    bottom: -12,
-    alignSelf: 'center',
-    borderColor: COLORS.warning,
-  },
-  badgeLeft: {
-    left: -12,
-    top: '42%',
-    borderColor: COLORS.accent,
-  },
-  avatarLetter: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: COLORS.textPrimary,
-  },
-  textSection: {
-    alignItems: 'center',
-    paddingHorizontal: 8,
-  },
-  taglineBadge: {
+  badgePill: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 12,
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.35)',
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: RADIUS.pill,
     marginBottom: 16,
   },
-  taglineText: {
+  badgeText: {
     ...TYPOGRAPHY.badge,
-    color: COLORS.primary,
+    color: '#38BDF8',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 1,
   },
   title: {
     ...TYPOGRAPHY.h1,
-    fontSize: 27,
-    textAlign: 'center',
-    color: COLORS.textPrimary,
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#FFFFFF',
     marginBottom: 12,
-    lineHeight: 34,
+    lineHeight: 38,
+    letterSpacing: -0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.45)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   description: {
-    ...TYPOGRAPHY.bodySecondary,
+    ...TYPOGRAPHY.body,
     fontSize: 15,
-    textAlign: 'center',
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-    paddingHorizontal: 4,
+    color: '#CBD5E1',
+    lineHeight: 23,
+    marginBottom: 28,
   },
   actionSection: {
-    marginTop: 20,
+    width: '100%',
+  },
+  nextBtn: {
+    backgroundColor: '#2563EB',
+    borderRadius: RADIUS.xl,
+    ...SHADOWS.lg,
+  },
+  signInRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 18,
+    paddingVertical: 4,
+  },
+  signInMuted: {
+    ...TYPOGRAPHY.caption,
+    color: '#94A3B8',
+    fontSize: 13,
+  },
+  signInBold: {
+    ...TYPOGRAPHY.caption,
+    color: '#38BDF8',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

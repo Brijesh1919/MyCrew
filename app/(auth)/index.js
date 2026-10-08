@@ -1,13 +1,25 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  StatusBar,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Users, Shield, ArrowRight } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Users, Shield, ArrowRight, Sparkles } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { GoogleButton } from '../../src/components/GoogleButton';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.38);
 
 export default function AuthLandingScreen() {
   const router = useRouter();
@@ -24,22 +36,60 @@ export default function AuthLandingScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* Top Branding Section */}
-        <View style={styles.brandSection}>
-          <View style={styles.logoBadge}>
-            <Users size={32} color={COLORS.primary} />
-          </View>
-          <Text style={styles.appName}>MyCrew</Text>
-          <Text style={styles.headline}>Welcome to MyCrew</Text>
-          <Text style={styles.subheadline}>
-            Find your people. Stay together. Leave the trip behind when it's over.
-          </Text>
+    <View style={styles.rootContainer}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Top Hero Photography with Gradient Scrim */}
+        <View style={styles.heroSection}>
+          <Image
+            source={require('../../assets/auth_hero.jpg')}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+
+          {/* Top subtle scrim for status bar clarity */}
+          <LinearGradient
+            colors={['rgba(15, 23, 42, 0.65)', 'transparent']}
+            style={styles.heroTopScrim}
+          />
+
+          {/* Bottom gradient fade into the card */}
+          <LinearGradient
+            colors={['transparent', 'rgba(15, 23, 42, 0.35)', 'rgba(15, 23, 42, 0.75)']}
+            style={styles.heroBottomScrim}
+          />
+
+          {/* Floating Brand Emblem & Badge */}
+          <SafeAreaView edges={['top']} style={styles.heroBadgeSafe}>
+            <View style={styles.brandHeroBadge}>
+              <View style={styles.brandIconCircle}>
+                <Users size={16} color="#38BDF8" strokeWidth={2.4} />
+              </View>
+              <Text style={styles.brandHeroText}>MYCREW</Text>
+            </View>
+
+            <View style={styles.taglineChip}>
+              <Sparkles size={11} color="#38BDF8" style={{ marginRight: 5 }} />
+              <Text style={styles.taglineChipText}>GROUP LIVE COORDINATION</Text>
+            </View>
+          </SafeAreaView>
         </View>
 
-        {/* Auth Action Cards */}
-        <View style={styles.actionSection}>
+        {/* Elevated Bottom Action Card */}
+        <View style={styles.cardSection}>
+          {/* Card Header Typography */}
+          <View style={styles.titleSection}>
+            <Text style={styles.headline}>Welcome to MyCrew</Text>
+            <Text style={styles.subheadline}>
+              Find your people. Stay together. Leave the trip behind when it's over.
+            </Text>
+          </View>
+
           {/* Continue with Google */}
           <GoogleButton
             onSuccess={() => router.replace('/(tabs)/home')}
@@ -53,26 +103,27 @@ export default function AuthLandingScreen() {
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Create Account Button */}
+          {/* Primary CTA: Create Account */}
           <PrimaryButton
             title="Create Account"
             onPress={handleCreateAccount}
             icon={ArrowRight}
             size="lg"
-            style={styles.btnSpacing}
+            style={styles.createBtn}
           />
 
-          {/* Log In Button */}
+          {/* Secondary CTA: Log In */}
           <SecondaryButton
             title="Log In"
             onPress={handleLogIn}
             size="lg"
             variant="outline"
+            style={styles.loginBtn}
           />
 
-          {/* Privacy statement */}
+          {/* Privacy Guarantee Banner */}
           <View style={styles.privacyBanner}>
-            <Shield size={14} color={COLORS.primary} style={{ marginRight: 6 }} />
+            <Shield size={14} color="#0284C7" style={{ marginRight: 7 }} />
             <Text style={styles.privacyText}>
               Temporary by design. Your crew trip ends when the trip ends.
             </Text>
@@ -83,71 +134,139 @@ export default function AuthLandingScreen() {
             By continuing, you agree to MyCrew's Terms & Privacy Policy.
           </Text>
         </View>
-      </View>
-    </SafeAreaView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  rootContainer: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#0F172A',
   },
-  container: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1,
+    backgroundColor: '#0F172A',
+  },
+  heroSection: {
+    height: Math.max(HERO_HEIGHT, 260),
+    width: '100%',
+    position: 'relative',
+    backgroundColor: '#0F172A',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroTopScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 90,
+  },
+  heroBottomScrim: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  heroBadgeSafe: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingTop: 16,
     justifyContent: 'space-between',
+    paddingBottom: 32,
   },
-  brandSection: {
+  brandHeroBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
-  logoBadge: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: COLORS.primaryLight,
+  brandIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(56, 189, 248, 0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    ...SHADOWS.sm,
+    marginRight: 8,
   },
-  appName: {
-    ...TYPOGRAPHY.h2,
-    fontSize: 20,
-    color: COLORS.primary,
+  brandHeroText: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 12,
+    color: '#F8FAFC',
+    fontWeight: '800',
     letterSpacing: 1.5,
-    marginBottom: 8,
-    textTransform: 'uppercase',
+  },
+  taglineChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(56, 189, 248, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.4)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: RADIUS.pill,
+  },
+  taglineChipText: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 10,
+    color: '#38BDF8',
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  cardSection: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -20,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 24,
+    ...SHADOWS.lg,
+  },
+  titleSection: {
+    marginBottom: 20,
+    alignItems: 'center',
   },
   headline: {
     ...TYPOGRAPHY.h1,
-    fontSize: 28,
-    color: COLORS.textPrimary,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#0F172A',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 6,
+    letterSpacing: -0.4,
   },
   subheadline: {
     ...TYPOGRAPHY.bodySecondary,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
-    color: COLORS.textSecondary,
+    color: '#64748B',
     maxWidth: 320,
   },
-  actionSection: {
-    width: '100%',
-    paddingBottom: 10,
-  },
   googleBtn: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 14,
+    marginVertical: 12,
   },
   dividerLine: {
     flex: 1,
@@ -156,39 +275,46 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     paddingHorizontal: 12,
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontWeight: '500',
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '600',
   },
-  btnSpacing: {
+  createBtn: {
+    backgroundColor: '#2563EB',
+    borderRadius: RADIUS.xl,
     marginBottom: 12,
+  },
+  loginBtn: {
+    borderRadius: RADIUS.xl,
+    borderColor: '#CBD5E1',
   },
   privacyBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F0F9FF',
     borderRadius: RADIUS.md,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    marginTop: 20,
+    marginTop: 18,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
+    borderColor: '#BAE6FD',
   },
   privacyText: {
     fontSize: 12,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
+    color: '#0369A1',
+    fontWeight: '600',
     flexShrink: 1,
     textAlign: 'center',
   },
   legalText: {
     ...TYPOGRAPHY.caption,
-    fontSize: 12,
-    color: COLORS.textMuted,
+    fontSize: 11,
+    color: '#94A3B8',
     textAlign: 'center',
     marginTop: 14,
     paddingHorizontal: 16,
     lineHeight: 16,
   },
 });
+

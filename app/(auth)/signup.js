@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Eye, EyeOff, User, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react-native';
+import { Eye, EyeOff, User, Mail, Lock, AlertCircle, ArrowRight, Users } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { AppHeader } from '../../src/components/AppHeader';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
@@ -139,6 +139,12 @@ export default function SignUpScreen() {
               <Text style={styles.errorBannerText}>{generalError}</Text>
             </View>
           ) : null}
+
+          {/* Brand Badge */}
+          <View style={styles.brandBadge}>
+            <Users size={12} color={COLORS.primary} style={{ marginRight: 6 }} />
+            <Text style={styles.brandBadgeText}>JOIN MYCREW</Text>
+          </View>
 
           {/* Form Card */}
           <View style={styles.card}>
@@ -399,5 +405,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  brandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: RADIUS.pill,
+    marginBottom: 16,
+  },
+  brandBadgeText: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.primary,
+    letterSpacing: 0.8,
   },
 });
