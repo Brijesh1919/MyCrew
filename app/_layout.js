@@ -5,12 +5,14 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { COLORS } from '../src/constants/theme';
 import { analytics } from '../src/services/analyticsService';
+import { crashlytics } from '../src/services/crashlyticsService';
 
 export default function RootLayout() {
   const { width } = useWindowDimensions();
   const isDesktopWeb = Platform.OS === 'web' && width > 520;
 
   useEffect(() => {
+    crashlytics.init();
     analytics.logAppOpen();
   }, []);
 
