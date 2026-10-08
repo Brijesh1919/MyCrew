@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -40,9 +41,11 @@ export default function PeopleScreen() {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconCircle}>
-            <Users size={40} color={COLORS.primary} />
-          </View>
+          <Image
+            source={require('../../assets/ill_people_empty.jpg')}
+            style={styles.emptyIllustrationImage}
+            resizeMode="contain"
+          />
           <Text style={styles.emptyTitle}>No Crew Members Yet</Text>
           <Text style={styles.emptyDesc}>
             Join a trip to see who's with you.
@@ -289,16 +292,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
   },
-  emptyIconCircle: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
+  emptyIllustrationImage: {
+    width: 140,
+    height: 140,
+    marginBottom: 16,
   },
   emptyTitle: {
     ...TYPOGRAPHY.h1,

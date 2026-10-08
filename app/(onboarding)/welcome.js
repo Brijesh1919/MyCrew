@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Sparkles, ArrowRight } from 'lucide-react-native';
@@ -11,6 +11,7 @@ import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
 export default function OnboardingScreen1() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { triggerLight } = useHapticFeedback();
   const setOnboardingCompleted = useTripStore((state) => state.setOnboardingCompleted);
 
@@ -26,17 +27,14 @@ export default function OnboardingScreen1() {
   };
 
   return (
-    <View style={styles.rootContainer}>
+    <ImageBackground
+      source={require('../../assets/onboarding_1.jpg')}
+      style={styles.rootContainer}
+      resizeMode="cover"
+    >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Full-screen Background Photography */}
-      <Image
-        source={require('../../assets/onboarding_1.jpg')}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode="cover"
-      />
-
-      {/* Cinematic Gradient Scrim (Darkens bottom for high-contrast readability) */}
+      {/* Layer 1: Cinematic Gradient Scrim (Darkens bottom for high-contrast readability) */}
       <LinearGradient
         colors={[
           'rgba(15, 23, 42, 0.45)',
@@ -46,70 +44,78 @@ export default function OnboardingScreen1() {
         ]}
         locations={[0, 0.38, 0.7, 1]}
         style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
       />
 
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.contentContainer}>
-          {/* Top Bar: Progress Indicator & Skip Pill */}
-          <View style={styles.topHeader}>
-            <View style={styles.dotsContainer}>
-              <View style={[styles.dot, styles.dotActive]} />
-              <View style={styles.dot} />
-              <View style={styles.dot} />
-            </View>
+      {/* Layer 2: Interactive In-flow Foreground Content with Safe Insets */}
+      <View
+        style={[
+          styles.contentContainer,
+          {
+            paddingTop: Math.max(insets.top, 20),
+            paddingBottom: Math.max(insets.bottom, 24),
+          },
+        ]}
+      >
+        {/* Top Bar: Progress Indicator & Skip Pill */}
+        <View style={styles.topHeader}>
+          <View style={styles.dotsContainer}>
+            <View style={[styles.dot, styles.dotActive]} />
+            <View style={styles.dot} />
+            <View style={styles.dot} />
+          </View>
+
+          <TouchableOpacity
+            onPress={handleSkip}
+            style={styles.skipBtn}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.skipText}>Skip</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Spacer to push content towards bottom */}
+        <View style={{ flex: 1 }} />
+
+        {/* Bottom Card Content */}
+        <View style={styles.bottomSection}>
+          {/* Brand Concept Tag */}
+          <View style={styles.badgePill}>
+            <Sparkles size={13} color="#38BDF8" style={{ marginRight: 6 }} />
+            <Text style={styles.badgeText}>GROUP LIVE COORDINATION</Text>
+          </View>
+
+          {/* Headline */}
+          <Text style={styles.title}>Stay Together. Without the Stress.</Text>
+
+          {/* Subtitle Description */}
+          <Text style={styles.description}>
+            MyCrew helps your group find each other in crowded places — festivals, road trips, concerts, and adventures.
+          </Text>
+
+          {/* Actions */}
+          <View style={styles.actionSection}>
+            <PrimaryButton
+              title="Next"
+              onPress={handleNext}
+              icon={ArrowRight}
+              size="lg"
+              style={styles.nextBtn}
+            />
 
             <TouchableOpacity
               onPress={handleSkip}
-              style={styles.skipBtn}
+              style={styles.signInRow}
               activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.skipText}>Skip</Text>
+              <Text style={styles.signInMuted}>Already have an account? </Text>
+              <Text style={styles.signInBold}>Sign In</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Spacer to push content towards bottom */}
-          <View style={{ flex: 1 }} />
-
-          {/* Bottom Card Content */}
-          <View style={styles.bottomSection}>
-            {/* Brand Concept Tag */}
-            <View style={styles.badgePill}>
-              <Sparkles size={13} color="#38BDF8" style={{ marginRight: 6 }} />
-              <Text style={styles.badgeText}>GROUP LIVE COORDINATION</Text>
-            </View>
-
-            {/* Headline */}
-            <Text style={styles.title}>Stay Together. Without the Stress.</Text>
-
-            {/* Subtitle Description */}
-            <Text style={styles.description}>
-              MyCrew helps your group find each other in crowded places — festivals, road trips, concerts, and adventures.
-            </Text>
-
-            {/* Actions */}
-            <View style={styles.actionSection}>
-              <PrimaryButton
-                title="Next"
-                onPress={handleNext}
-                icon={ArrowRight}
-                size="lg"
-                style={styles.nextBtn}
-              />
-
-              <TouchableOpacity
-                onPress={handleSkip}
-                style={styles.signInRow}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.signInMuted}>Already have an account? </Text>
-                <Text style={styles.signInBold}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
-      </SafeAreaView>
-    </View>
+      </View>
+    </ImageBackground>
   );
 }
 
@@ -118,13 +124,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0F172A',
   },
-  safeArea: {
-    flex: 1,
-  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingBottom: 24,
     justifyContent: 'space-between',
   },
   topHeader: {

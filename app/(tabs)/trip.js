@@ -11,6 +11,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Share,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -114,9 +115,11 @@ export default function TripScreen() {
         >
           {/* Main Empty State Box */}
           <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconCircle}>
-              <Compass size={38} color={COLORS.primary} />
-            </View>
+            <Image
+              source={require('../../assets/ill_trip_empty.jpg')}
+              style={styles.emptyIllustrationImage}
+              resizeMode="contain"
+            />
             <Text style={styles.emptyTitle}>
               {hasHistory ? "You're not in a crew right now." : "You're not in a crew yet."}
             </Text>
@@ -477,13 +480,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     ...SHADOWS.sm,
   },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
+  emptyIllustrationImage: {
+    width: 140,
+    height: 140,
     marginBottom: 16,
   },
   emptyTitle: {

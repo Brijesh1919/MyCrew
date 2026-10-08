@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Navigation, Compass, ArrowRight, ArrowLeft, MapPin } from 'lucide-react-native';
@@ -11,6 +11,7 @@ import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
 export default function OnboardingScreen2() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { triggerLight } = useHapticFeedback();
   const setOnboardingCompleted = useTripStore((state) => state.setOnboardingCompleted);
 
@@ -35,17 +36,14 @@ export default function OnboardingScreen2() {
   };
 
   return (
-    <View style={styles.rootContainer}>
+    <ImageBackground
+      source={require('../../assets/onboarding_2.jpg')}
+      style={styles.rootContainer}
+      resizeMode="cover"
+    >
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Full-screen Background Photography */}
-      <Image
-        source={require('../../assets/onboarding_2.jpg')}
-        style={StyleSheet.absoluteFillObject}
-        resizeMode="cover"
-      />
-
-      {/* Cinematic Gradient Scrim */}
+      {/* Layer 1: Cinematic Gradient Scrim */}
       <LinearGradient
         colors={[
           'rgba(15, 23, 42, 0.4)',
@@ -55,10 +53,19 @@ export default function OnboardingScreen2() {
         ]}
         locations={[0, 0.32, 0.65, 1]}
         style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
       />
 
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.contentContainer}>
+      {/* Layer 2: Interactive In-flow Foreground Content with Safe Insets */}
+      <View
+        style={[
+          styles.contentContainer,
+          {
+            paddingTop: Math.max(insets.top, 20),
+            paddingBottom: Math.max(insets.bottom, 24),
+          },
+        ]}
+      >
           {/* Top Header: Step Dots & Skip Button */}
           <View style={styles.topHeader}>
             <View style={styles.dotsContainer}>
@@ -169,23 +176,18 @@ export default function OnboardingScreen2() {
             </View>
           </View>
         </View>
-      </SafeAreaView>
-    </View>
-  );
-}
+      </ImageBackground>
+    );
+  }
 
 const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
     backgroundColor: '#0F172A',
   },
-  safeArea: {
-    flex: 1,
-  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingBottom: 24,
     justifyContent: 'space-between',
   },
   topHeader: {

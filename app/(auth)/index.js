@@ -8,7 +8,7 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Users, Shield, ArrowRight, Sparkles } from 'lucide-react-native';
@@ -23,6 +23,7 @@ const HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.38);
 
 export default function AuthLandingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { triggerLight } = useHapticFeedback();
 
   const handleCreateAccount = () => {
@@ -56,16 +57,23 @@ export default function AuthLandingScreen() {
           <LinearGradient
             colors={['rgba(15, 23, 42, 0.65)', 'transparent']}
             style={styles.heroTopScrim}
+            pointerEvents="none"
           />
 
           {/* Bottom gradient fade into the card */}
           <LinearGradient
             colors={['transparent', 'rgba(15, 23, 42, 0.35)', 'rgba(15, 23, 42, 0.75)']}
             style={styles.heroBottomScrim}
+            pointerEvents="none"
           />
 
           {/* Floating Brand Emblem & Badge */}
-          <SafeAreaView edges={['top']} style={styles.heroBadgeSafe}>
+          <View
+            style={[
+              styles.heroBadgeSafe,
+              { paddingTop: Math.max(insets.top, 16) },
+            ]}
+          >
             <View style={styles.brandHeroBadge}>
               <View style={styles.brandIconCircle}>
                 <Users size={16} color="#38BDF8" strokeWidth={2.4} />
@@ -77,7 +85,7 @@ export default function AuthLandingScreen() {
               <Sparkles size={11} color="#38BDF8" style={{ marginRight: 5 }} />
               <Text style={styles.taglineChipText}>GROUP LIVE COORDINATION</Text>
             </View>
-          </SafeAreaView>
+          </View>
         </View>
 
         {/* Elevated Bottom Action Card */}
@@ -157,6 +165,7 @@ const styles = StyleSheet.create({
   heroImage: {
     width: '100%',
     height: '100%',
+    zIndex: 0,
   },
   heroTopScrim: {
     position: 'absolute',
@@ -164,6 +173,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 90,
+    zIndex: 1,
   },
   heroBottomScrim: {
     position: 'absolute',
@@ -171,6 +181,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 120,
+    zIndex: 1,
   },
   heroBadgeSafe: {
     position: 'absolute',
@@ -182,6 +193,8 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     justifyContent: 'space-between',
     paddingBottom: 32,
+    zIndex: 10,
+    elevation: 10,
   },
   brandHeroBadge: {
     flexDirection: 'row',

@@ -9,6 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
   ScrollView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -120,9 +121,11 @@ export default function MapScreen() {
     return (
       <SafeAreaView style={styles.emptySafeContainer}>
         <View style={styles.emptyContentBox}>
-          <View style={styles.emptyIconCircle}>
-            <MapPin size={40} color={COLORS.primary} />
-          </View>
+          <Image
+            source={require('../../assets/ill_map_empty.jpg')}
+            style={styles.emptyIllustrationImage}
+            resizeMode="contain"
+          />
           <Text style={styles.emptyTitle}>No Crew Location Yet</Text>
           <Text style={styles.emptyDesc}>
             Join a crew to see your group on the live map.
@@ -132,13 +135,16 @@ export default function MapScreen() {
               title="Join a Crew"
               onPress={() => router.push('/(auth)/join')}
               size="lg"
-              style={{ marginBottom: 12 }}
+              fullWidth={true}
+              style={styles.emptyActionBtn}
             />
             <SecondaryButton
               title="Create a New Trip"
               onPress={() => router.push('/(auth)/create-trip')}
-              size="md"
+              size="lg"
+              fullWidth={true}
               variant="outline"
+              style={styles.emptyActionBtn}
             />
           </View>
         </View>
@@ -878,20 +884,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyContentBox: {
+    width: '100%',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 28,
     maxWidth: 360,
   },
-  emptyIconCircle: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
+  emptyIllustrationImage: {
+    width: 140,
+    height: 140,
+    marginBottom: 16,
   },
   emptyTitle: {
     ...TYPOGRAPHY.h1,
@@ -905,10 +906,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     color: COLORS.textSecondary,
-    marginBottom: 24,
+    marginBottom: 26,
   },
   emptyBtnCol: {
     width: '100%',
+    alignItems: 'center',
+  },
+  emptyActionBtn: {
+    width: '100%',
+    marginBottom: 12,
   },
   deletePointBtn: {
     flexDirection: 'row',

@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -21,6 +22,8 @@ import {
   ChevronRight,
   ShieldCheck,
   CheckCircle,
+  UserPlus,
+  PlusCircle,
 } from 'lucide-react-native';
 import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
 import { MapView } from '../../src/components/MapView';
@@ -119,13 +122,11 @@ export default function HomeScreen() {
           <View style={styles.emptyHeroCard}>
             {/* Friendly Crew / Radar Illustration */}
             <View style={styles.illustrationWrapper}>
-              <View style={styles.radarOuterRing}>
-                <View style={styles.radarMiddleRing}>
-                  <View style={styles.radarCenterCircle}>
-                    <Users size={34} color={COLORS.primary} />
-                  </View>
-                </View>
-              </View>
+              <Image
+                source={require('../../assets/ill_home_empty.jpg')}
+                style={styles.emptyIllustrationImage}
+                resizeMode="contain"
+              />
             </View>
 
             <Text style={styles.emptyTitle}>You're not in a crew yet</Text>
@@ -141,7 +142,7 @@ export default function HomeScreen() {
                 onPress={() => router.push('/(auth)/join')}
               >
                 <View style={styles.btnIconWrap}>
-                  <Compass size={22} color={COLORS.white} />
+                  <UserPlus size={22} color={COLORS.white} />
                 </View>
                 <View style={styles.btnTextCol}>
                   <Text style={styles.primaryJoinBtnTitle}>Join a Crew</Text>
@@ -156,7 +157,7 @@ export default function HomeScreen() {
                 onPress={() => router.push('/(auth)/create-trip')}
               >
                 <View style={[styles.btnIconWrap, styles.btnIconWrapOutlined]}>
-                  <Sparkles size={20} color={COLORS.primary} />
+                  <PlusCircle size={22} color={COLORS.primary} />
                 </View>
                 <View style={styles.btnTextCol}>
                   <Text style={styles.secondaryCreateBtnTitle}>Create a New Trip</Text>
@@ -973,36 +974,11 @@ const styles = StyleSheet.create({
   illustrationWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 14,
+    marginVertical: 10,
   },
-  radarOuterRing: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: 'rgba(37, 99, 235, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.12)',
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radarMiddleRing: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    backgroundColor: 'rgba(37, 99, 235, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(37, 99, 235, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radarCenterCircle: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: COLORS.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+  emptyIllustrationImage: {
+    width: 130,
+    height: 130,
   },
   emptyTitle: {
     ...TYPOGRAPHY.h1,
