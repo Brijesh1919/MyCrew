@@ -120,6 +120,10 @@ export const useTripStore = create((set, get) => ({
                   ? Math.max(0, Math.round((Date.now() - new Date(m.location_updated_at).getTime()) / 1000))
                   : 0,
                 location_updated_at: m.location_updated_at,
+                battery:
+                  m.battery_level !== null && m.battery_level !== undefined
+                    ? Number(m.battery_level)
+                    : null,
                 isSafe: true,
                 cluster: 'Active Crew',
                 coordinates: hasCoords
@@ -366,6 +370,10 @@ export const useTripStore = create((set, get) => ({
               ? Math.max(0, Math.round((Date.now() - new Date(m.location_updated_at).getTime()) / 1000))
               : 0,
             location_updated_at: m.location_updated_at,
+            battery:
+              m.battery_level !== null && m.battery_level !== undefined
+                ? Number(m.battery_level)
+                : null,
             isSafe: true,
             cluster: 'Active Crew',
             coordinates: hasCoords

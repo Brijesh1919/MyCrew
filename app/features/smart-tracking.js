@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { AppHeader } from '../../src/components/AppHeader';
 import { useUserStore } from '../../src/store/useUserStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
+import { batteryService } from '../../src/services/batteryService';
 
 export default function SmartTrackingScreen() {
   const { triggerLight } = useHapticFeedback();
@@ -23,6 +24,20 @@ export default function SmartTrackingScreen() {
   const setTrackingMode = useUserStore((state) => state.setTrackingMode);
   const isSharing = useLocationStore((state) => state.isLocationSharingActive);
   const setIsSharing = useLocationStore((state) => state.setIsLocationSharingActive);
+
+  const [realBattery, setRealBattery] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    batteryService.getBatteryLevel().then((lvl) => {
+      if (isMounted && typeof lvl === 'number') {
+        setRealBattery(lvl);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const selectedMode = currentUser?.trackingMode || 'crowded';
 
@@ -78,7 +93,7 @@ export default function SmartTrackingScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <BatteryCharging size={16} color={COLORS.success} />
                 <Text style={[styles.telemetryVal, { marginLeft: 4 }]}>
-                  {currentUser?.batteryLevel || 64}%
+                  {typeof realBattery === 'number' ? `${realBattery}%` : `${currentUser?.batteryLevel || 100}%`}
                 </Text>
               </View>
             </View>

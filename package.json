@@ -19,6 +19,7 @@
     "@supabase/supabase-js": "^2.117.2",
     "expo": "~57.0.27",
     "expo-auth-session": "~57.0.14",
+    "expo-battery": "~57.0.3",
     "expo-camera": "~57.0.6",
     "expo-constants": "~57.0.20",
     "expo-haptics": "~57.0.3",

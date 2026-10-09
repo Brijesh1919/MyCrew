@@ -13,6 +13,7 @@ import { useUserStore } from '../store/useUserStore';
 import { tripService } from '../services/tripService';
 import { meetingPointService } from '../services/meetingPointService';
 import { locationService } from '../services/locationService';
+import { batteryService } from '../services/batteryService';
 import { useMeetingPointStore } from '../store/useMeetingPointStore';
 import { getTripStatus } from '../utils/tripStatus';
 
@@ -148,6 +149,7 @@ export const useLocationEngine = () => {
           setIsLocating(false);
 
           // Update local crew store entry immediately
+          const batteryPct = await batteryService.getBatteryLevel();
           useCrewStore.getState().updateCurrentUserLocation(currentUser.id, initialPos);
 
           // Push to Supabase immediately
@@ -159,6 +161,7 @@ export const useLocationEngine = () => {
             accuracy: initialPos.accuracy,
             heading: initialPos.heading,
             speed: initialPos.speed,
+            batteryLevel: batteryPct,
             force: true,
           });
         }
@@ -176,15 +179,18 @@ export const useLocationEngine = () => {
           // Update local crew store entry immediately
           useCrewStore.getState().updateCurrentUserLocation(currentUser.id, loc);
 
-          // Stream real coordinates to Supabase
-          tripService.updateMemberLocation({
-            tripId: activeTrip.id,
-            userId: currentUser.id,
-            latitude: loc.latitude,
-            longitude: loc.longitude,
-            accuracy: loc.accuracy,
-            heading: loc.heading,
-            speed: loc.speed,
+          // Stream real coordinates to Supabase with real hardware battery
+          batteryService.getBatteryLevel().then((bLevel) => {
+            tripService.updateMemberLocation({
+              tripId: activeTrip.id,
+              userId: currentUser.id,
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              accuracy: loc.accuracy,
+              heading: loc.heading,
+              speed: loc.speed,
+              batteryLevel: bLevel,
+            });
           });
         },
         {
@@ -210,15 +216,18 @@ export const useLocationEngine = () => {
           // Keep local user entry fresh
           useCrewStore.getState().updateCurrentUserLocation(currentUser.id, currentLoc);
 
-          tripService.updateMemberLocation({
-            tripId: activeTrip.id,
-            userId: currentUser.id,
-            latitude: currentLoc.latitude,
-            longitude: currentLoc.longitude,
-            accuracy: currentLoc.accuracy,
-            heading: currentLoc.heading,
-            speed: currentLoc.speed,
-            force: true,
+          batteryService.getBatteryLevel().then((bLevel) => {
+            tripService.updateMemberLocation({
+              tripId: activeTrip.id,
+              userId: currentUser.id,
+              latitude: currentLoc.latitude,
+              longitude: currentLoc.longitude,
+              accuracy: currentLoc.accuracy,
+              heading: currentLoc.heading,
+              speed: currentLoc.speed,
+              batteryLevel: bLevel,
+              force: true,
+            });
           });
         }
       }, 10000);

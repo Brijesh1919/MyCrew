@@ -549,6 +549,7 @@ class TripService {
     accuracy = null,
     heading = null,
     speed = null,
+    batteryLevel = null,
     force = false,
   }) {
     if (!tripId || !userId) return;
@@ -582,16 +583,22 @@ class TripService {
 
     try {
       const nowIso = new Date().toISOString();
+      const payload = {
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+        location_accuracy: accuracy !== null ? Number(accuracy) : null,
+        location_heading: heading !== null ? Number(heading) : null,
+        location_speed: speed !== null ? Number(speed) : null,
+        location_updated_at: nowIso,
+      };
+
+      if (typeof batteryLevel === 'number' && batteryLevel >= 0 && batteryLevel <= 100) {
+        payload.battery_level = Math.round(batteryLevel);
+      }
+
       const { error } = await supabase
         .from('trip_members')
-        .update({
-          latitude: Number(latitude),
-          longitude: Number(longitude),
-          location_accuracy: accuracy !== null ? Number(accuracy) : null,
-          location_heading: heading !== null ? Number(heading) : null,
-          location_speed: speed !== null ? Number(speed) : null,
-          location_updated_at: nowIso,
-        })
+        .update(payload)
         .match({ trip_id: tripId, user_id: userId });
 
       if (error) {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,7 @@ import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useUserStore } from '../../src/store/useUserStore';
+import { batteryService } from '../../src/services/batteryService';
 import { calculateDistanceMeters, formatDistance } from '../../src/utils/distance';
 
 export default function PersonDetailScreen() {
@@ -45,7 +46,31 @@ export default function PersonDetailScreen() {
     useCrewStore.getState().selectedMember ||
     members[0];
 
-  const isSelf = member?.id === currentUser?.id || member?.id === 'user';
+  const isSelf =
+    member?.id === currentUser?.id ||
+    member?.id === 'user' ||
+    member?.id === 'me' ||
+    member?.isCurrentUser ||
+    (currentUser?.name && member?.name === currentUser.name);
+
+  const [deviceBattery, setDeviceBattery] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    batteryService.getBatteryLevel().then((lvl) => {
+      if (isMounted && typeof lvl === 'number') {
+        setDeviceBattery(lvl);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const resolvedBattery = isSelf
+    ? deviceBattery ?? member?.battery ?? null
+    : member?.battery ?? null;
+
   const distanceMeters = calculateDistanceMeters(userLocation, member?.coordinates);
 
   const handleNavigate = () => {
@@ -145,7 +170,9 @@ export default function PersonDetailScreen() {
               <Battery size={18} color={COLORS.primary} />
               <Text style={styles.detailTitle}>Battery</Text>
             </View>
-            <Text style={styles.detailValue}>{member?.battery || 82}%</Text>
+            <Text style={styles.detailValue}>
+              {typeof resolvedBattery === 'number' ? `${resolvedBattery}%` : 'Not reported'}
+            </Text>
           </View>
 
           <View style={styles.divider} />

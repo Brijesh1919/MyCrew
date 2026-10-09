@@ -92,6 +92,12 @@ export const useCrewStore = create((set, get) => ({
         : 0,
       location_updated_at: row.location_updated_at,
       coordinates,
+      battery:
+        row.battery_level !== undefined && row.battery_level !== null
+          ? Number(row.battery_level)
+          : existingIndex >= 0
+          ? current[existingIndex].battery
+          : null,
       isSafe: true,
       cluster: 'Active Crew',
     };
