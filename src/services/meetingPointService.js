@@ -165,6 +165,50 @@ class MeetingPointService {
 
     return this.meetingPoints;
   }
+
+  /**
+   * Subscribes to Supabase Realtime changes for trip meeting points
+   */
+  subscribeToTripMeetingPoints(tripId, callback) {
+    if (!tripId || String(tripId).startsWith('trip_goa') || tripId === 'demo') {
+      return null;
+    }
+
+    this.unsubscribeFromMeetingPoints();
+
+    const channelName = `meeting-points-${tripId}`;
+    this.meetingPointChannel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meeting_points',
+          filter: `trip_id=eq.${tripId}`,
+        },
+        (payload) => {
+          if (callback) {
+            callback(payload);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Meeting Points Realtime (${channelName}) status:`, status);
+      });
+
+    return this.meetingPointChannel;
+  }
+
+  /**
+   * Cleans up Supabase Realtime subscription for meeting points
+   */
+  unsubscribeFromMeetingPoints() {
+    if (this.meetingPointChannel) {
+      supabase.removeChannel(this.meetingPointChannel);
+      this.meetingPointChannel = null;
+    }
+  }
 }
 
 export const meetingPointService = new MeetingPointService();

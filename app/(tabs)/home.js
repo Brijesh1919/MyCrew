@@ -24,6 +24,7 @@ import {
   CheckCircle,
   UserPlus,
   PlusCircle,
+  User,
 } from 'lucide-react-native';
 import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
 import { MapView } from '../../src/components/MapView';
@@ -466,72 +467,135 @@ export default function HomeScreen() {
         title={selectedPersonSheet?.name?.toUpperCase() || 'PERSON'}
         subtitle={
           selectedPersonSheet
-            ? `${calculateDistanceMeters(userLocation, selectedPersonSheet.coordinates)} m away`
+            ? selectedPersonSheet.id === currentUser?.id ||
+              selectedPersonSheet.id === 'me' ||
+              selectedPersonSheet.isCurrentUser
+              ? 'You (Crew Member)'
+              : `${calculateDistanceMeters(userLocation, selectedPersonSheet.coordinates)} m away`
             : ''
         }
       >
-        {selectedPersonSheet && (
-          <View style={styles.personSheetContainer}>
-            <View style={styles.personSheetTopRow}>
-              <MemberAvatar
-                uri={selectedPersonSheet.avatar}
-                name={selectedPersonSheet.name}
-                size="lg"
-                status={selectedPersonSheet.status}
-              />
-              <View style={styles.personSheetInfo}>
-                <Text style={styles.personSheetName}>{selectedPersonSheet.name}</Text>
-                <StatusBadge
+        {selectedPersonSheet && (() => {
+          const isSelf =
+            selectedPersonSheet.id === currentUser?.id ||
+            selectedPersonSheet.id === 'me' ||
+            selectedPersonSheet.isCurrentUser ||
+            selectedPersonSheet.role === 'me';
+
+          return (
+            <View style={styles.personSheetContainer}>
+              <View style={styles.personSheetTopRow}>
+                <MemberAvatar
+                  uri={selectedPersonSheet.avatar}
+                  name={selectedPersonSheet.name}
+                  size="lg"
                   status={selectedPersonSheet.status}
-                  lastSeenSecondsAgo={selectedPersonSheet.lastSeenSecondsAgo}
-                  showDetail={true}
                 />
-                <Text style={styles.personSheetDistance}>
-                  {calculateDistanceMeters(userLocation, selectedPersonSheet.coordinates)} m away from you
-                </Text>
+                <View style={styles.personSheetInfo}>
+                  <Text style={styles.personSheetName}>
+                    {selectedPersonSheet.name} {isSelf ? '(YOU)' : ''}
+                  </Text>
+                  <StatusBadge
+                    status={selectedPersonSheet.status}
+                    lastSeenSecondsAgo={selectedPersonSheet.lastSeenSecondsAgo}
+                    showDetail={true}
+                  />
+                  <Text style={styles.personSheetDistance}>
+                    {isSelf
+                      ? 'Your active device position'
+                      : `${calculateDistanceMeters(userLocation, selectedPersonSheet.coordinates)} m away from you`}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.personSheetActions}>
+                {isSelf ? (
+                  <>
+                    <PrimaryButton
+                      title="View My Location on Map"
+                      onPress={() => {
+                        setSelectedPersonSheet(null);
+                        router.push('/(tabs)/map');
+                      }}
+                      icon={Compass}
+                      size="lg"
+                      style={{ marginBottom: 10 }}
+                    />
+                    <View style={styles.personSheetBtnRow}>
+                      <TouchableOpacity
+                        style={styles.sheetActionHalfBtn}
+                        onPress={() => {
+                          setSelectedPersonSheet(null);
+                          router.push({
+                            pathname: '/features/meeting-point',
+                            params: {
+                              customLat: selectedPersonSheet.coordinates?.latitude || userLocation?.latitude,
+                              customLon: selectedPersonSheet.coordinates?.longitude || userLocation?.longitude,
+                              suggestedName: `Meet near ${selectedPersonSheet.name}`,
+                            },
+                          });
+                        }}
+                      >
+                        <MapPin size={16} color={COLORS.primary} />
+                        <Text style={styles.sheetActionBtnText}>Meet Here</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.sheetActionHalfBtn}
+                        onPress={() => {
+                          setSelectedPersonSheet(null);
+                          router.push('/(tabs)/profile');
+                        }}
+                      >
+                        <User size={16} color={COLORS.primary} />
+                        <Text style={styles.sheetActionBtnText}>My Profile</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <PrimaryButton
+                      title={`Walk to ${selectedPersonSheet.name}`}
+                      onPress={() => handleNavigateToPerson(selectedPersonSheet)}
+                      size="lg"
+                      style={{ marginBottom: 10 }}
+                    />
+                    <View style={styles.personSheetBtnRow}>
+                      <TouchableOpacity
+                        style={styles.sheetActionHalfBtn}
+                        onPress={() => {
+                          setSelectedPersonSheet(null);
+                          router.push({
+                            pathname: '/features/meeting-point',
+                            params: {
+                              customLat: selectedPersonSheet.coordinates.latitude,
+                              customLon: selectedPersonSheet.coordinates.longitude,
+                              suggestedName: `Meet near ${selectedPersonSheet.name}`,
+                            },
+                          });
+                        }}
+                      >
+                        <MapPin size={16} color={COLORS.primary} />
+                        <Text style={styles.sheetActionBtnText}>Meet Here</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.sheetActionHalfBtn}
+                        onPress={() => {
+                          setSelectedPersonSheet(null);
+                          router.push('/(tabs)/map');
+                        }}
+                      >
+                        <Compass size={16} color={COLORS.primary} />
+                        <Text style={styles.sheetActionBtnText}>View on Map</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
               </View>
             </View>
-
-            <View style={styles.personSheetActions}>
-              <PrimaryButton
-                title={`Walk to ${selectedPersonSheet.name}`}
-                onPress={() => handleNavigateToPerson(selectedPersonSheet)}
-                size="lg"
-                style={{ marginBottom: 10 }}
-              />
-              <View style={styles.personSheetBtnRow}>
-                <TouchableOpacity
-                  style={styles.sheetActionHalfBtn}
-                  onPress={() => {
-                    setSelectedPersonSheet(null);
-                    router.push({
-                      pathname: '/features/meeting-point',
-                      params: {
-                        customLat: selectedPersonSheet.coordinates.latitude,
-                        customLon: selectedPersonSheet.coordinates.longitude,
-                        suggestedName: `Meet near ${selectedPersonSheet.name}`,
-                      },
-                    });
-                  }}
-                >
-                  <MapPin size={16} color={COLORS.primary} />
-                  <Text style={styles.sheetActionBtnText}>Meet Here</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.sheetActionHalfBtn}
-                  onPress={() => {
-                    setSelectedPersonSheet(null);
-                    router.push('/(tabs)/map');
-                  }}
-                >
-                  <Compass size={16} color={COLORS.primary} />
-                  <Text style={styles.sheetActionBtnText}>View on Map</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
+          );
+        })()}
       </BottomSheet>
 
       {/* MULTIPLE ACTIVE TRIPS PICKER MODAL */}

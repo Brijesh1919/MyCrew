@@ -39,9 +39,7 @@ export const MeetingPointMarker = ({
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    justifyContent: 'center',
     width: 80,
-    height: 65,
   },
   selectedContainer: {
     transform: [{ scale: 1.15 }],

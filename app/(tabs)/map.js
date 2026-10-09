@@ -96,6 +96,12 @@ export default function MapScreen() {
     };
   }, [activeTrip?.id]);
 
+  useEffect(() => {
+    if (activeTrip?.id) {
+      useMeetingPointStore.getState().fetchTripMeetingPoints(activeTrip.id, members);
+    }
+  }, [activeTrip?.id]);
+
   const handleAllowPermission = async () => {
     const res = await locationService.requestPermission();
     if (res.granted) {
@@ -340,7 +346,9 @@ export default function MapScreen() {
                 activeOpacity={0.8}
               >
                 <MapPin size={16} color={COLORS.white} style={{ marginRight: 6 }} />
-                <Text style={styles.confirmPinDropBtnText}>Set Meeting Point Here</Text>
+                <Text style={styles.confirmPinDropBtnText} numberOfLines={1}>
+                  Set Meeting Point
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -460,13 +468,28 @@ export default function MapScreen() {
               </View>
             </View>
 
-            <PrimaryButton
-              title={`Walk to ${selectedMemberModal.name}`}
-              onPress={() => handleNavigateTo(selectedMemberModal)}
-              icon={Navigation}
-              size="lg"
-              style={{ marginTop: 14 }}
-            />
+            {selectedMemberModal.id === currentUser?.id || selectedMemberModal.id === 'me' || selectedMemberModal.isCurrentUser ? (
+              <PrimaryButton
+                title="Center on My Location"
+                onPress={() => {
+                  setSelectedMemberModal(null);
+                  if (userLocation) {
+                    useLocationStore.getState().setCameraCenter(userLocation);
+                  }
+                }}
+                icon={Compass}
+                size="lg"
+                style={{ marginTop: 14 }}
+              />
+            ) : (
+              <PrimaryButton
+                title={`Walk to ${selectedMemberModal.name}`}
+                onPress={() => handleNavigateTo(selectedMemberModal)}
+                icon={Navigation}
+                size="lg"
+                style={{ marginTop: 14 }}
+              />
+            )}
           </View>
         )}
       </BottomSheet>
@@ -1007,7 +1030,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelPinDropBtn: {
-    flex: 0.8,
+    flex: 0.85,
     paddingVertical: 12,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
@@ -1015,18 +1038,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 8,
   },
   cancelPinDropBtnText: {
     ...TYPOGRAPHY.bodyPrimary,
     color: '#E2E8F0',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
   confirmPinDropBtn: {
-    flex: 1.5,
+    flex: 1.85,
     flexDirection: 'row',
     paddingVertical: 12,
+    paddingHorizontal: 10,
     borderRadius: RADIUS.lg,
     backgroundColor: COLORS.danger,
     alignItems: 'center',
@@ -1037,7 +1061,7 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.bodyPrimary,
     color: COLORS.white,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
   },
   modalSafeContainer: {
     flex: 1,

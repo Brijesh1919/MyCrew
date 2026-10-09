@@ -547,7 +547,7 @@ export const MapView = ({
               key={mp.id}
               style={[
                 styles.markerPosition,
-                { left: pos.x - 40, top: pos.y - 50 },
+                { left: pos.x - 40, top: pos.y - 39 },
               ]}
             >
               <MeetingPointMarker
@@ -657,14 +657,16 @@ export const MapView = ({
         </View>
       )}
 
-      {/* 11. PIN PLACEMENT MODE CENTER TARGET PIN */}
+      {/* 11. PIN PLACEMENT MODE CENTER TARGET PIN (Tip anchored precisely at container center) */}
       {isPinDropMode && (
         <View
           pointerEvents="none"
           style={{
             position: 'absolute',
-            top: containerHeight / 2 - 46,
+            top: containerHeight / 2 - 40,
             left: containerWidth / 2 - 20,
+            width: 40,
+            height: 40,
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 40,
@@ -791,13 +793,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   pinDropBubble: {
+    position: 'absolute',
+    bottom: 46,
+    width: 170,
     backgroundColor: 'rgba(15, 23, 42, 0.92)',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.25)',
-    marginBottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...SHADOWS.md,
   },
   pinDropBubbleText: {
@@ -805,8 +811,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.2,
+    textAlign: 'center',
   },
   pinDropIconWrap: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#EF4444',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.6,
@@ -814,10 +825,11 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   pinGroundPulse: {
+    position: 'absolute',
+    bottom: -3,
     width: 14,
     height: 5,
     borderRadius: 7,
     backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    marginTop: -2,
   },
 });

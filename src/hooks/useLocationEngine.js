@@ -11,7 +11,9 @@ import { useTripStore } from '../store/useTripStore';
 import { useLocationStore } from '../store/useLocationStore';
 import { useUserStore } from '../store/useUserStore';
 import { tripService } from '../services/tripService';
+import { meetingPointService } from '../services/meetingPointService';
 import { locationService } from '../services/locationService';
+import { useMeetingPointStore } from '../store/useMeetingPointStore';
 import { getTripStatus } from '../utils/tripStatus';
 
 export const useLocationEngine = () => {
@@ -58,16 +60,18 @@ export const useLocationEngine = () => {
     };
   }, [Boolean(activeTrip), activeTrip?.id, activeTrip?.ends_at, checkTripExpiration, refreshFreshness]);
 
-  // 2. SUPABASE REALTIME SUBSCRIPTION FOR THE ACTIVE TRIP
+  // 2. SUPABASE REALTIME SUBSCRIPTION FOR THE ACTIVE TRIP (LOCATIONS & MEETING POINTS)
   useEffect(() => {
     if (!activeTrip || getTripStatus(activeTrip) === 'expired') {
       tripService.unsubscribeFromTripLocations();
+      meetingPointService.unsubscribeFromMeetingPoints();
       return;
     }
 
     const tripId = activeTrip.id;
-    console.log('[LocationEngine] Subscribing to Realtime location changes for trip:', tripId);
+    console.log('[LocationEngine] Subscribing to Realtime location & meeting point changes for trip:', tripId);
 
+    // 2a. Realtime location updates
     tripService.subscribeToTripLocations(tripId, (payload) => {
       if (!payload) return;
       const { eventType, new: newRow, old: oldRow } = payload;
@@ -85,9 +89,16 @@ export const useLocationEngine = () => {
       }
     });
 
+    // 2b. Realtime meeting points updates (ensures all users see newly set pins immediately)
+    meetingPointService.subscribeToTripMeetingPoints(tripId, () => {
+      const currentMembers = useCrewStore.getState().members;
+      useMeetingPointStore.getState().fetchTripMeetingPoints(tripId, currentMembers);
+    });
+
     return () => {
-      console.log('[LocationEngine] Unsubscribing from Realtime locations for trip:', tripId);
+      console.log('[LocationEngine] Unsubscribing from Realtime locations & meeting points for trip:', tripId);
       tripService.unsubscribeFromTripLocations();
+      meetingPointService.unsubscribeFromMeetingPoints();
     };
   }, [activeTrip?.id, currentUser?.id, updateMemberLocationFromRemote]);
 
