@@ -70,33 +70,39 @@ export default function CheckInScreen() {
         {/* CREW MEMBERS SAFETY LIST */}
         <Text style={styles.sectionHeading}>CREW SAFETY STATUS</Text>
 
-        {members.map((member) => (
-          <View key={member.id} style={styles.memberRow}>
-            <MemberAvatar
-              uri={member.avatar}
-              name={member.name}
-              size="md"
-              status={member.status}
-            />
-            <View style={styles.memberInfo}>
-              <Text style={styles.memberName}>{member.name}</Text>
-              <Text style={styles.memberSub}>
-                {member.status === 'live' ? 'Live on map' : 'Location delayed'}
-              </Text>
-            </View>
-
-            {member.isSafe ? (
-              <View style={styles.safeTag}>
-                <Check size={14} color={COLORS.success} />
-                <Text style={styles.safeTagText}>Safe</Text>
-              </View>
-            ) : (
-              <View style={styles.pendingTag}>
-                <Text style={styles.pendingTagText}>No response</Text>
-              </View>
-            )}
+        {members.length === 0 ? (
+          <View style={{ padding: 24, alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: '#E2E8F0', marginTop: 8 }}>
+            <Text style={{ ...TYPOGRAPHY.body, color: COLORS.textSecondary }}>No other members in this trip yet</Text>
           </View>
-        ))}
+        ) : (
+          members.map((member) => (
+            <View key={member.id} style={styles.memberRow}>
+              <MemberAvatar
+                uri={member.avatar}
+                name={member.name}
+                size="md"
+                status={member.status}
+              />
+              <View style={styles.memberInfo}>
+                <Text style={styles.memberName}>{member.name}</Text>
+                <Text style={styles.memberSub}>
+                  {member.status === 'live' ? 'Live on map' : 'Location delayed'}
+                </Text>
+              </View>
+
+              {member.isSafe ? (
+                <View style={styles.safeTag}>
+                  <Check size={14} color={COLORS.success} />
+                  <Text style={styles.safeTagText}>Safe</Text>
+                </View>
+              ) : (
+                <View style={styles.pendingTag}>
+                  <Text style={styles.pendingTagText}>No response</Text>
+                </View>
+              )}
+            </View>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );

@@ -14,6 +14,7 @@ import {
   MapPin,
   ArrowUpRight,
   ShieldCheck,
+  ShieldAlert,
   Radio,
   Clock,
   ChevronRight,
@@ -26,6 +27,7 @@ import { DistanceBadge } from '../../src/components/DistanceBadge';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useTripStore } from '../../src/store/useTripStore';
+import { useUserStore } from '../../src/store/useUserStore';
 import { locationService } from '../../src/services/locationService';
 import { formatDistance } from '../../src/utils/distance';
 
@@ -37,12 +39,48 @@ export default function GroupStatusScreen() {
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
   const userLocation = useLocationStore((state) => state.userLocation);
   const activeTrip = useTripStore((state) => state.activeTrip);
+  const currentUser = useUserStore((state) => state.currentUser);
 
   const counts = getStatusCounts();
-  const sortedByDist = locationService.getNearestMembers(userLocation, members);
 
-  const closest = sortedByDist[0];
-  const farthest = sortedByDist[sortedByDist.length - 1];
+  // Filter out the current user so they are never compared against themselves
+  const otherMembers = (members || []).filter((m) => {
+    if (!m) return false;
+    if (currentUser?.id && m.id === currentUser.id) return false;
+    if (m.id === 'user' || m.id === 'me' || m.isCurrentUser) return false;
+    if (currentUser?.name && m.name === currentUser.name) return false;
+    return true;
+  });
+
+  const sortedByDist = locationService.getNearestMembers(userLocation, otherMembers);
+  const closest = sortedByDist.length > 0 ? sortedByDist[0] : null;
+  // Only show farthest if there are at least 2 other members and farthest is distinct
+  const farthest =
+    sortedByDist.length > 1 &&
+    sortedByDist[sortedByDist.length - 1].id !== closest?.id
+      ? sortedByDist[sortedByDist.length - 1]
+      : null;
+
+  // Real active members with valid GPS coordinates for group centroid
+  const membersWithCoords = (members || []).filter(
+    (m) =>
+      m.coordinates &&
+      !isNaN(m.coordinates.latitude) &&
+      !isNaN(m.coordinates.longitude) &&
+      m.coordinates.latitude !== 0
+  );
+
+  const nearbyActiveCount = membersWithCoords.length;
+  const centerTitle =
+    activeTrip?.locationName ||
+    activeTrip?.destination ||
+    activeTrip?.name ||
+    'Trip Center Area';
+
+  // Real safety check-in status from crew members
+  const totalCrew = members.length;
+  const safeCrew = members.filter((m) => m.isSafe !== false).length;
+  const isAllSafe = totalCrew > 0 && safeCrew === totalCrew;
 
   const handleSelectMember = (member) => {
     setSelectedMember(member);
@@ -96,7 +134,7 @@ export default function GroupStatusScreen() {
         <Text style={styles.sectionLabel}>CREW GEOMETRY</Text>
 
         {/* Closest to you */}
-        {closest && (
+        {closest ? (
           <TouchableOpacity
             style={styles.highlightCard}
             onPress={() => handleSelectMember(closest)}
@@ -115,9 +153,15 @@ export default function GroupStatusScreen() {
               <ChevronRight size={16} color={COLORS.textMuted} />
             </View>
           </TouchableOpacity>
-        )}
+        ) : otherMembers.length === 0 ? (
+          <View style={styles.emptyHighlightCard}>
+            <Users size={22} color={COLORS.textMuted} />
+            <Text style={styles.emptyHighlightText}>No other members in this trip yet</Text>
+            <Text style={styles.emptyHighlightSub}>Share your trip code to invite friends!</Text>
+          </View>
+        ) : null}
 
-        {/* Farthest */}
+        {/* Farthest (only shown if there are multiple other members) */}
         {farthest && (
           <TouchableOpacity
             style={styles.highlightCard}
@@ -139,33 +183,60 @@ export default function GroupStatusScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Group center */}
-        <View style={styles.highlightCard}>
+        {/* Dynamic Group Center / Centroid */}
+        <TouchableOpacity
+          style={styles.highlightCard}
+          activeOpacity={0.8}
+          onPress={() => router.push('/(tabs)/map')}
+        >
           <View style={styles.highlightLeft}>
             <View style={[styles.iconCircle, { backgroundColor: COLORS.primaryLight }]}>
               <Compass size={18} color={COLORS.primary} />
             </View>
-            <View>
+            <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={styles.highlightLabel}>GROUP CENTER (CENTROID)</Text>
-              <Text style={styles.highlightName}>Main Stage Grounds</Text>
+              <Text style={styles.highlightName} numberOfLines={1}>
+                {centerTitle}
+              </Text>
             </View>
           </View>
           <View style={styles.highlightRight}>
-            <Text style={styles.clusterCountTag}>12 nearby</Text>
+            <Text style={styles.clusterCountTag}>
+              {nearbyActiveCount > 0
+                ? `${nearbyActiveCount} nearby`
+                : `${totalCrew} in trip`}
+            </Text>
+            <ChevronRight size={16} color={COLORS.textMuted} style={{ marginLeft: 4 }} />
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* SAFETY STATUS CARD */}
         <TouchableOpacity
-          style={styles.safetyCard}
+          style={[styles.safetyCard, !isAllSafe && styles.safetyCardPending]}
+          activeOpacity={0.8}
           onPress={() => router.push('/features/check-in')}
         >
           <View style={styles.safetyCardLeft}>
-            <ShieldCheck size={20} color={COLORS.success} />
-            <View style={{ marginLeft: 12 }}>
+            <View
+              style={[
+                styles.safetyIconCircle,
+                { backgroundColor: isAllSafe ? '#DCFCE7' : '#FEF3C7' },
+              ]}
+            >
+              {isAllSafe ? (
+                <ShieldCheck size={20} color={COLORS.success} />
+              ) : (
+                <ShieldAlert size={20} color={COLORS.warning} />
+              )}
+            </View>
+            <View style={{ marginLeft: 12, flex: 1 }}>
               <Text style={styles.safetyTitle}>Safety Status Check-In</Text>
               <Text style={styles.safetySub}>
-                19 of 20 friends have checked in as safe
+                {totalCrew > 0
+                  ? `${safeCrew} of ${totalCrew} ${
+                      totalCrew === 1 ? 'friend has' : 'friends have'
+                    } checked in as safe`
+                  : "Tap to check in and let your crew know you're safe"}
               </Text>
             </View>
           </View>
@@ -286,10 +357,21 @@ const styles = StyleSheet.create({
     borderColor: '#BBF7D0',
     marginTop: 10,
   },
+  safetyCardPending: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
   safetyCardLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+  },
+  safetyIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   safetyTitle: {
     ...TYPOGRAPHY.h3,
@@ -299,5 +381,27 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  emptyHighlightCard: {
+    backgroundColor: COLORS.surface,
+    padding: 18,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    ...SHADOWS.sm,
+  },
+  emptyHighlightText: {
+    ...TYPOGRAPHY.body,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginTop: 8,
+  },
+  emptyHighlightSub: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 4,
   },
 });

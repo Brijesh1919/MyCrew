@@ -41,6 +41,8 @@ export const MapView = ({
   controlsBottomOffset = 24,
   isPinDropMode = false,
   onCameraChange = null,
+  onPanStart = null,
+  onPanEnd = null,
   style,
 }) => {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -71,7 +73,7 @@ export const MapView = ({
   const isCompact = typeof height === 'number' && height <= 320;
 
   // Oversized tile buffer to completely prevent dark edges during panning
-  const BUFFER = 180;
+  const BUFFER = 260;
   const tileWidth = Math.min(1280, Math.round(containerWidth + BUFFER * 2));
   const tileHeight = Math.min(1280, Math.round(containerHeight + BUFFER * 2));
 
@@ -89,8 +91,10 @@ export const MapView = ({
   const [mapCenterCoord, setMapCenterCoord] = useState(getInitialCoord);
   const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
   const [currentZoom, setCurrentZoom] = useState(zoom);
+  const [pinchScale, setPinchScale] = useState(1);
   const [showPointsToggle, setShowPointsToggle] = useState(showMeetingPoints);
   const hasInitiallyCenteredRef = useRef(false);
+  const lastTapTimeRef = useRef(0);
 
   // Mutable ref so PanResponder never reads stale closure variables
   const stateRef = useRef({
@@ -99,6 +103,7 @@ export const MapView = ({
     containerWidth,
     containerHeight,
     mapOffset,
+    pinchScale,
   });
 
   useEffect(() => {
@@ -108,6 +113,7 @@ export const MapView = ({
       containerWidth,
       containerHeight,
       mapOffset,
+      pinchScale,
     };
   });
 
@@ -231,56 +237,206 @@ export const MapView = ({
     }
   }, [mapCenterCoord.latitude, mapCenterCoord.longitude]);
 
-  // Pan Responder with drag update and release centering using fresh stateRef
-  const panStartRef = useRef({ x: 0, y: 0 });
+  // Multi-touch gesture state tracking for silky-smooth pan & pinch-to-zoom
+  const gestureStateRef = useRef({
+    mode: null, // 'pan' | 'pinch' | null
+    startOffset: { x: 0, y: 0 },
+    startZoom: 16,
+    initialDistance: 0,
+    initialMidX: 0,
+    initialMidY: 0,
+    currentScale: 1,
+    currentOffset: { x: 0, y: 0 },
+  });
+
+  const handleGestureEnd = () => {
+    if (onPanEnd) onPanEnd();
+
+    const g = gestureStateRef.current;
+    const {
+      mapCenterCoord: curCenter,
+      currentZoom: curZoom,
+      containerWidth: curW,
+      containerHeight: curH,
+    } = stateRef.current;
+
+    if (g.mode === 'pinch') {
+      const scale = g.currentScale;
+      const zoomDelta = Math.log2(scale);
+      const finalZoom = Math.min(19, Math.max(11, Number((g.startZoom + zoomDelta).toFixed(2))));
+
+      const totalDx = g.currentOffset.x;
+      const totalDy = g.currentOffset.y;
+
+      const newCenter = mapService.unproject(
+        {
+          x: curW / 2 - totalDx,
+          y: curH / 2 - totalDy,
+        },
+        curCenter,
+        g.startZoom,
+        curW,
+        curH
+      );
+
+      setPinchScale(1);
+      setCurrentZoom(finalZoom);
+      setMapCenterCoord(newCenter);
+      setMapOffset({ x: 0, y: 0 });
+      g.mode = null;
+      g.currentScale = 1;
+      g.currentOffset = { x: 0, y: 0 };
+
+      if (onCameraChange) {
+        onCameraChange(newCenter);
+      }
+    } else if (g.mode === 'pan') {
+      const totalDx = g.currentOffset.x;
+      const totalDy = g.currentOffset.y;
+      const movedDist = Math.hypot(
+        totalDx - g.startOffset.x,
+        totalDy - g.startOffset.y
+      );
+
+      if (movedDist > 3) {
+        const newCenter = mapService.unproject(
+          {
+            x: curW / 2 - totalDx,
+            y: curH / 2 - totalDy,
+          },
+          curCenter,
+          curZoom,
+          curW,
+          curH
+        );
+
+        setMapCenterCoord(newCenter);
+        setMapOffset({ x: 0, y: 0 });
+        if (onCameraChange) {
+          onCameraChange(newCenter);
+        }
+      }
+      g.mode = null;
+      g.currentScale = 1;
+      g.currentOffset = { x: 0, y: 0 };
+    }
+  };
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gesture) =>
-        interactive && (Math.abs(gesture.dx) > 4 || Math.abs(gesture.dy) > 4),
-      onPanResponderGrant: () => {
-        panStartRef.current = { ...stateRef.current.mapOffset };
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponderCapture: (evt, gesture) => {
+        if (!interactive) return false;
+        const touches = evt.nativeEvent.touches || [];
+        if (touches.length > 1) return true;
+        return Math.abs(gesture.dx) > 3 || Math.abs(gesture.dy) > 3;
       },
-      onPanResponderMove: (_, gesture) => {
-        setMapOffset({
-          x: panStartRef.current.x + gesture.dx,
-          y: panStartRef.current.y + gesture.dy,
-        });
+      onMoveShouldSetPanResponder: (evt, gesture) => {
+        if (!interactive) return false;
+        const touches = evt.nativeEvent.touches || [];
+        if (touches.length > 1) return true;
+        return Math.abs(gesture.dx) > 3 || Math.abs(gesture.dy) > 3;
       },
-      onPanResponderRelease: (_, gesture) => {
-        const dist = Math.hypot(gesture.dx, gesture.dy);
-        if (dist > 8) {
-          const {
-            mapCenterCoord: curCenter,
-            currentZoom: curZoom,
-            containerWidth: curW,
-            containerHeight: curH,
-          } = stateRef.current;
-          const totalDx = panStartRef.current.x + gesture.dx;
-          const totalDy = panStartRef.current.y + gesture.dy;
-          const newCenter = mapService.unproject(
-            {
-              x: curW / 2 - totalDx,
-              y: curH / 2 - totalDy,
-            },
-            curCenter,
-            curZoom,
-            curW,
-            curH
-          );
-          setMapCenterCoord(newCenter);
-          setMapOffset({ x: 0, y: 0 });
-          if (onCameraChange) {
-            onCameraChange(newCenter);
-          }
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: (evt) => {
+        if (onPanStart) onPanStart();
+        const touches = evt.nativeEvent.touches || [];
+        const curOffset = { ...stateRef.current.mapOffset };
+        const curZoom = stateRef.current.currentZoom;
+
+        // Quick double-tap to zoom in
+        const now = Date.now();
+        if (touches.length <= 1 && now - lastTapTimeRef.current < 280) {
+          handleZoomIn();
+          lastTapTimeRef.current = 0;
+          return;
+        }
+        lastTapTimeRef.current = now;
+
+        if (touches.length >= 2) {
+          const t0 = touches[0];
+          const t1 = touches[1];
+          const dist = Math.hypot(t0.pageX - t1.pageX, t0.pageY - t1.pageY);
+          const midX = (t0.pageX + t1.pageX) / 2;
+          const midY = (t0.pageY + t1.pageY) / 2;
+
+          gestureStateRef.current = {
+            mode: 'pinch',
+            startOffset: curOffset,
+            startZoom: curZoom,
+            initialDistance: dist > 0 ? dist : 1,
+            initialMidX: midX,
+            initialMidY: midY,
+            currentScale: 1,
+            currentOffset: curOffset,
+          };
+        } else {
+          gestureStateRef.current = {
+            mode: 'pan',
+            startOffset: curOffset,
+            startZoom: curZoom,
+            initialDistance: 0,
+            initialMidX: 0,
+            initialMidY: 0,
+            currentScale: 1,
+            currentOffset: curOffset,
+          };
         }
       },
+      onPanResponderMove: (evt, gesture) => {
+        const touches = evt.nativeEvent.touches || [];
+
+        if (touches.length >= 2) {
+          const t0 = touches[0];
+          const t1 = touches[1];
+          const dist = Math.hypot(t0.pageX - t1.pageX, t0.pageY - t1.pageY);
+          const midX = (t0.pageX + t1.pageX) / 2;
+          const midY = (t0.pageY + t1.pageY) / 2;
+
+          if (gestureStateRef.current.mode !== 'pinch') {
+            gestureStateRef.current = {
+              mode: 'pinch',
+              startOffset: { ...gestureStateRef.current.currentOffset },
+              startZoom: stateRef.current.currentZoom,
+              initialDistance: dist > 0 ? dist : 1,
+              initialMidX: midX,
+              initialMidY: midY,
+              currentScale: 1,
+              currentOffset: { ...gestureStateRef.current.currentOffset },
+            };
+          } else {
+            const initialDist = gestureStateRef.current.initialDistance;
+            const rawScale = dist / initialDist;
+            const clampedScale = Math.max(0.35, Math.min(2.8, rawScale));
+            const deltaX = midX - gestureStateRef.current.initialMidX;
+            const deltaY = midY - gestureStateRef.current.initialMidY;
+
+            const newOffsetX = gestureStateRef.current.startOffset.x + deltaX;
+            const newOffsetY = gestureStateRef.current.startOffset.y + deltaY;
+
+            gestureStateRef.current.currentScale = clampedScale;
+            gestureStateRef.current.currentOffset = { x: newOffsetX, y: newOffsetY };
+
+            setPinchScale(clampedScale);
+            setMapOffset({ x: newOffsetX, y: newOffsetY });
+          }
+        } else if (touches.length === 1 && gestureStateRef.current.mode === 'pan') {
+          const newOffsetX = gestureStateRef.current.startOffset.x + gesture.dx;
+          const newOffsetY = gestureStateRef.current.startOffset.y + gesture.dy;
+
+          gestureStateRef.current.currentOffset = { x: newOffsetX, y: newOffsetY };
+          setMapOffset({ x: newOffsetX, y: newOffsetY });
+        }
+      },
+      onPanResponderRelease: handleGestureEnd,
+      onPanResponderTerminate: handleGestureEnd,
     })
   ).current;
 
   // Map Controls handlers
   const handleZoomIn = () => setCurrentZoom((z) => Math.min(Number((z + 0.75).toFixed(2)), 19));
-  const handleZoomOut = () => setCurrentZoom((z) => Math.max(Number((z - 0.75).toFixed(2)), 12));
+  const handleZoomOut = () => setCurrentZoom((z) => Math.max(Number((z - 0.75).toFixed(2)), 11));
   const handleRecenter = () => {
     if (userLocation && !isNaN(userLocation.latitude) && !isNaN(userLocation.longitude)) {
       setMapCenterCoord({ ...userLocation });
@@ -367,7 +523,17 @@ export const MapView = ({
       onLayout={onLayout}
       {...(interactive ? panResponder.panHandlers : {})}
     >
-      {/* 1. REAL MAPBOX LAYER */}
+      {/* SCALABLE MAP CANVAS (Smooth GPU-accelerated scaling during pinch gestures) */}
+      <View
+        style={[
+          StyleSheet.absoluteFillObject,
+          pinchScale !== 1 && {
+            transform: [{ scale: pinchScale }],
+          },
+        ]}
+        pointerEvents="box-none"
+      >
+        {/* 1. REAL MAPBOX LAYER */}
       {isMapbox && (displayedTile?.url || pendingTile?.url) ? (
         <View
           style={{
@@ -522,21 +688,6 @@ export const MapView = ({
         )}
       </Svg>
 
-      {/* 4. MAPBOX PROVIDER & STYLE BADGE (Interactive) */}
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={isMapbox ? handleCycleStyle : null}
-        style={[styles.providerBadge, { top: providerBadgeTop }]}
-      >
-        <View style={[styles.providerDot, !isMapbox && { backgroundColor: '#F59E0B' }]} />
-        <Text style={styles.providerText}>
-          {isMapbox ? `Mapbox ${currentStyleObj.name} ▾` : 'MyCrew Vector Engine'}
-        </Text>
-        {isTileLoading && (
-          <ActivityIndicator size="small" color="#94A3B8" style={{ marginLeft: 6 }} />
-        )}
-      </TouchableOpacity>
-
       {/* 5. MEETING POINTS LAYER */}
       {showPointsToggle &&
         meetingPoints.map((mp) => {
@@ -648,6 +799,22 @@ export const MapView = ({
           <Text style={styles.routeBadgeText}>{formatDistance(routeDistance)}</Text>
         </View>
       )}
+      </View>
+
+      {/* 4. MAPBOX PROVIDER & STYLE BADGE (Interactive, stationary overlay) */}
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={isMapbox ? handleCycleStyle : null}
+        style={[styles.providerBadge, { top: providerBadgeTop }]}
+      >
+        <View style={[styles.providerDot, !isMapbox && { backgroundColor: '#F59E0B' }]} />
+        <Text style={styles.providerText}>
+          {isMapbox ? `Mapbox ${currentStyleObj.name} ▾` : 'MyCrew Vector Engine'}
+        </Text>
+        {isTileLoading && (
+          <ActivityIndicator size="small" color="#94A3B8" style={{ marginLeft: 6 }} />
+        )}
+      </TouchableOpacity>
 
       {/* 10. FINDING LOCATION BADGE */}
       {!userLocation && interactive && (

@@ -65,6 +65,7 @@ export default function HomeScreen() {
   const [selectedClusterData, setSelectedClusterData] = useState(null);
   const [selectedPersonSheet, setSelectedPersonSheet] = useState(null);
   const [showTripPicker, setShowTripPicker] = useState(false);
+  const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
   const statusCounts = getStatusCounts();
   const clusters = getClusters(currentUser?.id);
@@ -187,6 +188,7 @@ export default function HomeScreen() {
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={isScrollEnabled}
       >
         {/* HEADER: GREETING & TRIP BADGE */}
         <View style={styles.header}>
@@ -259,6 +261,8 @@ export default function HomeScreen() {
               interactive={true}
               showClusters={true}
               controlsBottomOffset={12}
+              onPanStart={() => setIsScrollEnabled(false)}
+              onPanEnd={() => setIsScrollEnabled(true)}
             />
 
             {/* Quick Live Members Overlay Strip */}
