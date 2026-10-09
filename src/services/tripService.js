@@ -103,7 +103,7 @@ class TripService {
 
     try {
       const typeConfig = getTripTypeConfig(type);
-      const code = generateTripCode(name.slice(0, 3));
+      const code = generateTripCode();
 
       const startsAt = startTime || new Date().toISOString();
       const endsAt =

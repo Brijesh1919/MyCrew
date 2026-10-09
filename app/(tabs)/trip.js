@@ -36,6 +36,7 @@ import { BottomSheet } from '../../src/components/BottomSheet';
 import { TripHistoryCard } from '../../src/components/TripHistoryCard';
 import { HistoricalTripModal } from '../../src/components/HistoricalTripModal';
 import { ActiveTripPickerModal } from '../../src/components/ActiveTripPickerModal';
+import { QRCodeView } from '../../src/components/QRCodeView';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useUserStore } from '../../src/store/useUserStore';
@@ -75,9 +76,12 @@ export default function TripScreen() {
 
   const handleShare = async () => {
     if (!activeTrip) return;
+    const tripCode = (activeTrip.code || activeTrip.trip_code || '').trim();
+    const tripName = activeTrip.name || 'our crew';
     try {
       await Share.share({
-        message: `Join our temporary crew for ${activeTrip.name} on MyCrew!\nTrip Code: ${activeTrip.code}\nJoin here: https://mycrew.app/join?code=${activeTrip.code}`,
+        message: `Join our temporary crew for ${tripName} on MyCrew!\n\nTrip Code: ${tripCode}\n\nOpen directly in app: mycrew://join?code=${tripCode}\n\n(Enter this code in MyCrew or tap the link to join instantly!)`,
+        title: `Join ${tripName} on MyCrew`,
       });
     } catch (e) {
       // Fallback
@@ -418,7 +422,10 @@ export default function TripScreen() {
       >
         <View style={styles.qrContainer}>
           <View style={styles.qrBox}>
-            <QrCode size={160} color="#0F172A" />
+            <QRCodeView
+              value={`mycrew://join?code=${activeTrip?.code || activeTrip?.trip_code || ''}`}
+              size={180}
+            />
           </View>
           <Text style={styles.qrCodeText}>{activeTrip?.code || activeTrip?.trip_code}</Text>
           <Text style={styles.qrHelpText}>
@@ -836,13 +843,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   qrBox: {
-    backgroundColor: COLORS.white,
-    padding: 16,
-    borderRadius: RADIUS.xl,
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
     marginBottom: 14,
-    ...SHADOWS.md,
   },
   qrCodeText: {
     fontSize: 24,

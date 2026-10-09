@@ -29,6 +29,7 @@ import { AppHeader } from '../../src/components/AppHeader';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { BottomSheet } from '../../src/components/BottomSheet';
+import { QRCodeView } from '../../src/components/QRCodeView';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useUserStore } from '../../src/store/useUserStore';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
@@ -130,9 +131,12 @@ export default function CreateTripScreen() {
 
   const handleShare = async () => {
     if (!createdTrip) return;
+    const tripCode = (createdTrip.code || createdTrip.trip_code || '').trim();
+    const tripName = createdTrip.name || 'my crew';
     try {
       await Share.share({
-        message: `Join my crew for ${createdTrip.name} on MyCrew! Use trip code: ${createdTrip.code}\nDownload app: https://mycrew.app/join?code=${createdTrip.code}`,
+        message: `Join my crew for ${tripName} on MyCrew!\n\nTrip Code: ${tripCode}\n\nOpen directly in app: mycrew://join?code=${tripCode}\n\n(Enter this code in MyCrew or tap the link to join instantly!)`,
+        title: `Join ${tripName} on MyCrew`,
       });
     } catch (e) {
       // Fallback
@@ -374,12 +378,12 @@ export default function CreateTripScreen() {
               <Text style={styles.codeDisplay}>{createdTrip.code}</Text>
             </View>
 
-            {/* QR Mock graphic */}
-            <View style={styles.qrCard}>
-              <View style={styles.qrMock}>
-                <Text style={styles.qrEmoji}>📱</Text>
-                <Text style={styles.qrSub}>Scan to join with MyCrew</Text>
-              </View>
+            {/* Dynamic Scannable QR Code */}
+            <View style={{ alignItems: 'center', marginVertical: 14 }}>
+              <QRCodeView
+                value={`mycrew://join?code=${createdTrip.code || createdTrip.trip_code || ''}`}
+                size={180}
+              />
             </View>
 
             <View style={styles.actionButtonsRow}>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -34,6 +35,10 @@ import { useUserStore } from '../../src/store/useUserStore';
 import { tripService } from '../../src/services/tripService';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
+const BARCODE_SCANNER_SETTINGS = {
+  barcodeTypes: ['qr'],
+};
+
 export default function JoinTripScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -48,7 +53,9 @@ export default function JoinTripScreen() {
   // 2: Trip Confirmation Preview
   // 3: Name & Permission Confirmation
   const [step, setStep] = useState(1);
-  const [tripCode, setTripCode] = useState(params.code ? String(params.code).toUpperCase() : '');
+  const [tripCode, setTripCode] = useState(
+    params.code ? String(params.code).replace(/[^A-Za-z0-9]/g, '').toUpperCase() : ''
+  );
   const [tripPreview, setTripPreview] = useState(null);
   const [name, setName] = useState(currentUser?.name || 'You');
   const [scanMode, setScanMode] = useState(false);
@@ -57,6 +64,30 @@ export default function JoinTripScreen() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [isScanningActive, setIsScanningActive] = useState(true);
+
+  // Proactively handle deep linking param (e.g. mycrew://join?code=K7N9XP)
+  useEffect(() => {
+    if (params.code) {
+      const code = String(params.code).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      if (code) {
+        setTripCode(code);
+        handleVerifyCode(code);
+      }
+    }
+  }, [params.code]);
+
+  const handleToggleScanMode = async (enableScan) => {
+    setScanMode(enableScan);
+    setError('');
+    if (enableScan) {
+      setIsScanningActive(true);
+      if (!cameraPermission?.granted && cameraPermission?.canAskAgain !== false) {
+        try {
+          await requestCameraPermission();
+        } catch (e) {}
+      }
+    }
+  };
 
   const handleGoBack = () => {
     triggerLight();
@@ -70,19 +101,24 @@ export default function JoinTripScreen() {
   const extractCodeFromQr = (raw) => {
     if (!raw) return '';
     const str = String(raw).trim();
+    // 1. Check for ?code= or &code= from deep link or web URL
     if (str.includes('code=')) {
-      const match = str.match(/[?&]code=([a-zA-Z0-9_-]+)/i);
-      if (match) return match[1].toUpperCase();
+      const match = str.match(/[?&]code=([a-zA-Z0-9_%-]+)/i);
+      if (match && match[1]) {
+        return decodeURIComponent(match[1]).replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6);
+      }
     }
+    // 2. Check JSON payload
     if (str.startsWith('{') && str.endsWith('}')) {
       try {
         const parsed = JSON.parse(str);
-        if (parsed.code) return String(parsed.code).toUpperCase();
-        if (parsed.tripCode) return String(parsed.tripCode).toUpperCase();
+        const cand = parsed.code || parsed.tripCode;
+        if (cand) return String(cand).replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6);
       } catch (e) {}
     }
+    // 3. Fallback: clean raw alphanumeric characters
     const clean = str.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
-    return clean;
+    return clean.slice(0, 6);
   };
 
   const handleBarcodeScanned = ({ data }) => {
@@ -101,7 +137,8 @@ export default function JoinTripScreen() {
 
   // Step 1: Validate manual code entry
   const handleVerifyCode = async (codeToVerify) => {
-    const targetCode = (codeToVerify || tripCode).trim().toUpperCase();
+    const rawTarget = codeToVerify || tripCode;
+    const targetCode = String(rawTarget).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
     if (!targetCode) {
       setError('Please enter a trip code');
@@ -192,10 +229,7 @@ export default function JoinTripScreen() {
             <View style={styles.tabToggle}>
               <TouchableOpacity
                 style={[styles.toggleBtn, !scanMode && styles.toggleBtnActive]}
-                onPress={() => {
-                  setScanMode(false);
-                  setError('');
-                }}
+                onPress={() => handleToggleScanMode(false)}
               >
                 <KeyRound size={16} color={!scanMode ? COLORS.primary : COLORS.textSecondary} />
                 <Text style={[styles.toggleTxt, !scanMode && styles.toggleTxtActive]}>
@@ -204,10 +238,7 @@ export default function JoinTripScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.toggleBtn, scanMode && styles.toggleBtnActive]}
-                onPress={() => {
-                  setScanMode(true);
-                  setError('');
-                }}
+                onPress={() => handleToggleScanMode(true)}
               >
                 <QrCode size={16} color={scanMode ? COLORS.primary : COLORS.textSecondary} />
                 <Text style={[styles.toggleTxt, scanMode && styles.toggleTxtActive]}>
@@ -223,11 +254,9 @@ export default function JoinTripScreen() {
                   {cameraPermission?.granted ? (
                     <>
                       <CameraView
-                        style={StyleSheet.absoluteFillObject}
+                        style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]}
                         facing="back"
-                        barcodeScannerSettings={{
-                          barcodeTypes: ['qr'],
-                        }}
+                        barcodeScannerSettings={BARCODE_SCANNER_SETTINGS}
                         onBarcodeScanned={isScanningActive ? handleBarcodeScanned : undefined}
                       />
                       <View style={styles.viewfinderOverlay} pointerEvents="none">
@@ -243,15 +272,27 @@ export default function JoinTripScreen() {
                       <Camera size={38} color={COLORS.primary} style={{ marginBottom: 12 }} />
                       <Text style={styles.cameraPermissionTitle}>Camera Access Required</Text>
                       <Text style={styles.cameraPermissionSub}>
-                        Allow camera access to scan your crew's invite QR code directly.
+                        {cameraPermission && !cameraPermission.canAskAgain
+                          ? 'Camera permission is blocked in system settings. Tap below to enable it.'
+                          : "Allow camera access to scan your crew's invite QR code directly."}
                       </Text>
-                      <TouchableOpacity
-                        style={styles.enableCameraBtn}
-                        onPress={requestCameraPermission}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.enableCameraBtnText}>Enable Camera</Text>
-                      </TouchableOpacity>
+                      {cameraPermission && !cameraPermission.canAskAgain ? (
+                        <TouchableOpacity
+                          style={styles.enableCameraBtn}
+                          onPress={() => Linking.openSettings()}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.enableCameraBtnText}>Open Settings</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.enableCameraBtn}
+                          onPress={requestCameraPermission}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.enableCameraBtnText}>Enable Camera</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
                   )}
                 </View>
@@ -298,11 +339,12 @@ export default function JoinTripScreen() {
                   placeholderTextColor={COLORS.textMuted}
                   value={tripCode}
                   onChangeText={(text) => {
-                    setTripCode(text.toUpperCase());
+                    const clean = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                    setTripCode(clean);
                     setError('');
                   }}
                   autoCapitalize="characters"
-                  maxLength={10}
+                  maxLength={6}
                   autoCorrect={false}
                   returnKeyType="done"
                   onSubmitEditing={() => handleVerifyCode()}

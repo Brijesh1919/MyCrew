@@ -1,10 +1,11 @@
 /**
- * Generates a clean 6-character alphanumeric trip code (e.g., 'GOA7K2')
+ * Generates a clean 6-character alphanumeric trip code (e.g., 'K7N9XP')
+ * Always strictly 6 characters, uppercase, no spaces, no confusing characters (0/O, 1/I).
  */
-export const generateTripCode = (prefix = 'MY') => {
+export const generateTripCode = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let result = prefix.toUpperCase().slice(0, 3);
-  while (result.length < 6) {
+  let result = '';
+  for (let i = 0; i < 6; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
