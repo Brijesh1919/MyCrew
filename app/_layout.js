@@ -6,12 +6,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { COLORS } from '../src/constants/theme';
 import { analytics } from '../src/services/analyticsService';
 import { crashlytics } from '../src/services/crashlyticsService';
+import { perfService } from '../src/services/perfService';
 
 export default function RootLayout() {
   const { width } = useWindowDimensions();
   const isDesktopWeb = Platform.OS === 'web' && width > 520;
 
   useEffect(() => {
+    perfService.startTrace('app_initial_mount').then((t) => t.stop());
     crashlytics.init();
     analytics.logAppOpen();
   }, []);

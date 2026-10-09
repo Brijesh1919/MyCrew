@@ -13,6 +13,7 @@ import { useLocationStore } from './useLocationStore';
 import { getTripStatus } from '../utils/tripStatus';
 import { getLocationFreshness } from '../utils/freshness';
 import { analytics } from '../services/analyticsService';
+import { perfService } from '../services/perfService';
 
 const STORAGE_KEY_TRIP = '@mycrew_active_trip';
 const STORAGE_KEY_ROLE = '@mycrew_user_role';
@@ -68,7 +69,7 @@ export const useTripStore = create((set, get) => ({
     set({ isLoading: true });
 
     try {
-      const res = await tripService.getUserTrips(userId);
+      const res = await perfService.trace('fetch_user_trips', () => tripService.getUserTrips(userId));
 
       if (res.success) {
         const { activeTrips, upcomingTrips, expiredTrips } = res;
