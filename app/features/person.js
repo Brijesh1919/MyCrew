@@ -26,6 +26,7 @@ import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { StatusBadge } from '../../src/components/StatusBadge';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { SecondaryButton } from '../../src/components/SecondaryButton';
+import { ContactNumberModal } from '../../src/components/ContactNumberModal';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useUserStore } from '../../src/store/useUserStore';
@@ -54,6 +55,7 @@ export default function PersonDetailScreen() {
     (currentUser?.name && member?.name === currentUser.name);
 
   const [deviceBattery, setDeviceBattery] = useState(null);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -70,6 +72,10 @@ export default function PersonDetailScreen() {
   const resolvedBattery = isSelf
     ? deviceBattery ?? member?.battery ?? null
     : member?.battery ?? null;
+
+  const resolvedPhone = isSelf
+    ? currentUser?.phone || member?.phone || null
+    : member?.phone || null;
 
   const distanceMeters = calculateDistanceMeters(userLocation, member?.coordinates);
 
@@ -182,9 +188,26 @@ export default function PersonDetailScreen() {
               <Phone size={18} color={COLORS.primary} />
               <Text style={styles.detailTitle}>Contact Number</Text>
             </View>
-            <Text style={styles.detailValue}>
-              {member?.phone || 'Not provided'}
-            </Text>
+            {isSelf ? (
+              <TouchableOpacity
+                onPress={() => setShowContactModal(true)}
+                activeOpacity={0.7}
+                style={styles.inlinePhoneEditBtn}
+              >
+                <Text
+                  style={[
+                    styles.detailValue,
+                    !resolvedPhone && { color: COLORS.primary, fontWeight: '700' },
+                  ]}
+                >
+                  {resolvedPhone || '+ Add Number'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.detailValue}>
+                {resolvedPhone || 'Not provided'}
+              </Text>
+            )}
           </View>
 
           <View style={styles.divider} />
@@ -204,6 +227,16 @@ export default function PersonDetailScreen() {
         <View style={styles.actionsSection}>
           {isSelf ? (
             <>
+              {!resolvedPhone && (
+                <SecondaryButton
+                  title="Add My Contact Number"
+                  onPress={() => setShowContactModal(true)}
+                  icon={Phone}
+                  size="md"
+                  variant="subtle"
+                  style={{ marginBottom: 10 }}
+                />
+              )}
               <PrimaryButton
                 title="View My Location on Map"
                 onPress={handleViewOnMap}
@@ -285,6 +318,12 @@ export default function PersonDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* QUICK CONTACT NUMBER MODAL */}
+      <ContactNumberModal
+        visible={showContactModal}
+        onClose={() => setShowContactModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -376,5 +415,11 @@ const styles = StyleSheet.create({
   },
   halfBtn: {
     flex: 1,
+  },
+  inlinePhoneEditBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: RADIUS.sm,
+    backgroundColor: '#F1F5F9',
   },
 });

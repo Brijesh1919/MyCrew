@@ -36,6 +36,7 @@ import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { TripHistoryCard } from '../../src/components/TripHistoryCard';
 import { HistoricalTripModal } from '../../src/components/HistoricalTripModal';
+import { ContactNumberModal } from '../../src/components/ContactNumberModal';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { useUserStore } from '../../src/store/useUserStore';
@@ -61,6 +62,7 @@ export default function ProfileScreen() {
 
   // Edit Profile state
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
@@ -335,7 +337,10 @@ export default function ProfileScreen() {
             {/* Contact / Phone Row */}
             <TouchableOpacity
               style={styles.contactRow}
-              onPress={handleOpenEditModal}
+              onPress={() => {
+                triggerLight();
+                setShowContactModal(true);
+              }}
               activeOpacity={0.7}
             >
               <Phone
@@ -379,6 +384,31 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
+
+        {/* Missing Phone Number Alert Banner */}
+        {!currentUser?.phone && (
+          <View style={styles.phoneAlertBanner}>
+            <View style={styles.phoneAlertIconBox}>
+              <Phone size={18} color="#D97706" />
+            </View>
+            <View style={styles.phoneAlertTextCol}>
+              <Text style={styles.phoneAlertTitle}>Contact Number Missing</Text>
+              <Text style={styles.phoneAlertSub}>
+                Add your phone number so your crew can call you if separated.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.phoneAlertActionBtn}
+              onPress={() => {
+                triggerLight();
+                setShowContactModal(true);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.phoneAlertActionBtnText}>Add Now</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* LOCATION SHARING TOGGLE CARD */}
         <View style={styles.toggleCard}>
@@ -735,6 +765,12 @@ export default function ProfileScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      {/* QUICK CONTACT NUMBER MODAL */}
+      <ContactNumberModal
+        visible={showContactModal}
+        onClose={() => setShowContactModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -1266,6 +1302,57 @@ const styles = StyleSheet.create({
   removePhotoText: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textMuted,
+    fontSize: 12,
+  },
+  phoneAlertBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+    ...SHADOWS.sm,
+  },
+  phoneAlertIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  phoneAlertTextCol: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  phoneAlertTitle: {
+    ...TYPOGRAPHY.body,
+    fontWeight: '700',
+    fontSize: 14,
+    color: '#92400E',
+  },
+  phoneAlertSub: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 11,
+    color: '#B45309',
+    marginTop: 2,
+  },
+  phoneAlertActionBtn: {
+    backgroundColor: '#D97706',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.sm,
+  },
+  phoneAlertActionBtnText: {
+    color: COLORS.white,
+    fontWeight: '700',
     fontSize: 12,
   },
 });

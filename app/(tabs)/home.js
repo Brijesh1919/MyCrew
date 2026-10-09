@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,9 @@ import {
   UserPlus,
   PlusCircle,
   User,
+  Phone,
 } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
 import { MapView } from '../../src/components/MapView';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
@@ -35,6 +37,7 @@ import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { StatusBadge } from '../../src/components/StatusBadge';
 import { DistanceBadge } from '../../src/components/DistanceBadge';
 import { ActiveTripPickerModal } from '../../src/components/ActiveTripPickerModal';
+import { ContactNumberModal, PHONE_PROMPT_STORAGE_KEY } from '../../src/components/ContactNumberModal';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
@@ -66,6 +69,38 @@ export default function HomeScreen() {
   const [selectedPersonSheet, setSelectedPersonSheet] = useState(null);
   const [showTripPicker, setShowTripPicker] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
+  const [showContactModal, setShowContactModal] = useState(false);
+
+  // Check whether to show contact number prompt modal on mount
+  useEffect(() => {
+    let timeoutId;
+    const checkContactNumberPrompt = async () => {
+      if (!currentUser?.id || currentUser?.phone) return;
+
+      try {
+        const dismissedAt = await AsyncStorage.getItem(PHONE_PROMPT_STORAGE_KEY);
+        if (dismissedAt) {
+          const elapsedMs = Date.now() - parseInt(dismissedAt, 10);
+          const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+          if (elapsedMs < TWENTY_FOUR_HOURS_MS) {
+            return;
+          }
+        }
+        // Smooth delay so the screen renders first
+        timeoutId = setTimeout(() => {
+          setShowContactModal(true);
+        }, 1200);
+      } catch (e) {
+        console.warn('Phone prompt check error:', e);
+      }
+    };
+
+    checkContactNumberPrompt();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [currentUser?.id, currentUser?.phone]);
 
   const statusCounts = getStatusCounts();
   const clusters = getClusters(currentUser?.id);
@@ -119,6 +154,28 @@ export default function HomeScreen() {
               <Text style={styles.privacyPillText}>Location Private</Text>
             </View>
           </View>
+
+          {/* Missing Contact Number Quick Banner */}
+          {!currentUser?.phone && (
+            <View style={styles.phonePromptBanner}>
+              <View style={styles.phonePromptIconCircle}>
+                <Phone size={18} color={COLORS.primary} />
+              </View>
+              <View style={styles.phonePromptTextCol}>
+                <Text style={styles.phonePromptTitle}>Add your contact number</Text>
+                <Text style={styles.phonePromptSubtitle}>
+                  Let friends call you directly when you join a crew
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.phonePromptActionBtn}
+                onPress={() => setShowContactModal(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.phonePromptActionText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Main Empty State Card */}
           <View style={styles.emptyHeroCard}>
@@ -178,6 +235,12 @@ export default function HomeScreen() {
             </View>
           </View>
         </ScrollView>
+
+        {/* Contact Number Modal */}
+        <ContactNumberModal
+          visible={showContactModal}
+          onClose={() => setShowContactModal(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -235,6 +298,28 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+
+        {/* Missing Contact Number Quick Banner */}
+        {!currentUser?.phone && (
+          <View style={styles.phonePromptBanner}>
+            <View style={styles.phonePromptIconCircle}>
+              <Phone size={18} color={COLORS.primary} />
+            </View>
+            <View style={styles.phonePromptTextCol}>
+              <Text style={styles.phonePromptTitle}>Add your contact number</Text>
+              <Text style={styles.phonePromptSubtitle}>
+                Let your crew call you directly if separated
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.phonePromptActionBtn}
+              onPress={() => setShowContactModal(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.phonePromptActionText}>Add</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* 1. LIVE GROUP MAP */}
         <View style={styles.mapCard}>
@@ -612,6 +697,12 @@ export default function HomeScreen() {
           setShowTripPicker(false);
         }}
         onClose={() => setShowTripPicker(false)}
+      />
+
+      {/* CONTACT NUMBER MODAL */}
+      <ContactNumberModal
+        visible={showContactModal}
+        onClose={() => setShowContactModal(false)}
       />
     </SafeAreaView>
   );
@@ -1139,5 +1230,56 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 8,
     fontWeight: '500',
+  },
+  phonePromptBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1.5,
+    borderColor: '#C7D2FE',
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+    ...SHADOWS.sm,
+  },
+  phonePromptIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#E0E7FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  phonePromptTextCol: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  phonePromptTitle: {
+    ...TYPOGRAPHY.body,
+    fontWeight: '700',
+    fontSize: 14,
+    color: '#1E1B4B',
+  },
+  phonePromptSubtitle: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 11,
+    color: '#4338CA',
+    marginTop: 2,
+  },
+  phonePromptActionBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: RADIUS.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.sm,
+  },
+  phonePromptActionText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 12,
   },
 });
