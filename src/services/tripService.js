@@ -9,6 +9,7 @@ import { generateTripCode } from '../utils/helpers';
 import { getTripTypeConfig } from '../constants/tripTypes';
 import { getTripStatus } from '../utils/tripStatus';
 import { calculateDistanceMeters } from '../utils/distance';
+import { getLocationFreshness } from '../utils/freshness';
 
 // Predefined demo/testing codes (disabled - only real Supabase trips)
 export const DEMO_TRIP_CODES = [];
@@ -80,6 +81,53 @@ class TripService {
       userRole: userRole,
       created_at: row.created_at,
       updated_at: row.updated_at,
+    };
+  }
+
+  /**
+   * Normalizes a database row from trip_members into standard Member model
+   */
+  formatMember(row) {
+    if (!row) return null;
+    const hasCoords =
+      row.latitude !== null &&
+      row.longitude !== null &&
+      !isNaN(Number(row.latitude)) &&
+      !isNaN(Number(row.longitude)) &&
+      Number(row.latitude) >= -90 &&
+      Number(row.latitude) <= 90 &&
+      Number(row.longitude) >= -180 &&
+      Number(row.longitude) <= 180;
+
+    const freshness = getLocationFreshness(row.location_updated_at);
+
+    return {
+      id: row.user_id,
+      name: row.user_name || (row.role === 'organizer' ? 'Organizer' : 'Crew Member'),
+      avatar: row.avatar_url || null,
+      phone: row.phone || null,
+      role: row.role || 'participant',
+      status: freshness.state,
+      freshness,
+      lastSeenSecondsAgo: row.location_updated_at
+        ? Math.max(0, Math.round((Date.now() - new Date(row.location_updated_at).getTime()) / 1000))
+        : 0,
+      location_updated_at: row.location_updated_at,
+      battery:
+        row.battery_level !== null && row.battery_level !== undefined
+          ? Number(row.battery_level)
+          : null,
+      isSafe: true,
+      cluster: null,
+      coordinates: hasCoords
+        ? {
+            latitude: Number(row.latitude),
+            longitude: Number(row.longitude),
+            accuracy: row.location_accuracy ? Number(row.location_accuracy) : null,
+            heading: row.location_heading ? Number(row.location_heading) : null,
+            speed: row.location_speed ? Number(row.location_speed) : null,
+          }
+        : null,
     };
   }
 
@@ -531,7 +579,7 @@ class TripService {
         .is('left_at', null);
 
       if (error || !data) return [];
-      return data;
+      return data.map((row) => this.formatMember(row)).filter(Boolean);
     } catch (e) {
       return [];
     }

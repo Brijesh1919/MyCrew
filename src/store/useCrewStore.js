@@ -12,15 +12,31 @@ export const useCrewStore = create((set, get) => ({
   activeFilter: 'all', // all | active | delayed | offline
 
   setMembers: (members) => {
-    // Ensure each member has properly evaluated freshness
+    // Ensure each member has properly evaluated freshness and normalized fields
     const withFreshness = (members || []).map((m) => {
+      const id = m.id || m.user_id;
+      const name = m.name || m.user_name || (m.role === 'organizer' ? 'Organizer' : 'Crew Member');
+      const avatar = m.avatar || m.avatar_url || null;
+
       const hasValidCoords =
         m.coordinates &&
         !isNaN(Number(m.coordinates.latitude)) &&
         !isNaN(Number(m.coordinates.longitude));
 
+      const coordinates = hasValidCoords
+        ? m.coordinates
+        : (m.latitude !== null && m.latitude !== undefined && m.longitude !== null && m.longitude !== undefined && !isNaN(Number(m.latitude)) && !isNaN(Number(m.longitude)))
+        ? {
+            latitude: Number(m.latitude),
+            longitude: Number(m.longitude),
+            accuracy: m.location_accuracy ? Number(m.location_accuracy) : null,
+            heading: m.location_heading ? Number(m.location_heading) : null,
+            speed: m.location_speed ? Number(m.location_speed) : null,
+          }
+        : null;
+
       let freshness;
-      if (!hasValidCoords || !m.location_updated_at) {
+      if (!coordinates || !m.location_updated_at) {
         freshness = {
           state: 'offline',
           label: 'Offline • Sharing Paused',
@@ -36,6 +52,10 @@ export const useCrewStore = create((set, get) => ({
 
       return {
         ...m,
+        id,
+        name,
+        avatar,
+        coordinates,
         status: m.status === 'offline' ? 'offline' : freshness.state,
         freshness,
         lastSeenSecondsAgo: m.location_updated_at

@@ -95,57 +95,15 @@ export const useTripStore = create((set, get) => ({
           } else {
             // Fetch real members from Supabase
             const members = await tripService.getTripMembers(primaryTrip.id);
-            const formattedMembers = (members || []).map((m) => {
-              const hasCoords =
-                m.latitude !== null &&
-                m.longitude !== null &&
-                !isNaN(Number(m.latitude)) &&
-                !isNaN(Number(m.longitude)) &&
-                Number(m.latitude) >= -90 &&
-                Number(m.latitude) <= 90 &&
-                Number(m.longitude) >= -180 &&
-                Number(m.longitude) <= 180;
-
-              const freshness = getLocationFreshness(m.location_updated_at);
-
-              return {
-                id: m.user_id,
-                name: m.user_name || (m.role === 'organizer' ? 'Organizer' : 'Crew Member'),
-                avatar: m.avatar_url || null,
-                phone: m.phone || null,
-                role: m.role || 'participant',
-                status: freshness.state,
-                freshness,
-                lastSeenSecondsAgo: m.location_updated_at
-                  ? Math.max(0, Math.round((Date.now() - new Date(m.location_updated_at).getTime()) / 1000))
-                  : 0,
-                location_updated_at: m.location_updated_at,
-                battery:
-                  m.battery_level !== null && m.battery_level !== undefined
-                    ? Number(m.battery_level)
-                    : null,
-                isSafe: true,
-                cluster: null,
-                coordinates: hasCoords
-                  ? {
-                      latitude: Number(m.latitude),
-                      longitude: Number(m.longitude),
-                      accuracy: m.location_accuracy ? Number(m.location_accuracy) : null,
-                      heading: m.location_heading ? Number(m.location_heading) : null,
-                      speed: m.location_speed ? Number(m.location_speed) : null,
-                    }
-                  : null,
-              };
-            });
 
             // Find organizer phone if present and update primaryTrip.organizer
-            const org = formattedMembers.find((m) => m.role === 'organizer');
+            const org = members.find((m) => m.role === 'organizer');
             if (org?.phone && primaryTrip.organizer) {
               primaryTrip.organizer.phone = org.phone;
             }
 
-            useCrewStore.getState().setMembers(formattedMembers);
-            useMeetingPointStore.getState().fetchTripMeetingPoints(primaryTrip.id, formattedMembers);
+            useCrewStore.getState().setMembers(members);
+            useMeetingPointStore.getState().fetchTripMeetingPoints(primaryTrip.id, members);
           }
 
           try {
