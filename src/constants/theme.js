@@ -44,6 +44,7 @@ export const RADIUS = {
   xl: 20,
   xxl: 24,
   pill: 9999,
+  full: 9999,
 };
 
 export const SHADOWS = {

@@ -19,6 +19,7 @@ import {
   Battery,
   ShieldCheck,
   Share2,
+  MessageSquare,
 } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { AppHeader } from '../../src/components/AppHeader';
@@ -361,6 +362,20 @@ export default function PersonDetailScreen() {
                 icon={isTargetOffline ? Phone : Navigation}
                 variant={isTargetOffline ? 'subtle' : 'primary'}
                 size="lg"
+                style={{ marginBottom: 10 }}
+              />
+
+              <SecondaryButton
+                title={`Chat with ${member?.name?.split(' ')[0] || 'Member'}`}
+                onPress={() => {
+                  router.push({
+                    pathname: '/features/chat',
+                    params: { memberId: member.id },
+                  });
+                }}
+                icon={MessageSquare}
+                size="md"
+                variant="subtle"
                 style={{ marginBottom: 10 }}
               />
 

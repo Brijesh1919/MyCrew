@@ -93,6 +93,10 @@ export default function RootLayout() {
               name="features/privacy"
               options={{ presentation: 'card' }}
             />
+            <Stack.Screen
+              name="features/chat"
+              options={{ presentation: 'card' }}
+            />
           </Stack>
         </View>
       </View>

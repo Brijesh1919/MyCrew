@@ -26,6 +26,7 @@ import {
   PlusCircle,
   User,
   Phone,
+  MessageSquare,
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
@@ -44,6 +45,7 @@ import { useLocationStore } from '../../src/store/useLocationStore';
 import { useMeetingPointStore } from '../../src/store/useMeetingPointStore';
 import { useUserStore } from '../../src/store/useUserStore';
 import { useLocationEngine } from '../../src/hooks/useLocationEngine';
+import { useChatStore } from '../../src/store/useChatStore';
 import { formatRemainingTime } from '../../src/utils/freshness';
 import { calculateDistanceMeters, formatDistance } from '../../src/utils/distance';
 
@@ -64,6 +66,9 @@ export default function HomeScreen() {
   const isLocationSharingActive = useLocationStore((state) => state.isLocationSharingActive);
   const currentUser = useUserStore((state) => state.currentUser);
   const meetingPoints = useMeetingPointStore((state) => state.meetingPoints);
+  const unreadTotal = useChatStore((state) =>
+    Object.values(state.unreadCounts || {}).reduce((sum, c) => sum + (c || 0), 0)
+  );
 
   // Local bottom sheet states
   const [selectedClusterData, setSelectedClusterData] = useState(null);
@@ -276,13 +281,30 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.emergencyIconBtn}
-              activeOpacity={0.75}
-              onPress={() => router.push('/features/emergency')}
-            >
-              <ShieldAlert size={20} color={COLORS.danger} />
-            </TouchableOpacity>
+            <View style={styles.headerRightActions}>
+              <TouchableOpacity
+                style={styles.chatIconBtn}
+                activeOpacity={0.75}
+                onPress={() => router.push('/features/chat')}
+              >
+                <MessageSquare size={19} color={COLORS.primary} />
+                {unreadTotal > 0 && (
+                  <View style={styles.chatBadgeDot}>
+                    <Text style={styles.chatBadgeDotText}>
+                      {unreadTotal > 9 ? '9+' : unreadTotal}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.emergencyIconBtn}
+                activeOpacity={0.75}
+                onPress={() => router.push('/features/emergency')}
+              >
+                <ShieldAlert size={20} color={COLORS.danger} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.presenceRow}>
@@ -662,14 +684,29 @@ export default function HomeScreen() {
                     />
                     <View style={styles.personSheetBtnRow}>
                       <TouchableOpacity
+                        style={[styles.sheetActionHalfBtn, styles.sheetActionChatBtn]}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          setSelectedPersonSheet(null);
+                          router.push({
+                            pathname: '/features/chat',
+                            params: { memberId: selectedPersonSheet.id },
+                          });
+                        }}
+                      >
+                        <MessageSquare size={16} color={COLORS.primary} />
+                        <Text style={[styles.sheetActionBtnText, { color: COLORS.primary }]}>Chat</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
                         style={styles.sheetActionHalfBtn}
                         onPress={() => {
                           setSelectedPersonSheet(null);
                           router.push({
                             pathname: '/features/meeting-point',
                             params: {
-                              customLat: selectedPersonSheet.coordinates.latitude,
-                              customLon: selectedPersonSheet.coordinates.longitude,
+                              customLat: selectedPersonSheet.coordinates?.latitude || userLocation?.latitude,
+                              customLon: selectedPersonSheet.coordinates?.longitude || userLocation?.longitude,
                               suggestedName: `Meet near ${selectedPersonSheet.name}`,
                             },
                           });
@@ -687,7 +724,7 @@ export default function HomeScreen() {
                         }}
                       >
                         <Compass size={16} color={COLORS.primary} />
-                        <Text style={styles.sheetActionBtnText}>View on Map</Text>
+                        <Text style={styles.sheetActionBtnText}>View Map</Text>
                       </TouchableOpacity>
                     </View>
                   </>
@@ -770,6 +807,41 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 11,
     fontWeight: '700',
+  },
+  headerRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chatIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E0F2FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    marginRight: 8,
+    position: 'relative',
+  },
+  chatBadgeDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: COLORS.surface,
+  },
+  chatBadgeDotText: {
+    color: COLORS.white,
+    fontSize: 9,
+    fontWeight: '800',
   },
   emergencyIconBtn: {
     width: 40,
@@ -1092,6 +1164,10 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  sheetActionChatBtn: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
   },
   sheetActionBtnText: {
     color: COLORS.primary,

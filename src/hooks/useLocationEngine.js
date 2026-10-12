@@ -17,6 +17,7 @@ import { locationService } from '../services/locationService';
 import { batteryService } from '../services/batteryService';
 import { notificationService } from '../services/notificationService';
 import { useMeetingPointStore } from '../store/useMeetingPointStore';
+import { useChatStore } from '../store/useChatStore';
 import { getTripStatus } from '../utils/tripStatus';
 
 export const useLocationEngine = () => {
@@ -68,8 +69,18 @@ export const useLocationEngine = () => {
     const handleAppStateChange = (nextAppState) => {
       if (nextAppState === 'active') {
         if (activeTrip?.id && getTripStatus(activeTrip) !== 'expired') {
-          useTripStore.getState().loadTripMembers(activeTrip.id);
-          useMeetingPointStore.getState().loadTripMeetingPoints(activeTrip.id);
+          tripService
+            .getTripMembers(activeTrip.id)
+            .then((members) => {
+              if (members) {
+                useCrewStore.getState().setMembers(members);
+                useMeetingPointStore.getState().fetchTripMeetingPoints(activeTrip.id, members);
+              }
+            })
+            .catch((err) => {
+              console.warn('[LocationEngine] Foreground members sync error:', err);
+            });
+          useChatStore.getState().fetchTripMessages(activeTrip.id);
           refreshFreshness();
 
           // If location sharing is active, trigger immediate GPS refresh
@@ -140,10 +151,15 @@ export const useLocationEngine = () => {
       }
     });
 
+    // 2c. Realtime trip messages & chat sync (keeps unread badges updated on Home & Map in realtime)
+    useChatStore.getState().fetchTripMessages(tripId, currentUser?.id);
+    useChatStore.getState().initRealtime(tripId, currentUser?.id);
+
     return () => {
-      console.log('[LocationEngine] Unsubscribing from Realtime locations & meeting points for trip:', tripId);
+      console.log('[LocationEngine] Unsubscribing from Realtime locations, meeting points & chat for trip:', tripId);
       tripService.unsubscribeFromTripLocations();
       meetingPointService.unsubscribeFromMeetingPoints();
+      useChatStore.getState().cleanupRealtime();
     };
   }, [activeTrip?.id, currentUser?.id, updateMemberLocationFromRemote]);
 
