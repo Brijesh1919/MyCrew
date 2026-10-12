@@ -18,6 +18,7 @@ import { MeetingPointMarker } from './MeetingPointMarker';
 import { MapControls } from './MapControls';
 import { calculateDistanceMeters, formatDistance, calculateGroupCenter } from '../utils/distance';
 import { mapService, MAP_STYLES } from '../services/mapService';
+import { useLocationStore } from '../store/useLocationStore';
 
 export const MapView = ({
   userLocation,
@@ -46,6 +47,7 @@ export const MapView = ({
   style,
 }) => {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isLocationSharingActive = useLocationStore((state) => state.isLocationSharingActive);
 
   // Dynamic layout measurements
   const initialWidth = Math.min(windowWidth, 460);
@@ -641,7 +643,7 @@ export const MapView = ({
         pointerEvents="none"
       >
         {/* Radar & Accuracy SVG ring around real user location */}
-        {userLocation && !isNaN(userLocation.latitude) && (
+        {isLocationSharingActive && userLocation && !isNaN(userLocation.latitude) && (
           <G>
             {/* Real GPS accuracy circle */}
             <Circle
@@ -777,7 +779,7 @@ export const MapView = ({
           <MemberMarker
             member={{
               name: 'YOU',
-              status: 'live',
+              status: isLocationSharingActive ? 'live' : 'offline',
               coordinates: userLocation,
             }}
             isUser={true}

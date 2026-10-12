@@ -37,7 +37,7 @@ import { useMeetingPointStore } from '../../src/store/useMeetingPointStore';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useUserStore } from '../../src/store/useUserStore';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
-import { calculateDistanceMeters } from '../../src/utils/distance';
+import { calculateDistanceMeters, formatDistance } from '../../src/utils/distance';
 import { locationService } from '../../src/services/locationService';
 
 export default function MapScreen() {
@@ -442,7 +442,13 @@ export default function MapScreen() {
         title={selectedMemberModal?.name?.toUpperCase()}
         subtitle={
           selectedMemberModal
-            ? `${calculateDistanceMeters(userLocation, selectedMemberModal.coordinates)} m away`
+            ? selectedMemberModal.id === currentUser?.id ||
+              selectedMemberModal.id === 'me' ||
+              selectedMemberModal.isCurrentUser
+              ? 'You'
+              : selectedMemberModal.status === 'offline' || !selectedMemberModal.coordinates
+              ? 'Location Paused'
+              : `${formatDistance(calculateDistanceMeters(userLocation, selectedMemberModal.coordinates))} away`
             : ''
         }
       >
@@ -462,9 +468,13 @@ export default function MapScreen() {
                   lastSeenSecondsAgo={selectedMemberModal.lastSeenSecondsAgo}
                   showDetail={true}
                 />
-                <Text style={styles.modalMemberSub}>
-                  Cluster: {selectedMemberModal.cluster || 'General Grounds'}
-                </Text>
+                {selectedMemberModal.cluster &&
+                selectedMemberModal.cluster !== 'Active Crew' &&
+                selectedMemberModal.status !== 'offline' ? (
+                  <Text style={styles.modalMemberSub}>
+                    Area: {selectedMemberModal.cluster}
+                  </Text>
+                ) : null}
               </View>
             </View>
 

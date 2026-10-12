@@ -41,6 +41,7 @@ import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { useUserStore } from '../../src/store/useUserStore';
 import { useTripStore } from '../../src/store/useTripStore';
+import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 import { tripService } from '../../src/services/tripService';
@@ -210,6 +211,9 @@ export default function ProfileScreen() {
 
     if (!activeTrip?.id || !currentUser?.id) return;
 
+    // Immediately update local crew store so all tabs (People, Map, Home) reflect state instantly
+    useCrewStore.getState().setUserLocationSharingState(currentUser.id, val);
+
     if (!val) {
       try {
         await tripService.pauseLocationSharing({
@@ -313,7 +317,7 @@ export default function ProfileScreen() {
             uri={currentUser?.avatar}
             name={displayName}
             size="lg"
-            status={activeTrip ? 'live' : 'offline'}
+            status={activeTrip ? (isSharing ? 'live' : 'offline') : 'offline'}
             isUser={true}
           />
           <View style={styles.profileInfo}>
@@ -363,23 +367,28 @@ export default function ProfileScreen() {
               style={[
                 styles.statusPill,
                 !activeTrip && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
+                activeTrip && !isSharing && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
               ]}
             >
               <View
                 style={[
                   styles.statusDot,
                   !activeTrip && { backgroundColor: COLORS.textMuted },
+                  activeTrip && !isSharing && { backgroundColor: COLORS.danger },
                 ]}
               />
               <Text
                 style={[
                   styles.statusPillText,
                   !activeTrip && { color: COLORS.textSecondary },
+                  activeTrip && !isSharing && { color: COLORS.danger },
                 ]}
               >
-                {activeTrip
+                {!activeTrip
+                  ? 'Not in any crew'
+                  : isSharing
                   ? `Active in ${activeTrip.name} (${userRole === 'organizer' ? 'Host' : 'Member'})`
-                  : 'Not in any crew'}
+                  : `Location Paused in ${activeTrip.name} (${userRole === 'organizer' ? 'Host' : 'Member'})`}
               </Text>
             </View>
           </View>

@@ -66,10 +66,22 @@ export default function PeopleScreen() {
   const filtered = memberService.filterMembers(members, activeFilter, searchQuery);
 
   // Calculate distance & sort: YOU at top, then ORGANIZER, then nearest
-  const membersWithDistance = filtered.map((m) => ({
-    ...m,
-    distanceMeters: calculateDistanceMeters(userLocation, m.coordinates),
-  }));
+  const membersWithDistance = filtered.map((m) => {
+    const isMe =
+      m.id === currentUser?.id ||
+      m.id === 'user' ||
+      m.id === 'me' ||
+      m.isCurrentUser ||
+      (currentUser?.name && m.name === currentUser.name);
+    const canMeasure = !isMe && m.status !== 'offline' && m.coordinates;
+
+    return {
+      ...m,
+      distanceMeters: canMeasure
+        ? calculateDistanceMeters(userLocation, m.coordinates)
+        : null,
+    };
+  });
 
   membersWithDistance.sort((a, b) => {
     const aIsMe = a.id === currentUser?.id || a.id === 'user';

@@ -3,7 +3,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import { COLORS, TYPOGRAPHY } from '../constants/theme';
 import { formatDistance } from '../utils/distance';
 
-export const DistanceBadge = ({ meters, size = 'md', isHighlight = false }) => {
+export const DistanceBadge = ({ meters, size = 'md', isHighlight = false, showDashIfNull = false }) => {
+  if (meters === undefined || meters === null || isNaN(meters)) {
+    if (!showDashIfNull) return null;
+  }
+
   return (
     <View
       style={[

@@ -247,23 +247,27 @@ class LocationService {
 
     const validMembers = members.filter(
       (m) =>
+        m.status !== 'offline' &&
         m.coordinates &&
         !isNaN(m.coordinates.latitude) &&
         !isNaN(m.coordinates.longitude) &&
         m.coordinates.latitude !== 0
     );
 
-    const withDist = validMembers.map((m) => {
-      const dist = calculateDistanceMeters(userCoord, m.coordinates);
-      const freshness = getLocationFreshness(m.lastSeenSecondsAgo);
-      const direction = calculateBearing(userCoord, m.coordinates);
-      return {
-        ...m,
-        distanceMeters: dist,
-        freshness,
-        bearing: direction,
-      };
-    });
+    const withDist = validMembers
+      .map((m) => {
+        const dist = calculateDistanceMeters(userCoord, m.coordinates);
+        if (dist === null) return null;
+        const freshness = getLocationFreshness(m.lastSeenSecondsAgo);
+        const direction = calculateBearing(userCoord, m.coordinates);
+        return {
+          ...m,
+          distanceMeters: dist,
+          freshness,
+          bearing: direction,
+        };
+      })
+      .filter(Boolean);
 
     withDist.sort((a, b) => a.distanceMeters - b.distanceMeters);
     return limit ? withDist.slice(0, limit) : withDist;

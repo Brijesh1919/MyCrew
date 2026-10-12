@@ -40,6 +40,7 @@ export default function PersonDetailScreen() {
   const members = useCrewStore((state) => state.members);
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
   const userLocation = useLocationStore((state) => state.userLocation);
+  const isLocationSharingActive = useLocationStore((state) => state.isLocationSharingActive);
   const currentUser = useUserStore((state) => state.currentUser);
 
   const member =
@@ -53,6 +54,10 @@ export default function PersonDetailScreen() {
     member?.id === 'me' ||
     member?.isCurrentUser ||
     (currentUser?.name && member?.name === currentUser.name);
+
+  const isTargetOffline = isSelf
+    ? (!isLocationSharingActive || member?.status === 'offline')
+    : (member?.status === 'offline' || !member?.coordinates);
 
   const [deviceBattery, setDeviceBattery] = useState(null);
   const [showContactModal, setShowContactModal] = useState(false);
@@ -142,11 +147,36 @@ export default function PersonDetailScreen() {
           </View>
 
           {/* Distance Callout */}
-          <View style={styles.distanceBox}>
+          <View
+            style={[
+              styles.distanceBox,
+              isTargetOffline && styles.distanceBoxPaused,
+            ]}
+          >
             {isSelf ? (
+              !isTargetOffline ? (
+                <>
+                  <Text style={styles.distanceValue}>Your Location</Text>
+                  <Text style={styles.distanceLabel}>Active & visible to crew</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.distanceValue, styles.distanceValuePaused]}>
+                    Location Paused
+                  </Text>
+                  <Text style={styles.distanceLabel}>
+                    Hidden from crew • Location sharing off
+                  </Text>
+                </>
+              )
+            ) : isTargetOffline ? (
               <>
-                <Text style={styles.distanceValue}>Your Location</Text>
-                <Text style={styles.distanceLabel}>Active & visible to crew</Text>
+                <Text style={[styles.distanceValue, styles.distanceValuePaused]}>
+                  Location Paused
+                </Text>
+                <Text style={styles.distanceLabel}>
+                  Location hidden by member
+                </Text>
               </>
             ) : (
               <>
@@ -164,8 +194,17 @@ export default function PersonDetailScreen() {
               <Compass size={18} color={COLORS.primary} />
               <Text style={styles.detailTitle}>Current Area</Text>
             </View>
-            <Text style={styles.detailValue}>
-              {member?.cluster || 'Active Crew'}
+            <Text
+              style={[
+                styles.detailValue,
+                isTargetOffline && { color: COLORS.textMuted },
+              ]}
+            >
+              {isTargetOffline
+                ? 'Location Hidden'
+                : member?.cluster && member.cluster !== 'Active Crew'
+                ? member.cluster
+                : 'In Trip Area'}
             </Text>
           </View>
 
@@ -247,7 +286,16 @@ export default function PersonDetailScreen() {
               <View style={styles.btnRow}>
                 <SecondaryButton
                   title="Meet Here"
-                  onPress={handleMeetHere}
+                  onPress={() => {
+                    if (isTargetOffline || !userLocation) {
+                      Alert.alert(
+                        'Location Paused',
+                        'Please turn on location sharing in Profile to set a meeting point at your current position.'
+                      );
+                      return;
+                    }
+                    handleMeetHere();
+                  }}
                   icon={MapPin}
                   size="md"
                   variant="subtle"
@@ -266,9 +314,32 @@ export default function PersonDetailScreen() {
           ) : (
             <>
               <PrimaryButton
-                title={`Walk to ${member?.name}`}
-                onPress={handleNavigate}
-                icon={Navigation}
+                title={
+                  isTargetOffline
+                    ? `Location Paused (${member?.name || 'Member'})`
+                    : `Walk to ${member?.name}`
+                }
+                onPress={() => {
+                  if (isTargetOffline) {
+                    Alert.alert(
+                      'Location Unavailable',
+                      `${member?.name || 'This member'} has paused location sharing. Please call or message them instead.`,
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        member?.phone
+                          ? {
+                              text: `Call ${member.name?.split(' ')[0]}`,
+                              onPress: () => Linking.openURL(`tel:${member.phone}`),
+                            }
+                          : null,
+                      ].filter(Boolean)
+                    );
+                  } else {
+                    handleNavigate();
+                  }
+                }}
+                icon={isTargetOffline ? Phone : Navigation}
+                variant={isTargetOffline ? 'subtle' : 'primary'}
                 size="lg"
                 style={{ marginBottom: 10 }}
               />
@@ -298,7 +369,16 @@ export default function PersonDetailScreen() {
               <View style={styles.btnRow}>
                 <SecondaryButton
                   title="Meet Here"
-                  onPress={handleMeetHere}
+                  onPress={() => {
+                    if (isTargetOffline || !member?.coordinates) {
+                      Alert.alert(
+                        'Location Unavailable',
+                        `Cannot set a meeting point at ${member?.name || 'this member'}'s location because their location sharing is paused.`
+                      );
+                      return;
+                    }
+                    handleMeetHere();
+                  }}
                   icon={MapPin}
                   size="md"
                   variant="subtle"
@@ -363,10 +443,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: RADIUS.lg,
   },
+  distanceBoxPaused: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
   distanceValue: {
     fontSize: 26,
     fontWeight: '800',
     color: COLORS.primary,
+  },
+  distanceValuePaused: {
+    color: COLORS.danger,
+    fontSize: 20,
   },
   distanceLabel: {
     ...TYPOGRAPHY.caption,

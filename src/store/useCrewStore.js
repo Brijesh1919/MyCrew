@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { memberService } from '../services/memberService';
 import { locationService } from '../services/locationService';
 import { getLocationFreshness } from '../utils/freshness';
+import { COLORS } from '../constants/theme';
 
 export const useCrewStore = create((set, get) => ({
   members: [], // Initial state is empty for a fresh app session with no active trip
@@ -13,13 +14,33 @@ export const useCrewStore = create((set, get) => ({
   setMembers: (members) => {
     // Ensure each member has properly evaluated freshness
     const withFreshness = (members || []).map((m) => {
-      const freshness = m.location_updated_at
-        ? getLocationFreshness(m.location_updated_at)
-        : getLocationFreshness(m.lastSeenSecondsAgo || 0);
+      const hasValidCoords =
+        m.coordinates &&
+        !isNaN(Number(m.coordinates.latitude)) &&
+        !isNaN(Number(m.coordinates.longitude));
+
+      let freshness;
+      if (!hasValidCoords || !m.location_updated_at) {
+        freshness = {
+          state: 'offline',
+          label: 'Offline • Sharing Paused',
+          shortLabel: 'Offline',
+          timeText: 'Offline',
+          color: COLORS.danger,
+          bgColor: COLORS.dangerBg,
+          dot: '🔴',
+        };
+      } else {
+        freshness = getLocationFreshness(m.location_updated_at);
+      }
+
       return {
         ...m,
-        status: freshness.state,
+        status: m.status === 'offline' ? 'offline' : freshness.state,
         freshness,
+        lastSeenSecondsAgo: m.location_updated_at
+          ? Math.max(0, Math.round((Date.now() - new Date(m.location_updated_at).getTime()) / 1000))
+          : 999999,
       };
     });
     set({ members: withFreshness });
@@ -55,7 +76,6 @@ export const useCrewStore = create((set, get) => ({
     }
 
     const existingIndex = current.findIndex((m) => m.id === row.user_id);
-    const freshness = getLocationFreshness(row.location_updated_at);
 
     const hasValidCoords =
       row.latitude !== null &&
@@ -75,9 +95,19 @@ export const useCrewStore = create((set, get) => ({
           heading: row.location_heading ? Number(row.location_heading) : null,
           speed: row.location_speed ? Number(row.location_speed) : null,
         }
-      : existingIndex >= 0
-      ? current[existingIndex].coordinates
       : null;
+
+    const freshness = hasValidCoords && row.location_updated_at
+      ? getLocationFreshness(row.location_updated_at)
+      : {
+          state: 'offline',
+          label: 'Offline • Sharing Paused',
+          shortLabel: 'Offline',
+          timeText: 'Offline',
+          color: COLORS.danger,
+          bgColor: COLORS.dangerBg,
+          dot: '🔴',
+        };
 
     const updatedMember = {
       id: row.user_id,
@@ -89,7 +119,7 @@ export const useCrewStore = create((set, get) => ({
       freshness,
       lastSeenSecondsAgo: row.location_updated_at
         ? Math.max(0, Math.round((Date.now() - new Date(row.location_updated_at).getTime()) / 1000))
-        : 0,
+        : 999999,
       location_updated_at: row.location_updated_at,
       coordinates,
       battery:
@@ -99,7 +129,10 @@ export const useCrewStore = create((set, get) => ({
           ? current[existingIndex].battery
           : null,
       isSafe: true,
-      cluster: 'Active Crew',
+      cluster:
+        existingIndex >= 0 && current[existingIndex].cluster && current[existingIndex].cluster !== 'Active Crew'
+          ? current[existingIndex].cluster
+          : null,
     };
 
     if (existingIndex >= 0) {
@@ -197,12 +230,13 @@ export const useCrewStore = create((set, get) => ({
             label: 'Offline • Sharing Paused',
             shortLabel: 'Offline',
             timeText: 'Sharing off',
-            color: '#94A3B8',
-            bgColor: '#F1F5F9',
-            dot: '⚪',
+            color: COLORS.danger,
+            bgColor: COLORS.dangerBg,
+            dot: '🔴',
           },
       coordinates: isSharing ? nextMembers[existingIndex].coordinates : null,
       location_updated_at: isSharing ? new Date().toISOString() : null,
+      lastSeenSecondsAgo: isSharing ? 0 : 999999,
     };
     set({ members: nextMembers });
   },
@@ -214,13 +248,18 @@ export const useCrewStore = create((set, get) => ({
     let offline = 0;
 
     current.forEach((m) => {
-      const freshness = m.location_updated_at
-        ? getLocationFreshness(m.location_updated_at)
-        : m.freshness || { state: m.status || 'live' };
-
-      if (freshness.state === 'live') active++;
-      else if (freshness.state === 'delayed') delayed++;
-      else offline++;
+      if (m.status === 'offline') {
+        offline++;
+      } else if (m.status === 'delayed') {
+        delayed++;
+      } else if (m.location_updated_at) {
+        const freshness = getLocationFreshness(m.location_updated_at);
+        if (freshness.state === 'live') active++;
+        else if (freshness.state === 'delayed') delayed++;
+        else offline++;
+      } else {
+        active++;
+      }
     });
 
     return {

@@ -9,6 +9,80 @@ export const StatusBadge = ({
   showDetail = false,
   size = 'md',
 }) => {
+  // 1. If explicitly offline (or sharing paused)
+  if (status === 'offline') {
+    let detailLabel = 'Offline';
+    if (showDetail) {
+      if (lastSeenSecondsAgo && lastSeenSecondsAgo >= 60 && lastSeenSecondsAgo < 999999) {
+        const mins = Math.round(lastSeenSecondsAgo / 60);
+        detailLabel = mins >= 60 ? `Offline • ${Math.round(mins / 60)}h ago` : `Offline • ${mins}m ago`;
+      } else {
+        detailLabel = 'Offline • Sharing Paused';
+      }
+    }
+
+    return (
+      <View
+        style={[
+          styles.badge,
+          { backgroundColor: COLORS.dangerBg },
+          size === 'sm' && styles.badgeSm,
+        ]}
+      >
+        <View
+          style={[
+            styles.dot,
+            { backgroundColor: COLORS.danger },
+            size === 'sm' && styles.dotSm,
+          ]}
+        />
+        <Text
+          style={[
+            styles.text,
+            { color: COLORS.danger },
+            size === 'sm' && styles.textSm,
+          ]}
+        >
+          {showDetail ? detailLabel : 'Offline'}
+        </Text>
+      </View>
+    );
+  }
+
+  // 2. If explicitly delayed
+  if (status === 'delayed') {
+    const mins = lastSeenSecondsAgo ? Math.max(1, Math.round(lastSeenSecondsAgo / 60)) : 1;
+    const detailLabel = `Delayed • ${mins}m ago`;
+
+    return (
+      <View
+        style={[
+          styles.badge,
+          { backgroundColor: COLORS.warningBg },
+          size === 'sm' && styles.badgeSm,
+        ]}
+      >
+        <View
+          style={[
+            styles.dot,
+            { backgroundColor: COLORS.warning },
+            size === 'sm' && styles.dotSm,
+          ]}
+        />
+        <Text
+          style={[
+            styles.text,
+            { color: COLORS.warning },
+            size === 'sm' && styles.textSm,
+          ]}
+        >
+          {showDetail ? detailLabel : 'Delayed'}
+        </Text>
+      </View>
+    );
+  }
+
+  // 3. Status is live — verify signal freshness based on lastSeenSecondsAgo
   const freshness = getLocationFreshness(lastSeenSecondsAgo);
 
   return (

@@ -52,25 +52,38 @@ export default function GroupStatusScreen() {
     return true;
   });
 
-  const sortedByDist = locationService.getNearestMembers(userLocation, otherMembers);
-  const closest = sortedByDist.length > 0 ? sortedByDist[0] : null;
-  // Only show farthest if there are at least 2 other members and farthest is distinct
-  const farthest =
-    sortedByDist.length > 1 &&
-    sortedByDist[sortedByDist.length - 1].id !== closest?.id
-      ? sortedByDist[sortedByDist.length - 1]
-      : null;
-
-  // Real active members with valid GPS coordinates for group centroid
-  const membersWithCoords = (members || []).filter(
+  // Only calculate closest/farthest among members who are actively sharing location
+  const otherMembersSharing = otherMembers.filter(
     (m) =>
+      m.status !== 'offline' &&
       m.coordinates &&
       !isNaN(m.coordinates.latitude) &&
       !isNaN(m.coordinates.longitude) &&
       m.coordinates.latitude !== 0
   );
 
-  const nearbyActiveCount = membersWithCoords.length;
+  const sortedByDist = userLocation
+    ? locationService.getNearestMembers(userLocation, otherMembersSharing)
+    : [];
+  const closest = sortedByDist.length > 0 ? sortedByDist[0] : null;
+  // Only show farthest if there are at least 2 other sharing members and farthest is distinct
+  const farthest =
+    sortedByDist.length > 1 &&
+    sortedByDist[sortedByDist.length - 1].id !== closest?.id
+      ? sortedByDist[sortedByDist.length - 1]
+      : null;
+
+  // Real active members actively sharing valid GPS coordinates for group center
+  const membersSharingLive = (members || []).filter(
+    (m) =>
+      m.status !== 'offline' &&
+      m.coordinates &&
+      !isNaN(m.coordinates.latitude) &&
+      !isNaN(m.coordinates.longitude) &&
+      m.coordinates.latitude !== 0
+  );
+
+  const nearbyActiveCount = membersSharingLive.length;
   const centerTitle =
     activeTrip?.locationName ||
     activeTrip?.destination ||
@@ -153,15 +166,23 @@ export default function GroupStatusScreen() {
               <ChevronRight size={16} color={COLORS.textMuted} />
             </View>
           </TouchableOpacity>
-        ) : otherMembers.length === 0 ? (
+        ) : (
           <View style={styles.emptyHighlightCard}>
             <Users size={22} color={COLORS.textMuted} />
-            <Text style={styles.emptyHighlightText}>No other members in this trip yet</Text>
-            <Text style={styles.emptyHighlightSub}>Share your trip code to invite friends!</Text>
+            <Text style={styles.emptyHighlightText}>
+              {otherMembers.length > 0
+                ? 'No members sharing live location'
+                : 'No other members in this trip yet'}
+            </Text>
+            <Text style={styles.emptyHighlightSub}>
+              {otherMembers.length > 0
+                ? 'Other crew members have location sharing paused'
+                : 'Share your trip code to invite friends!'}
+            </Text>
           </View>
-        ) : null}
+        )}
 
-        {/* Farthest (only shown if there are multiple other members) */}
+        {/* Farthest (only shown if there are multiple other sharing members) */}
         {farthest && (
           <TouchableOpacity
             style={styles.highlightCard}
@@ -183,7 +204,7 @@ export default function GroupStatusScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Dynamic Group Center / Centroid */}
+        {/* Dynamic Group Center / Midpoint */}
         <TouchableOpacity
           style={styles.highlightCard}
           activeOpacity={0.8}
@@ -194,7 +215,7 @@ export default function GroupStatusScreen() {
               <Compass size={18} color={COLORS.primary} />
             </View>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={styles.highlightLabel}>GROUP CENTER (CENTROID)</Text>
+              <Text style={styles.highlightLabel}>GROUP CENTER (CREW MIDPOINT)</Text>
               <Text style={styles.highlightName} numberOfLines={1}>
                 {centerTitle}
               </Text>
@@ -203,8 +224,8 @@ export default function GroupStatusScreen() {
           <View style={styles.highlightRight}>
             <Text style={styles.clusterCountTag}>
               {nearbyActiveCount > 0
-                ? `${nearbyActiveCount} nearby`
-                : `${totalCrew} in trip`}
+                ? `${nearbyActiveCount} sharing live`
+                : 'Sharing paused'}
             </Text>
             <ChevronRight size={16} color={COLORS.textMuted} style={{ marginLeft: 4 }} />
           </View>

@@ -45,7 +45,7 @@ import { useMeetingPointStore } from '../../src/store/useMeetingPointStore';
 import { useUserStore } from '../../src/store/useUserStore';
 import { useLocationEngine } from '../../src/hooks/useLocationEngine';
 import { formatRemainingTime } from '../../src/utils/freshness';
-import { calculateDistanceMeters } from '../../src/utils/distance';
+import { calculateDistanceMeters, formatDistance } from '../../src/utils/distance';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -61,6 +61,7 @@ export default function HomeScreen() {
   const getStatusCounts = useCrewStore((state) => state.getStatusCounts);
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
   const userLocation = useLocationStore((state) => state.userLocation);
+  const isLocationSharingActive = useLocationStore((state) => state.isLocationSharingActive);
   const currentUser = useUserStore((state) => state.currentUser);
   const meetingPoints = useMeetingPointStore((state) => state.meetingPoints);
 
@@ -560,7 +561,9 @@ export default function HomeScreen() {
               selectedPersonSheet.id === 'me' ||
               selectedPersonSheet.isCurrentUser
               ? 'You (Crew Member)'
-              : `${calculateDistanceMeters(userLocation, selectedPersonSheet.coordinates)} m away`
+              : selectedPersonSheet.status === 'offline' || !selectedPersonSheet.coordinates
+              ? 'Location Paused'
+              : `${formatDistance(calculateDistanceMeters(userLocation, selectedPersonSheet.coordinates))} away`
             : ''
         }
       >
@@ -570,6 +573,10 @@ export default function HomeScreen() {
             selectedPersonSheet.id === 'me' ||
             selectedPersonSheet.isCurrentUser ||
             selectedPersonSheet.role === 'me';
+
+          const isTargetOffline = isSelf
+            ? !isLocationSharingActive || selectedPersonSheet.status === 'offline'
+            : selectedPersonSheet.status === 'offline' || !selectedPersonSheet.coordinates;
 
           return (
             <View style={styles.personSheetContainer}>
@@ -591,8 +598,12 @@ export default function HomeScreen() {
                   />
                   <Text style={styles.personSheetDistance}>
                     {isSelf
-                      ? 'Your active device position'
-                      : `${calculateDistanceMeters(userLocation, selectedPersonSheet.coordinates)} m away from you`}
+                      ? isLocationSharingActive && selectedPersonSheet.status !== 'offline'
+                        ? 'Your active device position'
+                        : 'Location sharing paused'
+                      : isTargetOffline
+                      ? 'Location hidden by member'
+                      : `${formatDistance(calculateDistanceMeters(userLocation, selectedPersonSheet.coordinates))} away from you`}
                   </Text>
                 </View>
               </View>

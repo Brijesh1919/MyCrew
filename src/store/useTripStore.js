@@ -125,7 +125,7 @@ export const useTripStore = create((set, get) => ({
                     ? Number(m.battery_level)
                     : null,
                 isSafe: true,
-                cluster: 'Active Crew',
+                cluster: null,
                 coordinates: hasCoords
                   ? {
                       latitude: Number(m.latitude),
@@ -293,7 +293,7 @@ export const useTripStore = create((set, get) => ({
           status: 'live',
           lastSeenSecondsAgo: 0,
           isSafe: true,
-          cluster: 'Active Crew',
+          cluster: null,
           coordinates: userLoc || null,
         },
       ]);
@@ -375,7 +375,7 @@ export const useTripStore = create((set, get) => ({
                 ? Number(m.battery_level)
                 : null,
             isSafe: true,
-            cluster: 'Active Crew',
+            cluster: null,
             coordinates: hasCoords
               ? {
                   latitude: Number(m.latitude),

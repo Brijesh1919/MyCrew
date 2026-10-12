@@ -6,13 +6,14 @@ const EARTH_RADIUS_METERS = 6371000;
  * Calculates Haversine distance in meters between two lat/lng coordinates
  */
 export const calculateDistanceMeters = (coord1, coord2) => {
-  if (!coord1 || !coord2) return 0;
+  if (!coord1 || !coord2) return null;
   const lat1 = Number(coord1.latitude);
   const lon1 = Number(coord1.longitude);
   const lat2 = Number(coord2.latitude);
   const lon2 = Number(coord2.longitude);
 
-  if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) return 0;
+  if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) return null;
+  if ((lat1 === 0 && lon1 === 0) || (lat2 === 0 && lon2 === 0)) return null;
 
   const toRad = (value) => (value * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);

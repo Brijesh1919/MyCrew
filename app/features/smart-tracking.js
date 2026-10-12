@@ -14,6 +14,10 @@ import { APP_CONFIG } from '../../src/constants/config';
 import { AppHeader } from '../../src/components/AppHeader';
 import { useUserStore } from '../../src/store/useUserStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
+import { useTripStore } from '../../src/store/useTripStore';
+import { useCrewStore } from '../../src/store/useCrewStore';
+import { tripService } from '../../src/services/tripService';
+import { locationService } from '../../src/services/locationService';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 import { batteryService } from '../../src/services/batteryService';
 
@@ -22,6 +26,7 @@ export default function SmartTrackingScreen() {
 
   const currentUser = useUserStore((state) => state.currentUser);
   const setTrackingMode = useUserStore((state) => state.setTrackingMode);
+  const activeTrip = useTripStore((state) => state.activeTrip);
   const isSharing = useLocationStore((state) => state.isLocationSharingActive);
   const setIsSharing = useLocationStore((state) => state.setIsLocationSharingActive);
 
@@ -58,16 +63,53 @@ export default function SmartTrackingScreen() {
         {/* CURRENT STATUS HERO CARD */}
         <View style={styles.statusCard}>
           <View style={styles.cardHeader}>
-            <View style={styles.liveBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>
+            <View style={[styles.liveBadge, !isSharing && { backgroundColor: COLORS.dangerBg }]}>
+              <View style={[styles.liveDot, !isSharing && { backgroundColor: COLORS.danger }]} />
+              <Text style={[styles.liveText, !isSharing && { color: COLORS.danger }]}>
                 {isSharing ? 'Enabled' : 'Paused'}
               </Text>
             </View>
 
             <Switch
               value={isSharing}
-              onValueChange={setIsSharing}
+              onValueChange={async (val) => {
+                triggerLight();
+                setIsSharing(val);
+                if (currentUser?.id) {
+                  useCrewStore.getState().setUserLocationSharingState(currentUser.id, val);
+                }
+                if (activeTrip?.id && currentUser?.id) {
+                  if (!val) {
+                    try {
+                      await tripService.pauseLocationSharing({
+                        tripId: activeTrip.id,
+                        userId: currentUser.id,
+                      });
+                    } catch (e) {
+                      console.warn('Error pausing sharing in smart-tracking:', e);
+                    }
+                  } else {
+                    try {
+                      const pos = await locationService.getCurrentPosition(true);
+                      if (pos) {
+                        useLocationStore.getState().setUserLocation(pos);
+                        await tripService.updateMemberLocation({
+                          tripId: activeTrip.id,
+                          userId: currentUser.id,
+                          latitude: pos.latitude,
+                          longitude: pos.longitude,
+                          accuracy: pos.accuracy,
+                          heading: pos.heading,
+                          speed: pos.speed,
+                          force: true,
+                        });
+                      }
+                    } catch (e) {
+                      console.warn('Error resuming sharing in smart-tracking:', e);
+                    }
+                  }
+                }
+              }}
               trackColor={{ false: '#CBD5E1', true: COLORS.primaryLight }}
               thumbColor={isSharing ? COLORS.primary : '#F1F5F9'}
             />

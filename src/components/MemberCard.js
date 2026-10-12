@@ -71,7 +71,7 @@ export const MemberCard = ({
               lastSeenSecondsAgo={member.lastSeenSecondsAgo}
               size="sm"
             />
-            {member.cluster && (
+            {member.cluster && member.cluster !== 'Active Crew' && member.status !== 'offline' && (
               <Text style={styles.clusterText} numberOfLines={1}>
                 • {member.cluster}
               </Text>
@@ -81,7 +81,7 @@ export const MemberCard = ({
       </View>
 
       <View style={styles.rightRow}>
-        {distanceMeters !== undefined && (
+        {!isCurrentUser && distanceMeters !== undefined && distanceMeters !== null && member.status !== 'offline' && (
           <DistanceBadge meters={distanceMeters} isHighlight={isHighlighted} />
         )}
         <ChevronRight size={18} color={COLORS.textMuted} style={styles.chevron} />
