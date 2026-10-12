@@ -212,11 +212,31 @@ export default function PersonDetailScreen() {
 
           <View style={styles.detailRow}>
             <View style={styles.detailLeft}>
-              <Battery size={18} color={COLORS.primary} />
+              <Battery
+                size={18}
+                color={
+                  typeof resolvedBattery === 'number' && resolvedBattery <= 20
+                    ? COLORS.danger
+                    : COLORS.primary
+                }
+              />
               <Text style={styles.detailTitle}>Battery</Text>
             </View>
-            <Text style={styles.detailValue}>
-              {typeof resolvedBattery === 'number' ? `${resolvedBattery}%` : 'Not reported'}
+            <Text
+              style={[
+                styles.detailValue,
+                typeof resolvedBattery === 'number' &&
+                  resolvedBattery <= 20 && {
+                    color: COLORS.danger,
+                    fontWeight: '700',
+                  },
+              ]}
+            >
+              {typeof resolvedBattery === 'number'
+                ? resolvedBattery <= 20
+                  ? `⚠️ ${resolvedBattery}% (Critically Low)`
+                  : `${resolvedBattery}%`
+                : 'Not reported'}
             </Text>
           </View>
 

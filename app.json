@@ -12,9 +12,12 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "MyCrew uses your location while you're part of an active crew so your friends can find you."
+          "locationAlwaysAndWhenInUsePermission": "Allow MyCrew to track your location in the background during an active trip so your friends can find you if you get separated.",
+          "locationWhenInUsePermission": "MyCrew uses your location while you're part of an active crew so your friends can find you.",
+          "isAndroidBackgroundLocationEnabled": true
         }
       ],
+      "expo-notifications",
       [
         "expo-camera",
         {
@@ -31,7 +34,12 @@
       "bundleIdentifier": "com.mycrew.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "MyCrew uses your location while you're part of an active crew so your friends can find you.",
-        "NSCameraUsageDescription": "Allow MyCrew to access your camera to scan crew QR codes."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Allow MyCrew to track your location in the background during an active trip so your friends can find you if you get separated.",
+        "NSCameraUsageDescription": "Allow MyCrew to access your camera to scan crew QR codes.",
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ]
       }
     },
     "android": {
@@ -41,8 +49,16 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS",
         "CAMERA",
         "android.permission.CAMERA"
       ],

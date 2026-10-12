@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { ChevronRight, ShieldCheck } from 'lucide-react-native';
+import { ChevronRight, ShieldCheck, BatteryWarning } from 'lucide-react-native';
 import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../constants/theme';
 import { MemberAvatar } from './MemberAvatar';
 import { StatusBadge } from './StatusBadge';
@@ -71,6 +71,12 @@ export const MemberCard = ({
               lastSeenSecondsAgo={member.lastSeenSecondsAgo}
               size="sm"
             />
+            {member.battery !== null && member.battery !== undefined && member.battery <= 20 && (
+              <View style={styles.lowBatteryBadge}>
+                <BatteryWarning size={12} color={COLORS.danger} />
+                <Text style={styles.lowBatteryText}>{member.battery}%</Text>
+              </View>
+            )}
             {member.cluster && member.cluster !== 'Active Crew' && member.status !== 'offline' && (
               <Text style={styles.clusterText} numberOfLines={1}>
                 • {member.cluster}
@@ -176,6 +182,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
+  },
+  lowBatteryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 6,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    gap: 3,
+  },
+  lowBatteryText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.danger,
   },
   clusterText: {
     ...TYPOGRAPHY.caption,

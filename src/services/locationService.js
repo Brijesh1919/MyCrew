@@ -5,6 +5,7 @@
 
 import { Platform } from 'react-native';
 import * as Location from 'expo-location';
+import * as TaskManager from 'expo-task-manager';
 import {
   calculateDistanceMeters,
   calculateBearing,
@@ -12,6 +13,58 @@ import {
   getRelativeDirection,
 } from '../utils/distance';
 import { getLocationFreshness } from '../utils/freshness';
+
+export const BACKGROUND_LOCATION_TASK = 'MYCREW_BACKGROUND_LOCATION_TASK';
+
+if (Platform.OS !== 'web') {
+  TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
+    if (error) {
+      console.warn('[BackgroundLocation] Task error:', error);
+      return;
+    }
+    if (data?.locations?.length > 0) {
+      const loc = data.locations[data.locations.length - 1];
+      const normalized = {
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        accuracy: loc.coords.accuracy || null,
+        heading: loc.coords.heading || null,
+        speed: loc.coords.speed || null,
+        timestamp: new Date(loc.timestamp || Date.now()).toISOString(),
+      };
+
+      try {
+        const { useLocationStore } = require('../store/useLocationStore');
+        const { useTripStore } = require('../store/useTripStore');
+        const { useUserStore } = require('../store/useUserStore');
+        const { tripService } = require('./tripService');
+        const { batteryService } = require('./batteryService');
+
+        useLocationStore.getState().setUserLocation(normalized);
+
+        const isSharing = useLocationStore.getState().isLocationSharingActive;
+        const activeTrip = useTripStore.getState().activeTrip;
+        const currentUser = useUserStore.getState().currentUser;
+
+        if (isSharing && activeTrip?.id && currentUser?.id) {
+          const batteryPct = await batteryService.getBatteryLevel();
+          await tripService.updateMemberLocation({
+            tripId: activeTrip.id,
+            userId: currentUser.id,
+            latitude: normalized.latitude,
+            longitude: normalized.longitude,
+            accuracy: normalized.accuracy,
+            heading: normalized.heading,
+            speed: normalized.speed,
+            batteryLevel: batteryPct,
+          });
+        }
+      } catch (err) {
+        console.warn('[BackgroundLocation] update exception:', err);
+      }
+    }
+  });
+}
 
 class LocationService {
   constructor() {
@@ -227,6 +280,58 @@ class LocationService {
     }
 
     this.isWatching = false;
+  }
+
+  /**
+   * Starts background location updates via TaskManager
+   */
+  async startBackgroundLocation() {
+    try {
+      if (Platform.OS === 'web') return false;
+
+      const hasStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
+      if (hasStarted) return true;
+
+      const bgPerm = await Location.getBackgroundPermissionsAsync().catch(() => null);
+      if (bgPerm?.status !== 'granted') {
+        const req = await Location.requestBackgroundPermissionsAsync().catch(() => null);
+        if (req?.status !== 'granted') {
+          console.log('[LocationService] Background permission not granted');
+          return false;
+        }
+      }
+
+      await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 10000,
+        distanceInterval: 10,
+        showsBackgroundLocationIndicator: true,
+        foregroundService: {
+          notificationTitle: 'MyCrew Live Tracking',
+          notificationBody: 'Sharing your location with your active crew',
+          notificationColor: '#2563EB',
+        },
+      });
+      return true;
+    } catch (e) {
+      console.warn('startBackgroundLocation error:', e);
+      return false;
+    }
+  }
+
+  /**
+   * Stops background location updates
+   */
+  async stopBackgroundLocation() {
+    try {
+      if (Platform.OS === 'web') return;
+      const hasStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
+      if (hasStarted) {
+        await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => {});
+      }
+    } catch (e) {
+      console.warn('stopBackgroundLocation error:', e);
+    }
   }
 
   /**

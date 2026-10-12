@@ -7,6 +7,7 @@ import { COLORS } from '../src/constants/theme';
 import { analytics } from '../src/services/analyticsService';
 import { crashlytics } from '../src/services/crashlyticsService';
 import { perfService } from '../src/services/perfService';
+import { notificationService } from '../src/services/notificationService';
 
 export default function RootLayout() {
   const { width } = useWindowDimensions();
@@ -16,6 +17,7 @@ export default function RootLayout() {
     perfService.startTrace('app_initial_mount').then((t) => t.stop());
     crashlytics.init();
     analytics.logAppOpen();
+    notificationService.requestPermissions();
   }, []);
 
   return (

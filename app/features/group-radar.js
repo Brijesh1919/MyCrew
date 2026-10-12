@@ -23,6 +23,7 @@ import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { DistanceBadge } from '../../src/components/DistanceBadge';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
+import { useUserStore } from '../../src/store/useUserStore';
 import { locationService } from '../../src/services/locationService';
 import { calculateBearing, getRelativeDirection } from '../../src/utils/distance';
 
@@ -32,19 +33,25 @@ export default function GroupRadarScreen() {
   const members = useCrewStore((state) => state.members);
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
   const userLocation = useLocationStore((state) => state.userLocation);
+  const currentUser = useUserStore((state) => state.currentUser);
 
-  const nearestList = locationService.getNearestMembers(userLocation, members);
+  // Filter out the current user so they are not compared against themselves on the radar
+  const otherMembers = (members || []).filter((m) => {
+    if (!m) return false;
+    if (currentUser?.id && m.id === currentUser.id) return false;
+    if (m.id === 'user' || m.id === 'me' || m.isCurrentUser) return false;
+    if (currentUser?.name && m.name === currentUser.name) return false;
+    return true;
+  });
+
+  const nearestList = locationService.getNearestMembers(userLocation, otherMembers);
 
   // Classify ahead vs behind based on relative bearing
   let aheadCount = 0;
   let behindCount = 0;
-  let offlineCount = 0;
+  const offlineCount = otherMembers.filter((m) => m.status === 'offline').length;
 
   nearestList.forEach((m) => {
-    if (m.status === 'offline') {
-      offlineCount++;
-      return;
-    }
     const bearing = userLocation && m.coordinates ? calculateBearing(userLocation, m.coordinates) : 0;
     const rel = getRelativeDirection(userLocation?.heading || 0, bearing);
     if (rel.direction === 'ahead' || rel.direction === 'slight_right' || rel.direction === 'slight_left') {
@@ -108,44 +115,71 @@ export default function GroupRadarScreen() {
         {/* NEARBY MEMBERS PROXIMITY LIST */}
         <Text style={styles.sectionLabel}>CREW PROXIMITY</Text>
 
-        {nearestList.map((m) => {
-          const bearing = userLocation && m.coordinates ? calculateBearing(userLocation, m.coordinates) : 0;
-          const rel = getRelativeDirection(userLocation?.heading || 0, bearing);
+        {nearestList.length === 0 ? (
+          <View style={styles.emptyRadarBox}>
+            <Users size={24} color={COLORS.textMuted} />
+            <Text style={styles.emptyRadarTxt}>
+              {otherMembers.length > 0
+                ? 'All other crew members have paused location sharing'
+                : 'No other crew members connected yet'}
+            </Text>
+          </View>
+        ) : (
+          nearestList.map((m) => {
+            const bearing = userLocation && m.coordinates ? calculateBearing(userLocation, m.coordinates) : 0;
+            const rel = getRelativeDirection(userLocation?.heading || 0, bearing);
 
-          return (
-            <TouchableOpacity
-              key={m.id}
-              style={styles.memberRow}
-              activeOpacity={0.8}
-              onPress={() => handleSelectMember(m)}
-            >
-              <View style={styles.bearingArrowBox}>
-                <Text style={styles.bearingArrow}>{rel.arrow}</Text>
-              </View>
+            return (
+              <TouchableOpacity
+                key={m.id}
+                style={styles.memberRow}
+                activeOpacity={0.8}
+                onPress={() => handleSelectMember(m)}
+              >
+                <View style={styles.bearingArrowBox}>
+                  <Text style={styles.bearingArrow}>{rel.arrow}</Text>
+                </View>
 
-              <MemberAvatar
-                uri={m.avatar}
-                name={m.name}
-                size="md"
-                status={m.status}
-              />
+                <MemberAvatar
+                  uri={m.avatar}
+                  name={m.name}
+                  size="md"
+                  status={m.status}
+                />
 
-              <View style={styles.info}>
-                <Text style={styles.name}>{m.name}</Text>
-                <Text style={styles.relText}>{rel.label}</Text>
-              </View>
+                <View style={styles.info}>
+                  <Text style={styles.name}>{m.name}</Text>
+                  <Text style={styles.relText}>{rel.label}</Text>
+                </View>
 
-              <DistanceBadge meters={m.distanceMeters} />
-              <ChevronRight size={16} color={COLORS.textMuted} style={{ marginLeft: 8 }} />
-            </TouchableOpacity>
-          );
-        })}
+                <DistanceBadge meters={m.distanceMeters} />
+                <ChevronRight size={16} color={COLORS.textMuted} style={{ marginLeft: 8 }} />
+              </TouchableOpacity>
+            );
+          })
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  emptyRadarBox: {
+    backgroundColor: COLORS.surface,
+    padding: 24,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  emptyRadarTxt: {
+    ...TYPOGRAPHY.bodySecondary,
+    textAlign: 'center',
+    color: COLORS.textSecondary,
+    marginTop: 8,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,

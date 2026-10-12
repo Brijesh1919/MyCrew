@@ -6,6 +6,7 @@
 // ==========================================================
 
 import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { useCrewStore } from '../store/useCrewStore';
 import { useTripStore } from '../store/useTripStore';
 import { useLocationStore } from '../store/useLocationStore';
@@ -14,6 +15,7 @@ import { tripService } from '../services/tripService';
 import { meetingPointService } from '../services/meetingPointService';
 import { locationService } from '../services/locationService';
 import { batteryService } from '../services/batteryService';
+import { notificationService } from '../services/notificationService';
 import { useMeetingPointStore } from '../store/useMeetingPointStore';
 import { getTripStatus } from '../utils/tripStatus';
 
@@ -61,6 +63,36 @@ export const useLocationEngine = () => {
     };
   }, [Boolean(activeTrip), activeTrip?.id, activeTrip?.ends_at, checkTripExpiration, refreshFreshness]);
 
+  // 2. APP RESUME SYNC: Immediately refresh members, freshness & meeting points when returning from background
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState) => {
+      if (nextAppState === 'active') {
+        if (activeTrip?.id && getTripStatus(activeTrip) !== 'expired') {
+          useTripStore.getState().loadTripMembers(activeTrip.id);
+          useMeetingPointStore.getState().loadTripMeetingPoints(activeTrip.id);
+          refreshFreshness();
+
+          // If location sharing is active, trigger immediate GPS refresh
+          if (useLocationStore.getState().isLocationSharingActive) {
+            locationService.getCurrentPosition(false).then((pos) => {
+              if (pos) {
+                setUserLocation(pos);
+                if (currentUser?.id) {
+                  useCrewStore.getState().updateCurrentUserLocation(currentUser.id, pos);
+                }
+              }
+            });
+          }
+        }
+      }
+    };
+
+    const sub = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      sub.remove();
+    };
+  }, [activeTrip?.id, refreshFreshness, currentUser?.id, setUserLocation]);
+
   // 2. SUPABASE REALTIME SUBSCRIPTION FOR THE ACTIVE TRIP (LOCATIONS & MEETING POINTS)
   useEffect(() => {
     if (!activeTrip || getTripStatus(activeTrip) === 'expired') {
@@ -80,6 +112,12 @@ export const useLocationEngine = () => {
       if (eventType === 'UPDATE' || eventType === 'INSERT') {
         // Do not update our own location from remote echo (we have direct device GPS)
         if (newRow && newRow.user_id !== currentUser?.id) {
+          if (typeof newRow.battery_level === 'number' && newRow.battery_level <= 15 && newRow.battery_level > 0) {
+            notificationService.showLowBatteryAlert({
+              memberName: newRow.user_name || 'Crew member',
+              level: newRow.battery_level,
+            });
+          }
           updateMemberLocationFromRemote(newRow);
         }
       } else if (eventType === 'DELETE' && oldRow?.user_id) {
@@ -91,9 +129,15 @@ export const useLocationEngine = () => {
     });
 
     // 2b. Realtime meeting points updates (ensures all users see newly set pins immediately)
-    meetingPointService.subscribeToTripMeetingPoints(tripId, () => {
+    meetingPointService.subscribeToTripMeetingPoints(tripId, (payload) => {
       const currentMembers = useCrewStore.getState().members;
       useMeetingPointStore.getState().fetchTripMeetingPoints(tripId, currentMembers);
+      if (payload?.eventType === 'INSERT' && payload.new && payload.new.created_by !== currentUser?.id) {
+        notificationService.showMeetingPointAlert({
+          pointName: payload.new.name,
+          creatorName: payload.new.creator_name,
+        });
+      }
     });
 
     return () => {
@@ -112,6 +156,7 @@ export const useLocationEngine = () => {
       if (isWatchingGpsRef.current) {
         console.log('[LocationEngine] Stopping GPS tracking (trip ended or sharing off)');
         locationService.stopLocationWatch();
+        locationService.stopBackgroundLocation();
         isWatchingGpsRef.current = false;
         setIsLocating(false);
       }
@@ -201,7 +246,8 @@ export const useLocationEngine = () => {
 
       if (watchStarted) {
         isWatchingGpsRef.current = true;
-        console.log('[LocationEngine] GPS watch started successfully');
+        locationService.startBackgroundLocation();
+        console.log('[LocationEngine] GPS watch & background tracking started successfully');
       } else {
         if (isMounted) setIsLocating(false);
       }

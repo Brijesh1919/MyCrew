@@ -28,6 +28,7 @@ import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useTripStore } from '../../src/store/useTripStore';
 import { locationService } from '../../src/services/locationService';
+import { notificationService } from '../../src/services/notificationService';
 import { formatDistance } from '../../src/utils/distance';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
@@ -49,6 +50,10 @@ export default function EmergencyScreen() {
   const handleTriggerAlert = () => {
     triggerDanger();
     setConfirmed(true);
+    notificationService.showEmergencyAlert({
+      senderName: 'You',
+      message: `Emergency SOS triggered at ${activeTrip?.name || 'your active crew'}!`,
+    });
   };
 
   const handleCallEmergency = () => {

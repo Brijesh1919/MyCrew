@@ -20,6 +20,7 @@ import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useMeetingPointStore } from '../../src/store/useMeetingPointStore';
 import { locationService } from '../../src/services/locationService';
+import { formatDistance } from '../../src/utils/distance';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -117,7 +118,13 @@ export default function FindPeopleScreen() {
         visible={Boolean(selectedPerson)}
         onClose={() => setSelectedPerson(null)}
         title={selectedPerson?.name?.toUpperCase()}
-        subtitle={selectedPerson ? `${selectedPerson.distanceMeters} m away` : ''}
+        subtitle={
+          selectedPerson
+            ? selectedPerson.distanceMeters !== null && selectedPerson.distanceMeters !== undefined
+              ? `${formatDistance(selectedPerson.distanceMeters)} away`
+              : 'Location unavailable'
+            : ''
+        }
       >
         {selectedPerson && (
           <View>

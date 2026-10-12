@@ -25,6 +25,7 @@ import { DistanceBadge } from '../../src/components/DistanceBadge';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { locationService } from '../../src/services/locationService';
+import { formatDistance } from '../../src/utils/distance';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
 export default function ImLostScreen() {
@@ -183,7 +184,11 @@ export default function ImLostScreen() {
                           />
                           <View style={styles.otherInfo}>
                             <Text style={styles.otherName}>{m.name}</Text>
-                            <Text style={styles.otherDist}>{m.distanceMeters} m away</Text>
+                            <Text style={styles.otherDist}>
+                              {m.distanceMeters !== null && m.distanceMeters !== undefined
+                                ? `${formatDistance(m.distanceMeters)} away`
+                                : 'Location unavailable'}
+                            </Text>
                           </View>
                           <ChevronRight size={16} color={COLORS.textMuted} />
                         </TouchableOpacity>
