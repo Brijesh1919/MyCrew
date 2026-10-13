@@ -75,13 +75,13 @@ class NotificationService {
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#EF4444',
-          sound: 'default',
+          sound: null, // uses default notification sound
         });
 
         await Notifications.setNotificationChannelAsync('trip_updates', {
           name: 'Trip & Regroup Updates',
           importance: Notifications.AndroidImportance.HIGH,
-          sound: 'default',
+          sound: null,
         });
       }
 
@@ -106,7 +106,7 @@ class NotificationService {
         content: {
           title: `🚨 EMERGENCY SOS: ${senderName}`,
           body: message,
-          sound: 'default',
+          sound: true,
           priority: Notifications.AndroidNotificationPriority.MAX,
           channelId: 'emergency_alerts',
         },
@@ -131,7 +131,7 @@ class NotificationService {
         content: {
           title: '📍 New Regroup Point Set',
           body: `${creatorName || 'Your crew'} set a meeting point: ${pointName || 'Regroup Spot'}`,
-          sound: 'default',
+          sound: true,
           channelId: 'trip_updates',
         },
         trigger: null,
@@ -155,7 +155,7 @@ class NotificationService {
         content: {
           title: `⚠️ Low Battery Warning: ${memberName}`,
           body: `${memberName}'s phone battery is at ${level}%. They might go offline soon.`,
-          sound: 'default',
+          sound: true,
           channelId: 'trip_updates',
         },
         trigger: null,

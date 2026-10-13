@@ -380,11 +380,12 @@ export default function HomeScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.avatarStripContent}
               >
-                {members.slice(0, 6).map((m) => {
+                {members.slice(0, 6).map((m, idx) => {
                   const dist = calculateDistanceMeters(userLocation, m.coordinates);
+                  const memberKey = m.id ? `chip_m_${m.id}` : `chip_idx_${idx}`;
                   return (
                     <TouchableOpacity
-                      key={m.id}
+                      key={memberKey}
                       style={styles.miniMemberChip}
                       activeOpacity={0.8}
                       onPress={() => handleMemberPress(m)}
@@ -527,11 +528,12 @@ export default function HomeScreen() {
           </Text>
 
           <View style={styles.clusterMemberList}>
-            {selectedClusterData?.members?.map((m) => {
+            {selectedClusterData?.members?.map((m, idx) => {
               const dist = calculateDistanceMeters(userLocation, m.coordinates);
+              const clusterMemberKey = m.id ? `cluster_m_${m.id}` : `cluster_m_idx_${idx}`;
               return (
                 <TouchableOpacity
-                  key={m.id}
+                  key={clusterMemberKey}
                   style={styles.clusterMemberItem}
                   onPress={() => {
                     setSelectedClusterData(null);

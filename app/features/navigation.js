@@ -16,6 +16,7 @@ import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
+import { useUserStore } from '../../src/store/useUserStore';
 import { locationService } from '../../src/services/locationService';
 import { formatDistance } from '../../src/utils/distance';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
@@ -29,11 +30,20 @@ export default function NavigationScreen() {
 
   const members = useCrewStore((state) => state.members);
   const userLocation = useLocationStore((state) => state.userLocation);
+  const currentUser = useUserStore((state) => state.currentUser);
 
   // Target member or meeting point
   const memberId = params.memberId;
+  const otherMembers = (members || []).filter(
+    (m) =>
+      m.id !== currentUser?.id &&
+      m.id !== 'user' &&
+      m.id !== 'me' &&
+      !m.isCurrentUser &&
+      (!currentUser?.name || m.name !== currentUser.name)
+  );
   const targetMember =
-    members.find((m) => m.id === memberId) || members[0]; // Priya by default
+    members.find((m) => m.id === memberId) || otherMembers[0] || null;
 
   const [hasArrived, setHasArrived] = useState(false);
 

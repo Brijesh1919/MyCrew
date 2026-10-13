@@ -352,6 +352,9 @@ class LocationService {
 
     const validMembers = members.filter(
       (m) =>
+        !m.isCurrentUser &&
+        m.id !== 'user' &&
+        m.id !== 'me' &&
         m.status !== 'offline' &&
         m.coordinates &&
         !isNaN(m.coordinates.latitude) &&

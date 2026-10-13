@@ -692,12 +692,13 @@ export const MapView = ({
 
       {/* 5. MEETING POINTS LAYER */}
       {showPointsToggle &&
-        meetingPoints.map((mp) => {
+        meetingPoints.map((mp, index) => {
           if (!mp.coordinates || isNaN(mp.coordinates.latitude)) return null;
           const pos = projectToScreen(mp.coordinates);
+          const mpKey = mp.id ? `map_mp_${mp.id}` : `map_mp_idx_${index}`;
           return (
             <View
-              key={mp.id}
+              key={mpKey}
               style={[
                 styles.markerPosition,
                 { left: pos.x - 40, top: pos.y - 39 },
@@ -714,16 +715,17 @@ export const MapView = ({
 
       {/* 6. CLUSTER MARKERS LAYER */}
       {showClusters &&
-        clusters.map((cluster) => {
+        clusters.map((cluster, index) => {
           if (cluster.count <= 1) return null;
           const clusterCoord = cluster.center || cluster.coordinates;
           if (!clusterCoord || isNaN(clusterCoord.latitude) || isNaN(clusterCoord.longitude)) {
             return null;
           }
           const pos = projectToScreen(clusterCoord);
+          const clusterKey = cluster.id ? `map_cluster_${cluster.id}` : `map_cluster_idx_${index}`;
           return (
             <View
-              key={cluster.id}
+              key={clusterKey}
               style={[
                 styles.markerPosition,
                 { left: pos.x - 35, top: pos.y - 45 },
@@ -741,7 +743,7 @@ export const MapView = ({
 
       {/* 7. MEMBER MARKERS LAYER */}
       {!showClusters &&
-        members.map((member) => {
+        members.map((member, index) => {
           if (
             !member.coordinates ||
             isNaN(member.coordinates.latitude) ||
@@ -751,9 +753,10 @@ export const MapView = ({
             return null;
           }
           const pos = projectToScreen(member.coordinates);
+          const memberKey = member.id ? `map_member_${member.id}` : `map_member_idx_${index}`;
           return (
             <View
-              key={member.id}
+              key={memberKey}
               style={[
                 styles.markerPosition,
                 { left: pos.x - 30, top: pos.y - 35 },

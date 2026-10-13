@@ -13,8 +13,8 @@ export const useCrewStore = create((set, get) => ({
 
   setMembers: (members) => {
     // Ensure each member has properly evaluated freshness and normalized fields
-    const withFreshness = (members || []).map((m) => {
-      const id = m.id || m.user_id;
+    const withFreshness = (members || []).map((m, idx) => {
+      const id = m.id || m.user_id || `member_${idx}_${Date.now()}`;
       const name = m.name || m.user_name || (m.role === 'organizer' ? 'Organizer' : 'Crew Member');
       const avatar = m.avatar || m.avatar_url || null;
 
@@ -53,6 +53,7 @@ export const useCrewStore = create((set, get) => ({
       return {
         ...m,
         id,
+        user_id: m.user_id || id,
         name,
         avatar,
         coordinates,
@@ -63,7 +64,17 @@ export const useCrewStore = create((set, get) => ({
           : 999999,
       };
     });
-    set({ members: withFreshness });
+
+    // Deduplicate members by unique id to prevent React key collisions and UI duplication
+    const seenIds = new Set();
+    const deduplicated = [];
+    for (const member of withFreshness) {
+      if (member.id && !seenIds.has(member.id)) {
+        seenIds.add(member.id);
+        deduplicated.push(member);
+      }
+    }
+    set({ members: deduplicated });
   },
 
   loadDemoMembers: () => set({ members: memberService.getDemoMembers() }),
@@ -91,11 +102,11 @@ export const useCrewStore = create((set, get) => ({
 
     // If member left, remove from list
     if (row.left_at) {
-      set({ members: current.filter((m) => m.id !== row.user_id) });
+      set({ members: current.filter((m) => m.id !== row.user_id && m.user_id !== row.user_id) });
       return;
     }
 
-    const existingIndex = current.findIndex((m) => m.id === row.user_id);
+    const existingIndex = current.findIndex((m) => m.id === row.user_id || m.user_id === row.user_id);
 
     const hasValidCoords =
       row.latitude !== null &&

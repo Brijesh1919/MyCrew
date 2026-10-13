@@ -75,8 +75,8 @@ export default function CheckInScreen() {
             <Text style={{ ...TYPOGRAPHY.body, color: COLORS.textSecondary }}>No other members in this trip yet</Text>
           </View>
         ) : (
-          members.map((member) => (
-            <View key={member.id} style={styles.memberRow}>
+          members.map((member, idx) => (
+            <View key={member.id ? `checkin_m_${member.id}` : `checkin_idx_${idx}`} style={styles.memberRow}>
               <MemberAvatar
                 uri={member.avatar}
                 name={member.name}

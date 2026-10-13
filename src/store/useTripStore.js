@@ -202,6 +202,7 @@ export const useTripStore = create((set, get) => ({
     useCrewStore.getState().setMembers([
       {
         id: trip.owner_id,
+        user_id: trip.owner_id,
         name: trip.organizer?.name || 'You',
         status: 'live',
         lastSeenSecondsAgo: 0,
@@ -211,6 +212,16 @@ export const useTripStore = create((set, get) => ({
         coordinates: trip.centerCoordinate,
       },
     ]);
+
+    // Fetch real members for active trip from Supabase
+    if (trip.id && !String(trip.id).startsWith('trip_goa') && trip.id !== 'demo') {
+      tripService.getTripMembers(trip.id).then((members) => {
+        if (members && members.length > 0) {
+          useCrewStore.getState().setMembers(members);
+          useMeetingPointStore.getState().fetchTripMeetingPoints(trip.id, members);
+        }
+      }).catch(() => {});
+    }
 
     try {
       await AsyncStorage.setItem(STORAGE_KEY_TRIP, JSON.stringify(trip));
@@ -304,45 +315,19 @@ export const useTripStore = create((set, get) => ({
         const members = await tripService.getTripMembers(trip.id);
         const userLoc = useLocationStore.getState().userLocation;
         const formattedMembers = (members || []).map((m) => {
+          const id = m.id || m.user_id;
+          const isSelf = id === user?.id;
           const hasCoords =
-            m.latitude !== null &&
-            m.longitude !== null &&
-            !isNaN(Number(m.latitude)) &&
-            !isNaN(Number(m.longitude)) &&
-            Number(m.latitude) >= -90 &&
-            Number(m.latitude) <= 90 &&
-            Number(m.longitude) >= -180 &&
-            Number(m.longitude) <= 180;
-
-          const freshness = getLocationFreshness(m.location_updated_at);
+            m.coordinates &&
+            !isNaN(Number(m.coordinates.latitude)) &&
+            !isNaN(Number(m.coordinates.longitude));
 
           return {
-            id: m.user_id,
-            name: m.user_name || (m.role === 'organizer' ? 'Organizer' : 'Crew Member'),
-            avatar: m.avatar_url || null,
-            phone: m.phone || null,
-            role: m.role || 'participant',
-            status: freshness.state,
-            freshness,
-            lastSeenSecondsAgo: m.location_updated_at
-              ? Math.max(0, Math.round((Date.now() - new Date(m.location_updated_at).getTime()) / 1000))
-              : 0,
-            location_updated_at: m.location_updated_at,
-            battery:
-              m.battery_level !== null && m.battery_level !== undefined
-                ? Number(m.battery_level)
-                : null,
-            isSafe: true,
-            cluster: null,
-            coordinates: hasCoords
-              ? {
-                  latitude: Number(m.latitude),
-                  longitude: Number(m.longitude),
-                  accuracy: m.location_accuracy ? Number(m.location_accuracy) : null,
-                  heading: m.location_heading ? Number(m.location_heading) : null,
-                  speed: m.location_speed ? Number(m.location_speed) : null,
-                }
-              : (m.user_id === user?.id && userLoc ? userLoc : null),
+            ...m,
+            id,
+            user_id: m.user_id || id,
+            name: m.name || m.user_name || (m.role === 'organizer' ? 'Organizer' : 'Crew Member'),
+            coordinates: hasCoords ? m.coordinates : (isSelf && userLoc ? userLoc : m.coordinates || null),
           };
         });
         useCrewStore.getState().setMembers(formattedMembers);

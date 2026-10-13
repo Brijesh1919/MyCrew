@@ -423,11 +423,12 @@ export default function MapScreen() {
         <View>
           <Text style={styles.clusterSub}>{selectedCluster?.description}</Text>
           <View style={styles.sheetList}>
-            {selectedCluster?.members?.map((m) => {
+            {selectedCluster?.members?.map((m, idx) => {
               const dist = calculateDistanceMeters(userLocation, m.coordinates);
+              const mKey = m.id ? `cluster_row_${m.id}` : `cluster_row_idx_${idx}`;
               return (
                 <TouchableOpacity
-                  key={m.id}
+                  key={mKey}
                   style={styles.sheetRow}
                   onPress={() => {
                     setSelectedCluster(null);

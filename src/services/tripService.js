@@ -102,9 +102,12 @@ class TripService {
     const freshness = getLocationFreshness(row.location_updated_at);
 
     return {
-      id: row.user_id,
+      id: row.user_id || row.id,
+      user_id: row.user_id || row.id,
       name: row.user_name || (row.role === 'organizer' ? 'Organizer' : 'Crew Member'),
+      user_name: row.user_name || null,
       avatar: row.avatar_url || null,
+      avatar_url: row.avatar_url || null,
       phone: row.phone || null,
       role: row.role || 'participant',
       status: freshness.state,

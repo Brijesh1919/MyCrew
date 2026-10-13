@@ -24,6 +24,7 @@ import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { DistanceBadge } from '../../src/components/DistanceBadge';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
+import { useUserStore } from '../../src/store/useUserStore';
 import { locationService } from '../../src/services/locationService';
 import { formatDistance } from '../../src/utils/distance';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
@@ -35,6 +36,7 @@ export default function ImLostScreen() {
   const members = useCrewStore((state) => state.members);
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
   const userLocation = useLocationStore((state) => state.userLocation);
+  const currentUser = useUserStore((state) => state.currentUser);
 
   const [isScanning, setIsScanning] = useState(true);
 
@@ -47,8 +49,19 @@ export default function ImLostScreen() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Exclude current user from nearby rescue candidates
+  const otherMembers = (members || []).filter((m) => {
+    const isMe =
+      m.id === currentUser?.id ||
+      m.id === 'user' ||
+      m.id === 'me' ||
+      m.isCurrentUser ||
+      (currentUser?.name && m.name === currentUser.name);
+    return !isMe;
+  });
+
   const nearestList = userLocation
-    ? locationService.getNearestMembers(userLocation, members, 4)
+    ? locationService.getNearestMembers(userLocation, otherMembers, 4)
     : [];
   const closestPerson = nearestList[0] || null;
 

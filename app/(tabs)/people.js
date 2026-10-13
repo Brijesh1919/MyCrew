@@ -186,7 +186,7 @@ export default function PeopleScreen() {
         {/* Member List */}
         <FlatList
           data={membersWithDistance}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => (item.id ? `person_${item.id}` : `person_idx_${index}`)}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
