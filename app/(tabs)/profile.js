@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -19,6 +20,7 @@ import {
   Cpu,
   LogOut,
   ChevronRight,
+  ChevronLeft,
   Sparkles,
   AlertCircle,
   History,
@@ -309,7 +311,23 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.screenTitle}>Profile</Text>
+        <View style={styles.screenHeaderRow}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)/home');
+              }
+            }}
+            accessibilityLabel="Back to Home"
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={22} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.screenTitle}>Profile & Settings</Text>
+        </View>
 
         {/* REAL USER PROFILE CARD */}
         <View style={styles.profileCard}>
@@ -516,6 +534,11 @@ export default function ProfileScreen() {
 
         {/* APP INFO FOOTER */}
         <View style={styles.footer}>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={{ width: 40, height: 40, borderRadius: 12, marginBottom: 10 }}
+            resizeMode="cover"
+          />
           <Text style={styles.footerBrand}>MyCrew v1.0.0</Text>
           <Text style={styles.footerTagline}>
             Never lose your group again • Private by design
@@ -796,10 +819,25 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
+  screenHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
   screenTitle: {
     ...TYPOGRAPHY.h1,
-    fontSize: 26,
-    marginBottom: 16,
+    fontSize: 24,
   },
   profileCard: {
     flexDirection: 'row',

@@ -75,9 +75,10 @@ export default function AuthLandingScreen() {
             ]}
           >
             <View style={styles.brandHeroBadge}>
-              <View style={styles.brandIconCircle}>
-                <Users size={16} color="#38BDF8" strokeWidth={2.4} />
-              </View>
+              <Image
+                source={require('../../assets/icon.png')}
+                style={{ width: 22, height: 22, borderRadius: 6, marginRight: 8 }}
+              />
               <Text style={styles.brandHeroText}>MYCREW</Text>
             </View>
 

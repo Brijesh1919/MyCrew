@@ -6,6 +6,7 @@
 import { Platform } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import {
   calculateDistanceMeters,
   calculateBearing,
@@ -289,6 +290,17 @@ class LocationService {
     try {
       if (Platform.OS === 'web') return false;
 
+      // In Expo Go, HeadlessAppLoader is not available for background location tasks
+      // and causes Android OS JobScheduler to crash ("Expo Go keeps stopping").
+      // Only run background updates in standalone / development builds.
+      const isExpoGo =
+        Constants.appOwnership === 'expo' ||
+        Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+      if (isExpoGo) {
+        console.log('[LocationService] Running in Expo Go, skipping background task to avoid headless crash');
+        return false;
+      }
+
       const hasStarted = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK).catch(() => false);
       if (hasStarted) return true;
 
@@ -350,17 +362,36 @@ class LocationService {
   getNearestMembers(userCoord, members = [], limit = null) {
     if (!userCoord || !members.length) return [];
 
-    const validMembers = members.filter(
-      (m) =>
-        !m.isCurrentUser &&
-        m.id !== 'user' &&
-        m.id !== 'me' &&
+    let currentUserId = null;
+    let currentUserName = null;
+    try {
+      const { useUserStore } = require('../store/useUserStore');
+      const curUser = useUserStore.getState().currentUser;
+      if (curUser) {
+        currentUserId = curUser.id || curUser.user_id;
+        currentUserName = curUser.name;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    const validMembers = members.filter((m) => {
+      const isMe =
+        Boolean(m.isCurrentUser) ||
+        m.id === 'user' ||
+        m.id === 'me' ||
+        (currentUserId && (String(m.id) === String(currentUserId) || String(m.user_id) === String(currentUserId))) ||
+        (currentUserName && m.name === currentUserName);
+
+      return (
+        !isMe &&
         m.status !== 'offline' &&
         m.coordinates &&
         !isNaN(m.coordinates.latitude) &&
         !isNaN(m.coordinates.longitude) &&
         m.coordinates.latitude !== 0
-    );
+      );
+    });
 
     const withDist = validMembers
       .map((m) => {

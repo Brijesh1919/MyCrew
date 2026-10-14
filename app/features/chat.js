@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
   Send,
   Users,
@@ -45,7 +45,7 @@ const QUICK_PINGS = [
   { label: '🚨 Need help!', text: 'Need quick help here!', type: 'sos' },
 ];
 
-export default function ChatScreen() {
+export default function ChatScreen({ isTab = false }) {
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
@@ -80,12 +80,14 @@ export default function ChatScreen() {
   }, [params?.memberId]);
 
   // Manage chat screen active status so unread count accurately reflects foreground/background
-  useEffect(() => {
-    useChatStore.getState().setChatScreenOpen(true);
-    return () => {
-      useChatStore.getState().setChatScreenOpen(false);
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      useChatStore.getState().setChatScreenOpen(true);
+      return () => {
+        useChatStore.getState().setChatScreenOpen(false);
+      };
+    }, [])
+  );
 
   // Active target member if in 1:1 chat
   const activeTargetMember = useMemo(() => {
@@ -197,7 +199,7 @@ export default function ChatScreen() {
               : `Direct Chat • ${targetDistanceInfo.text}`
             : 'Direct 1:1 Chat'
         }
-        showBack={true}
+        showBack={!isTab && Boolean(router.canGoBack())}
         rightComponent={
           activeTargetMember && !targetDistanceInfo?.isPaused ? (
             <TouchableOpacity
@@ -514,7 +516,7 @@ export default function ChatScreen() {
           style={[
             styles.inputBar,
             {
-              paddingBottom: Math.max(insets.bottom, 12),
+              paddingBottom: isTab ? 8 : Math.max(insets.bottom, 12),
             },
           ]}
         >

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useMeetingPointStore } from '../../src/store/useMeetingPointStore';
+import { useUserStore } from '../../src/store/useUserStore';
 import { locationService } from '../../src/services/locationService';
 import { formatDistance } from '../../src/utils/distance';
 
@@ -33,18 +34,48 @@ export default function FindPeopleScreen() {
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
   const userLocation = useLocationStore((state) => state.userLocation);
   const meetingPoints = useMeetingPointStore((state) => state.meetingPoints);
+  const currentUser = useUserStore((state) => state.currentUser);
 
   const [selectedPerson, setSelectedPerson] = useState(null);
 
-  // Sorted nearest members
-  const nearestMembers = locationService.getNearestMembers(userLocation, members);
+  // Exclude current user from candidates so we never navigate to ourselves
+  const otherMembers = useMemo(() => {
+    const myId = String(currentUser?.id || currentUser?.user_id || '');
+    const myName = currentUser?.name;
+    return (members || []).filter((m) => {
+      const isMe =
+        Boolean(m.isCurrentUser) ||
+        m.id === 'user' ||
+        m.id === 'me' ||
+        (myId && (String(m.id) === myId || String(m.user_id) === myId)) ||
+        (myName && m.name === myName);
+      return !isMe;
+    });
+  }, [members, currentUser]);
+
+  // Sorted nearest members (fellow crew only)
+  const nearestMembers = useMemo(() => {
+    return locationService.getNearestMembers(userLocation, otherMembers);
+  }, [userLocation, otherMembers]);
+
   const clusters = getClusters();
 
   const handleSelectMember = (member) => {
+    if (!member) return;
+    const myId = String(currentUser?.id || currentUser?.user_id || '');
+    const isMe =
+      Boolean(member.isCurrentUser) ||
+      member.id === 'user' ||
+      member.id === 'me' ||
+      (myId && (String(member.id) === myId || String(member.user_id) === myId)) ||
+      (currentUser?.name && member.name === currentUser.name);
+
+    if (isMe) return;
     setSelectedPerson(member);
   };
 
   const handleNavigateTo = (member) => {
+    if (!member) return;
     setSelectedMember(member);
     setSelectedPerson(null);
     router.push({
@@ -66,7 +97,7 @@ export default function FindPeopleScreen() {
         <View style={styles.mapContainer}>
           <MapView
             userLocation={userLocation}
-            members={members}
+            members={otherMembers}
             clusters={clusters}
             meetingPoints={meetingPoints}
             onSelectMember={(m) => handleSelectMember(m)}

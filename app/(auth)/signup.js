@@ -8,6 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -142,7 +143,10 @@ export default function SignUpScreen() {
 
           {/* Brand Badge */}
           <View style={styles.brandBadge}>
-            <Users size={12} color={COLORS.primary} style={{ marginRight: 6 }} />
+            <Image
+              source={require('../../assets/icon.png')}
+              style={{ width: 18, height: 18, borderRadius: 5, marginRight: 8 }}
+            />
             <Text style={styles.brandBadgeText}>JOIN MYCREW</Text>
           </View>
 

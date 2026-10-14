@@ -38,6 +38,7 @@ import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { StatusBadge } from '../../src/components/StatusBadge';
 import { DistanceBadge } from '../../src/components/DistanceBadge';
 import { ActiveTripPickerModal } from '../../src/components/ActiveTripPickerModal';
+import { CrewFacepileCapsule } from '../../src/components/CrewFacepileCapsule';
 import { ContactNumberModal, PHONE_PROMPT_STORAGE_KEY } from '../../src/components/ContactNumberModal';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useCrewStore } from '../../src/store/useCrewStore';
@@ -149,16 +150,31 @@ export default function HomeScreen() {
         >
           {/* Header */}
           <View style={styles.emptyHeader}>
-            <View>
-              <Text style={styles.greetingText}>
+            <View style={styles.emptyHeaderLeft}>
+              <Text style={styles.greetingText} numberOfLines={1} ellipsizeMode="tail">
                 {greeting}, {userName} 👋
               </Text>
-              <Text style={styles.emptyHeaderSub}>Welcome to MyCrew</Text>
+              <View style={styles.emptyHeaderSubRow}>
+                <Text style={styles.emptyHeaderSub}>Welcome to MyCrew</Text>
+                <View style={styles.privacyPill}>
+                  <ShieldCheck size={12} color={COLORS.success} />
+                  <Text style={styles.privacyPillText}>Location Private</Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.privacyPill}>
-              <ShieldCheck size={14} color={COLORS.success} />
-              <Text style={styles.privacyPillText}>Location Private</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.profileAvatarBtn}
+              activeOpacity={0.8}
+              onPress={() => router.push('/(tabs)/profile')}
+              accessibilityLabel="Go to Profile"
+            >
+              <MemberAvatar
+                uri={currentUser?.avatar}
+                name={userName || 'You'}
+                size="sm"
+                isUser={true}
+              />
+            </TouchableOpacity>
           </View>
 
           {/* Missing Contact Number Quick Banner */}
@@ -262,8 +278,8 @@ export default function HomeScreen() {
         {/* HEADER: GREETING & TRIP BADGE */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.greetingText}>
+            <View style={{ flex: 1, marginRight: 10 }}>
+              <Text style={styles.greetingText} numberOfLines={1} ellipsizeMode="tail">
                 {greeting}, {userName} 👋
               </Text>
               <View style={styles.tripBadgeRow}>
@@ -283,26 +299,26 @@ export default function HomeScreen() {
 
             <View style={styles.headerRightActions}>
               <TouchableOpacity
-                style={styles.chatIconBtn}
-                activeOpacity={0.75}
-                onPress={() => router.push('/features/chat')}
-              >
-                <MessageSquare size={19} color={COLORS.primary} />
-                {unreadTotal > 0 && (
-                  <View style={styles.chatBadgeDot}>
-                    <Text style={styles.chatBadgeDotText}>
-                      {unreadTotal > 9 ? '9+' : unreadTotal}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
                 style={styles.emergencyIconBtn}
                 activeOpacity={0.75}
                 onPress={() => router.push('/features/emergency')}
+                accessibilityLabel="Emergency SOS"
               >
                 <ShieldAlert size={20} color={COLORS.danger} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.profileAvatarBtn}
+                activeOpacity={0.8}
+                onPress={() => router.push('/(tabs)/profile')}
+                accessibilityLabel="Go to Profile"
+              >
+                <MemberAvatar
+                  uri={currentUser?.avatar}
+                  name={userName || 'You'}
+                  size="sm"
+                  isUser={true}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -373,36 +389,13 @@ export default function HomeScreen() {
               onPanEnd={() => setIsScrollEnabled(true)}
             />
 
-            {/* Quick Live Members Overlay Strip */}
-            <View style={styles.mapOverlayStrip}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.avatarStripContent}
-              >
-                {members.slice(0, 6).map((m, idx) => {
-                  const dist = calculateDistanceMeters(userLocation, m.coordinates);
-                  const memberKey = m.id ? `chip_m_${m.id}` : `chip_idx_${idx}`;
-                  return (
-                    <TouchableOpacity
-                      key={memberKey}
-                      style={styles.miniMemberChip}
-                      activeOpacity={0.8}
-                      onPress={() => handleMemberPress(m)}
-                    >
-                      <MemberAvatar
-                        uri={m.avatar}
-                        name={m.name}
-                        size="xs"
-                        status={m.status}
-                      />
-                      <Text style={styles.miniMemberName} numberOfLines={1}>
-                        {m.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+            {/* Quick Live Members Facepile Capsule */}
+            <View style={styles.mapFacepileContainer}>
+              <CrewFacepileCapsule
+                members={members}
+                onlineCount={statusCounts.online || statusCounts.active || 0}
+                onPress={() => router.push('/(tabs)/people')}
+              />
             </View>
           </View>
         </View>
@@ -813,37 +806,16 @@ const styles = StyleSheet.create({
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  chatIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E0F2FE',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
+  profileAvatarBtn: {
+    borderRadius: RADIUS.full,
+    padding: 2,
+    borderWidth: 2,
     borderColor: '#BAE6FD',
-    marginRight: 8,
-    position: 'relative',
-  },
-  chatBadgeDot: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#EF4444',
+    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: COLORS.surface,
-  },
-  chatBadgeDotText: {
-    color: COLORS.white,
-    fontSize: 9,
-    fontWeight: '800',
   },
   emergencyIconBtn: {
     width: 40,
@@ -931,35 +903,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
-  mapOverlayStrip: {
+  mapFacepileContainer: {
     position: 'absolute',
-    bottom: 8,
-    left: 8,
-    right: 64, // Leave clear column on the right for map controls
-    backgroundColor: 'rgba(15, 23, 42, 0.78)',
-    borderRadius: RADIUS.pill,
-    paddingVertical: 5,
-    paddingHorizontal: 6,
-  },
-  avatarStripContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  miniMemberChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: RADIUS.pill,
-    marginRight: 6,
-  },
-  miniMemberName: {
-    color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '600',
-    marginLeft: 5,
-    maxWidth: 55,
+    bottom: 10,
+    left: 10,
+    maxWidth: '78%',
   },
   primaryActionSection: {
     marginBottom: 14,
@@ -1187,18 +1135,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  emptyHeaderLeft: {
+    flex: 1,
+    marginRight: 12,
+    justifyContent: 'center',
+  },
+  emptyHeaderSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 3,
+    gap: 8,
+  },
   emptyHeaderSub: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    marginTop: 2,
     fontSize: 13,
   },
   privacyPill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F0FDF4',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
     borderColor: '#BBF7D0',
@@ -1207,7 +1166,7 @@ const styles = StyleSheet.create({
     color: COLORS.success,
     fontWeight: '700',
     fontSize: 11,
-    marginLeft: 5,
+    marginLeft: 4,
   },
   emptyHeroCard: {
     backgroundColor: COLORS.surface,

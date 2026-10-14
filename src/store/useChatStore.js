@@ -100,7 +100,10 @@ export const useChatStore = create((set, get) => ({
         const channel = m.recipient_id ? String(m.sender_id) : 'group';
 
         // If the channel is currently actively open on screen, skip counting as unread
-        if (get().isChatScreenOpen && get().activeChannel === channel) {
+        if (
+          Boolean(get().isChatScreenOpen) &&
+          String(get().activeChannel) === String(channel)
+        ) {
           continue;
         }
 
@@ -198,7 +201,9 @@ export const useChatStore = create((set, get) => ({
       const targetChannel = msg.recipient_id
         ? (isMyMessage ? String(msg.recipient_id) : String(msg.sender_id))
         : 'group';
-      const isCurrentlyOpen = state.isChatScreenOpen && (state.activeChannel === targetChannel);
+      const isCurrentlyOpen =
+        Boolean(state.isChatScreenOpen) &&
+        String(state.activeChannel) === String(targetChannel);
 
       const newUnreads = { ...state.unreadCounts };
       if (!isMyMessage) {

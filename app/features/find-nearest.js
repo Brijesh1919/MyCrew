@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { DistanceBadge } from '../../src/components/DistanceBadge';
 import { EmptyState } from '../../src/components/EmptyState';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
+import { useUserStore } from '../../src/store/useUserStore';
 import { locationService } from '../../src/services/locationService';
 
 export default function FindNearestScreen() {
@@ -25,8 +26,25 @@ export default function FindNearestScreen() {
   const members = useCrewStore((state) => state.members);
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
   const userLocation = useLocationStore((state) => state.userLocation);
+  const currentUser = useUserStore((state) => state.currentUser);
 
-  const nearestList = locationService.getNearestMembers(userLocation, members);
+  const otherMembers = useMemo(() => {
+    const myId = String(currentUser?.id || currentUser?.user_id || '');
+    const myName = currentUser?.name;
+    return (members || []).filter((m) => {
+      const isMe =
+        Boolean(m.isCurrentUser) ||
+        m.id === 'user' ||
+        m.id === 'me' ||
+        (myId && (String(m.id) === myId || String(m.user_id) === myId)) ||
+        (myName && m.name === myName);
+      return !isMe;
+    });
+  }, [members, currentUser]);
+
+  const nearestList = useMemo(() => {
+    return locationService.getNearestMembers(userLocation, otherMembers);
+  }, [userLocation, otherMembers]);
 
   const handleSelectMember = (member) => {
     setSelectedMember(member);

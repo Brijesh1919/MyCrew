@@ -22,7 +22,6 @@ import {
   Plus,
   X,
   Check,
-  MessageSquare,
 } from 'lucide-react-native';
 import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
 import { MapView } from '../../src/components/MapView';
@@ -40,7 +39,6 @@ import { useUserStore } from '../../src/store/useUserStore';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 import { calculateDistanceMeters, formatDistance } from '../../src/utils/distance';
 import { locationService } from '../../src/services/locationService';
-import { useChatStore } from '../../src/store/useChatStore';
 
 export default function MapScreen() {
   const router = useRouter();
@@ -57,9 +55,6 @@ export default function MapScreen() {
   const meetingPoints = useMeetingPointStore((state) => state.meetingPoints);
   const addMeetingPoint = useMeetingPointStore((state) => state.addMeetingPoint);
   const deleteMeetingPoint = useMeetingPointStore((state) => state.deleteMeetingPoint);
-  const unreadTotal = useChatStore((state) =>
-    Object.values(state.unreadCounts || {}).reduce((sum, c) => sum + (c || 0), 0)
-  );
 
   // States
   const [selectedCluster, setSelectedCluster] = useState(null);
@@ -244,7 +239,7 @@ export default function MapScreen() {
         showClusters={clusterMode}
         showMeetingPoints={true}
         providerBadgeTop={100}
-        controlsBottomOffset={138}
+        controlsBottomOffset={isPinDropMode ? 148 : 80}
         isPinDropMode={isPinDropMode}
         onCameraChange={(coord) => setPinCenterCoord(coord)}
         style={{ flex: 1 }}
@@ -360,24 +355,6 @@ export default function MapScreen() {
         </View>
       ) : (
         <View style={styles.floatingBottom}>
-          {/* Floating Chat Circular FAB (Design 1) */}
-          <View style={styles.floatingChatFabRow}>
-            <TouchableOpacity
-              style={styles.floatingChatFab}
-              activeOpacity={0.85}
-              onPress={() => router.push('/features/chat')}
-            >
-              <MessageSquare size={20} color={COLORS.white} />
-              {unreadTotal > 0 && (
-                <View style={styles.chatFabBadge}>
-                  <Text style={styles.chatFabBadgeText}>
-                    {unreadTotal > 9 ? '9+' : unreadTotal}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-
           <View style={styles.bottomBarCard}>
             <TouchableOpacity
               style={styles.quickBarBtn}
@@ -854,45 +831,6 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
     alignItems: 'center',
-  },
-  floatingChatFabRow: {
-    width: '92%',
-    maxWidth: 440,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 10,
-  },
-  floatingChatFab: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    position: 'relative',
-    ...SHADOWS.lg,
-    elevation: 8,
-  },
-  chatFabBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#EF4444',
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: COLORS.surface,
-  },
-  chatFabBadgeText: {
-    color: COLORS.white,
-    fontSize: 9,
-    fontWeight: '800',
   },
   bottomBarCard: {
     width: '92%',

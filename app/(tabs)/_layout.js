@@ -2,10 +2,11 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, Map, Users, Compass, User } from 'lucide-react-native';
+import { Home, Map, Users, MessageSquare, Compass, User } from 'lucide-react-native';
 import { COLORS } from '../../src/constants/theme';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useTripStore } from '../../src/store/useTripStore';
+import { useChatStore } from '../../src/store/useChatStore';
 import { useLocationEngine } from '../../src/hooks/useLocationEngine';
 
 export default function TabLayout() {
@@ -16,6 +17,10 @@ export default function TabLayout() {
   const activeTrip = useTripStore((state) => state.activeTrip);
   const getStatusCounts = useCrewStore((state) => state.getStatusCounts);
   const counts = getStatusCounts();
+
+  const unreadTotal = useChatStore((state) =>
+    Object.values(state.unreadCounts || {}).reduce((sum, c) => sum + (c || 0), 0)
+  );
 
   // Responsive safe-area bottom height
   const bottomInset = Platform.OS === 'ios'
@@ -80,6 +85,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'Chat',
+          tabBarBadge: unreadTotal > 0 ? (unreadTotal > 9 ? '9+' : unreadTotal) : undefined,
+          tabBarBadgeStyle: styles.chatBadgeStyle,
+          tabBarIcon: ({ color, focused }) => (
+            <MessageSquare size={20} color={color} strokeWidth={focused ? 2.4 : 1.9} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="trip"
         options={{
           title: 'Trip',
@@ -91,10 +107,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, focused }) => (
-            <User size={20} color={color} strokeWidth={focused ? 2.4 : 1.9} />
-          ),
+          href: null, // Hidden from bottom bar, accessed via top header avatar
         }}
       />
     </Tabs>
@@ -141,6 +154,16 @@ const styles = StyleSheet.create({
   },
   badgeStyle: {
     backgroundColor: COLORS.success,
+    color: COLORS.white,
+    fontSize: 10,
+    fontWeight: '800',
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    lineHeight: 15,
+  },
+  chatBadgeStyle: {
+    backgroundColor: '#EF4444',
     color: COLORS.white,
     fontSize: 10,
     fontWeight: '800',
