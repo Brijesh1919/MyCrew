@@ -128,6 +128,7 @@ export default function FindPeopleScreen() {
                   member={member}
                   distanceMeters={member.distanceMeters}
                   isHighlighted={index === 0}
+                  isLast={index === nearestMembers.length - 1}
                   onPress={handleSelectMember}
                 />
               ))

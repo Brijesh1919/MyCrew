@@ -25,6 +25,13 @@ export const COLORS = {
   radarSweep: 'rgba(37, 99, 235, 0.15)',
   clusterBg: '#2563EB',
   clusterBorder: '#60A5FA',
+  divider: '#F1F5F9',
+  border: '#E2E8F0',
+  borderSubtle: '#F1F5F9',
+  tileBg: '#F8FAFC',
+  tileBgPrimary: '#EFF6FF',
+  tileBgDanger: '#FEF2F2',
+  tileBgAccent: '#F5F3FF',
 };
 
 export const SPACING = {
@@ -48,40 +55,44 @@ export const RADIUS = {
 };
 
 export const SHADOWS = {
+  none: Platform.select({
+    web: { boxShadow: 'none' },
+    default: { elevation: 0, shadowOpacity: 0 },
+  }),
   sm: Platform.select({
     web: {
-      boxShadow: '0px 1px 2px rgba(15, 23, 42, 0.05)',
+      boxShadow: '0px 1px 3px rgba(15, 23, 42, 0.04)',
     },
     default: {
       shadowColor: '#0F172A',
       shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 2,
+      shadowOpacity: 0.03,
+      shadowRadius: 3,
+      elevation: 1,
     },
   }),
   md: Platform.select({
     web: {
-      boxShadow: '0px 4px 8px rgba(15, 23, 42, 0.08)',
+      boxShadow: '0px 4px 12px rgba(15, 23, 42, 0.06)',
     },
     default: {
       shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 8,
-      elevation: 4,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.06,
+      shadowRadius: 10,
+      elevation: 3,
     },
   }),
   lg: Platform.select({
     web: {
-      boxShadow: '0px 8px 16px rgba(15, 23, 42, 0.12)',
+      boxShadow: '0px 8px 24px rgba(15, 23, 42, 0.08)',
     },
     default: {
       shadowColor: '#0F172A',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.12,
-      shadowRadius: 16,
-      elevation: 8,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.08,
+      shadowRadius: 18,
+      elevation: 6,
     },
   }),
   glow: (color = COLORS.primary) => Platform.select({

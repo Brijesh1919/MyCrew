@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -62,6 +62,9 @@ export default function FindNearestScreen() {
     });
   };
 
+  const closestMember = nearestList && nearestList.length > 0 ? nearestList[0] : null;
+  const otherNearest = nearestList && nearestList.length > 1 ? nearestList.slice(1) : [];
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <AppHeader
@@ -70,61 +73,8 @@ export default function FindNearestScreen() {
         showBack={true}
       />
 
-      <FlatList
-        data={nearestList}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item, index }) => (
-          <TouchableOpacity
-            style={[styles.itemCard, index === 0 && styles.closestCard]}
-            activeOpacity={0.8}
-            onPress={() => handleSelectMember(item)}
-          >
-            {/* Rank index */}
-            <View style={[styles.rankBox, index === 0 && styles.rankBoxClosest]}>
-              <Text style={[styles.rankText, index === 0 && styles.rankTextClosest]}>
-                #{index + 1}
-              </Text>
-            </View>
-
-            <MemberAvatar
-              uri={item.avatar}
-              name={item.name}
-              size="md"
-              status={item.status}
-            />
-
-            <View style={styles.info}>
-              <View style={styles.nameRow}>
-                <Text style={styles.name}>{item.name}</Text>
-                {index === 0 && (
-                  <View style={styles.closestPill}>
-                    <Text style={styles.closestPillText}>Closest</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.statusRow}>
-                <StatusBadge
-                  status={item.status}
-                  lastSeenSecondsAgo={item.lastSeenSecondsAgo}
-                  size="sm"
-                />
-              </View>
-            </View>
-
-            <View style={styles.rightSection}>
-              <DistanceBadge meters={item.distanceMeters} isHighlight={index === 0} />
-              <TouchableOpacity
-                style={styles.walkBtn}
-                onPress={() => handleDirectNavigate(item)}
-              >
-                <Navigation size={14} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={
+      {nearestList.length === 0 ? (
+        <View style={styles.emptyWrap}>
           <EmptyState
             icon={Users}
             title={!userLocation ? "Finding your GPS location…" : "No crew members nearby"}
@@ -134,8 +84,113 @@ export default function FindNearestScreen() {
                 : "None of your crew members have active location sharing turned on right now."
             }
           />
-        }
-      />
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* #1 FEATURED CLOSEST MEMBER HERO */}
+          {closestMember && (
+            <View style={styles.featuredSection}>
+              <View style={styles.featuredCard}>
+                <View style={styles.featuredTopRow}>
+                  <View style={styles.featuredPill}>
+                    <Text style={styles.featuredPillText}>#1 CLOSEST TO YOU</Text>
+                  </View>
+                  <DistanceBadge meters={closestMember.distanceMeters} isHighlight={true} />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.featuredBody}
+                  activeOpacity={0.8}
+                  onPress={() => handleSelectMember(closestMember)}
+                >
+                  <MemberAvatar
+                    uri={closestMember.avatar}
+                    name={closestMember.name}
+                    size="lg"
+                    status={closestMember.status}
+                  />
+                  <View style={styles.featuredInfo}>
+                    <Text style={styles.featuredName}>{closestMember.name}</Text>
+                    <View style={{ marginTop: 4 }}>
+                      <StatusBadge
+                        status={closestMember.status}
+                        lastSeenSecondsAgo={closestMember.lastSeenSecondsAgo}
+                        size="sm"
+                      />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.featuredNavBtn}
+                  onPress={() => handleDirectNavigate(closestMember)}
+                  activeOpacity={0.85}
+                >
+                  <Navigation size={16} color={COLORS.white} style={{ marginRight: 6 }} />
+                  <Text style={styles.featuredNavBtnText}>
+                    Walk to {closestMember.name}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* OTHER NEARBY CREW MEMBERS (INSET GROUPED LIST) */}
+          {otherNearest.length > 0 && (
+            <View style={styles.otherSection}>
+              <Text style={styles.otherSectionLabel}>OTHER CREW MEMBERS</Text>
+              <View style={styles.groupedContainer}>
+                {otherNearest.map((item, idx) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.rowItem,
+                      idx < otherNearest.length - 1 && styles.rowItemBorder,
+                    ]}
+                    activeOpacity={0.7}
+                    onPress={() => handleSelectMember(item)}
+                  >
+                    <View style={styles.rankBox}>
+                      <Text style={styles.rankText}>#{idx + 2}</Text>
+                    </View>
+
+                    <MemberAvatar
+                      uri={item.avatar}
+                      name={item.name}
+                      size="sm"
+                      status={item.status}
+                    />
+
+                    <View style={styles.info}>
+                      <Text style={styles.name}>{item.name}</Text>
+                      <View style={styles.statusRow}>
+                        <StatusBadge
+                          status={item.status}
+                          lastSeenSecondsAgo={item.lastSeenSecondsAgo}
+                          size="sm"
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.rightSection}>
+                      <DistanceBadge meters={item.distanceMeters} isHighlight={false} />
+                      <TouchableOpacity
+                        style={styles.walkBtn}
+                        onPress={() => handleDirectNavigate(item)}
+                      >
+                        <Navigation size={14} color={COLORS.primary} />
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -145,83 +200,131 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  listContent: {
+  scrollContent: {
     padding: 16,
     paddingBottom: 32,
   },
-  itemCard: {
-    flexDirection: 'row',
+  emptyWrap: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  featuredSection: {
+    marginBottom: 20,
+  },
+  featuredCard: {
     backgroundColor: COLORS.surface,
-    padding: 12,
-    borderRadius: RADIUS.lg,
-    marginBottom: 10,
+    borderRadius: RADIUS.xl,
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#BFDBFE',
     ...SHADOWS.sm,
   },
-  closestCard: {
-    borderColor: COLORS.primary,
-    backgroundColor: '#F8FAFF',
+  featuredTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  featuredPill: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: RADIUS.pill,
+  },
+  featuredPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.primary,
+    letterSpacing: 0.5,
+  },
+  featuredBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  featuredInfo: {
+    marginLeft: 14,
+    flex: 1,
+  },
+  featuredName: {
+    ...TYPOGRAPHY.h2,
+    fontSize: 19,
+  },
+  featuredNavBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    borderRadius: RADIUS.pill,
+  },
+  featuredNavBtnText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  otherSection: {
+    marginBottom: 20,
+  },
+  otherSectionLabel: {
+    ...TYPOGRAPHY.badge,
+    color: '#64748B',
+    fontSize: 11,
+    marginBottom: 8,
+    marginLeft: 4,
+    letterSpacing: 0.8,
+  },
+  groupedContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
+    ...SHADOWS.sm,
+  },
+  rowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  rowItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   rankBox: {
     width: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginRight: 6,
-  },
-  rankBoxClosest: {
-    backgroundColor: COLORS.primaryLight,
-    paddingVertical: 2,
-    borderRadius: 6,
   },
   rankText: {
     ...TYPOGRAPHY.badge,
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
     fontSize: 12,
   },
-  rankTextClosest: {
-    color: COLORS.primary,
-    fontWeight: '800',
-  },
   info: {
-    marginLeft: 12,
+    marginLeft: 10,
     flex: 1,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   name: {
     ...TYPOGRAPHY.h3,
-    fontSize: 16,
-  },
-  closestPill: {
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
-    marginLeft: 6,
-  },
-  closestPillText: {
-    color: COLORS.primary,
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 15,
   },
   statusRow: {
-    marginTop: 3,
+    marginTop: 2,
   },
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   walkBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.surfaceSubtle,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
   },
 });

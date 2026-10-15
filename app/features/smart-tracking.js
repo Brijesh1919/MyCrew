@@ -149,47 +149,50 @@ export default function SmartTrackingScreen() {
           </View>
         </View>
 
-        {/* MODES LIST */}
+        {/* MODES GROUPED CONTAINER */}
         <Text style={styles.sectionLabel}>TRACKING FREQUENCY MODES</Text>
-
-        {APP_CONFIG.trackingModes.map((mode) => {
-          const isSelected = selectedMode === mode.id;
-          return (
-            <TouchableOpacity
-              key={mode.id}
-              style={[styles.modeCard, isSelected && styles.modeCardSelected]}
-              activeOpacity={0.8}
-              onPress={() => handleSelectMode(mode.id)}
-            >
-              <View style={styles.modeCardLeft}>
-                <View
-                  style={[
-                    styles.radioCircle,
-                    isSelected && styles.radioCircleSelected,
-                  ]}
+        <View style={styles.modesGroupContainer}>
+          {APP_CONFIG.trackingModes.map((mode, idx) => {
+            const isSelected = selectedMode === mode.id;
+            return (
+              <React.Fragment key={mode.id}>
+                {idx > 0 && <View style={styles.modeDivider} />}
+                <TouchableOpacity
+                  style={[styles.modeRow, isSelected && styles.modeRowSelected]}
+                  activeOpacity={0.7}
+                  onPress={() => handleSelectMode(mode.id)}
                 >
-                  {isSelected && <View style={styles.radioInner} />}
-                </View>
+                  <View style={styles.modeCardLeft}>
+                    <View
+                      style={[
+                        styles.radioCircle,
+                        isSelected && styles.radioCircleSelected,
+                      ]}
+                    >
+                      {isSelected && <View style={styles.radioInner} />}
+                    </View>
 
-                <View style={styles.modeInfo}>
-                  <Text style={[styles.modeTitle, isSelected && styles.modeTitleSelected]}>
-                    {mode.label}
-                  </Text>
-                  <Text style={styles.modeDetails}>
-                    Updates every {mode.intervalSec}s • {mode.accuracy} precision
-                  </Text>
-                </View>
-              </View>
+                    <View style={styles.modeInfo}>
+                      <Text style={[styles.modeTitle, isSelected && styles.modeTitleSelected]}>
+                        {mode.label}
+                      </Text>
+                      <Text style={styles.modeDetails}>
+                        Updates every {mode.intervalSec}s • {mode.accuracy} precision
+                      </Text>
+                    </View>
+                  </View>
 
-              <View style={styles.impactPill}>
-                <Zap size={12} color={isSelected ? COLORS.primary : COLORS.textMuted} />
-                <Text style={[styles.impactText, isSelected && styles.impactTextSelected]}>
-                  {mode.batteryImpact}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+                  <View style={[styles.impactPill, isSelected && styles.impactPillSelected]}>
+                    <Zap size={12} color={isSelected ? COLORS.primary : COLORS.textMuted} />
+                    <Text style={[styles.impactText, isSelected && styles.impactTextSelected]}>
+                      {mode.batteryImpact}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </React.Fragment>
+            );
+          })}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -209,9 +212,9 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.xl,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     marginBottom: 20,
-    ...SHADOWS.md,
+    ...SHADOWS.sm,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -222,7 +225,7 @@ const styles = StyleSheet.create({
   liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.successBg,
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: RADIUS.pill,
@@ -246,7 +249,7 @@ const styles = StyleSheet.create({
   },
   telemetryRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surfaceSubtle,
+    backgroundColor: '#F8FAFC',
     borderRadius: RADIUS.md,
     padding: 12,
   },
@@ -256,7 +259,7 @@ const styles = StyleSheet.create({
   },
   telemetryDivider: {
     width: 1,
-    backgroundColor: '#CBD5E1',
+    backgroundColor: '#F1F5F9',
   },
   telemetryLabel: {
     ...TYPOGRAPHY.badge,
@@ -275,21 +278,28 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 12,
   },
-  modeCard: {
+  modesGroupContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
+    ...SHADOWS.sm,
+  },
+  modeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.surface,
     padding: 16,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    marginBottom: 10,
-    ...SHADOWS.sm,
+    minHeight: 64,
   },
-  modeCardSelected: {
-    borderColor: COLORS.primary,
+  modeRowSelected: {
     backgroundColor: '#F8FAFF',
+  },
+  modeDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginLeft: 48,
   },
   modeCardLeft: {
     flexDirection: 'row',
@@ -333,10 +343,13 @@ const styles = StyleSheet.create({
   impactPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceSubtle,
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: RADIUS.sm,
+  },
+  impactPillSelected: {
+    backgroundColor: '#EFF6FF',
   },
   impactText: {
     fontSize: 11,

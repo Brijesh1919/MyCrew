@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.xl,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     ...SHADOWS.sm,
   },
   fieldGroup: {
@@ -289,10 +289,10 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceSubtle,
+    backgroundColor: '#F1F5F9',
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'transparent',
     paddingHorizontal: 12,
     height: 48,
   },
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#F1F5F9',
   },
   dividerText: {
     paddingHorizontal: 12,
@@ -356,8 +356,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center',
     backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#DBEAFE',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: RADIUS.pill,

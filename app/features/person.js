@@ -127,8 +127,8 @@ export default function PersonDetailScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* AVATAR HERO CARD */}
-        <View style={styles.heroCard}>
+        {/* AVATAR HERO */}
+        <View style={styles.heroSection}>
           <MemberAvatar
             uri={member?.avatar}
             name={member?.name}
@@ -147,7 +147,7 @@ export default function PersonDetailScreen() {
             />
           </View>
 
-          {/* Distance Callout */}
+          {/* Distance Callout Chip */}
           <View
             style={[
               styles.distanceBox,
@@ -156,34 +156,21 @@ export default function PersonDetailScreen() {
           >
             {isSelf ? (
               !isTargetOffline ? (
-                <>
-                  <Text style={styles.distanceValue}>Your Location</Text>
-                  <Text style={styles.distanceLabel}>Active & visible to crew</Text>
-                </>
+                <Text style={styles.distanceValue}>Active & visible to crew</Text>
               ) : (
-                <>
-                  <Text style={[styles.distanceValue, styles.distanceValuePaused]}>
-                    Location Paused
-                  </Text>
-                  <Text style={styles.distanceLabel}>
-                    Hidden from crew • Location sharing off
-                  </Text>
-                </>
+                <Text style={[styles.distanceValue, styles.distanceValuePaused]}>
+                  Location Paused • Sharing off
+                </Text>
               )
             ) : isTargetOffline ? (
-              <>
-                <Text style={[styles.distanceValue, styles.distanceValuePaused]}>
-                  Location Paused
-                </Text>
-                <Text style={styles.distanceLabel}>
-                  Location hidden by member
-                </Text>
-              </>
+              <Text style={[styles.distanceValue, styles.distanceValuePaused]}>
+                Location Paused by member
+              </Text>
             ) : (
-              <>
-                <Text style={styles.distanceValue}>{formatDistance(distanceMeters)}</Text>
+              <Text style={styles.distanceValue}>
+                {formatDistance(distanceMeters)}{' '}
                 <Text style={styles.distanceLabel}>away from you</Text>
-              </>
+              </Text>
             )}
           </View>
         </View>
@@ -452,15 +439,10 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  heroCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xxl,
-    padding: 24,
+  heroSection: {
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 16,
-    ...SHADOWS.md,
+    paddingTop: 8,
+    paddingBottom: 20,
   },
   name: {
     ...TYPOGRAPHY.h1,
@@ -471,38 +453,35 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   distanceBox: {
-    alignItems: 'center',
-    marginTop: 16,
-    backgroundColor: COLORS.surfaceSubtle,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: RADIUS.lg,
+    marginTop: 14,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: RADIUS.full,
   },
   distanceBoxPaused: {
     backgroundColor: '#FEF2F2',
-    borderWidth: 1,
-    borderColor: '#FECACA',
   },
   distanceValue: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '700',
     color: COLORS.primary,
   },
   distanceValuePaused: {
     color: COLORS.danger,
-    fontSize: 20,
+    fontSize: 13,
   },
   distanceLabel: {
-    ...TYPOGRAPHY.caption,
+    fontWeight: '400',
     color: COLORS.textSecondary,
-    marginTop: 1,
   },
   detailsCard: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     marginBottom: 20,
     ...SHADOWS.sm,
   },
@@ -510,7 +489,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
   detailLeft: {
     flexDirection: 'row',
@@ -530,6 +509,7 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: '#F1F5F9',
+    marginLeft: 32,
   },
   actionsSection: {
     marginTop: 4,

@@ -845,7 +845,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     ...SHADOWS.lg,
   },
   quickBarBtn: {
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
   barDivider: {
     width: 1,
     height: 24,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#F1F5F9',
   },
   clusterSub: {
     ...TYPOGRAPHY.bodySecondary,

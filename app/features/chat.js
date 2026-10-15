@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#F1F5F9',
     paddingVertical: 10,
   },
   channelsFlatList: {
@@ -736,16 +736,12 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 20,
     marginRight: 8,
-    borderWidth: 1.5,
   },
   channelChipInactive: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
-    ...SHADOWS.sm,
+    backgroundColor: '#F1F5F9',
   },
   channelChipActive: {
     backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
     ...SHADOWS.sm,
   },
   chipIconBubble: {
@@ -820,12 +816,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    ...SHADOWS.sm,
   },
 
   // Message area
@@ -895,11 +888,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
   },
   bubbleSos: {
-    borderColor: '#EF4444',
-    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    borderWidth: 1,
     backgroundColor: '#FEF2F2',
   },
   bubbleSenderName: {
@@ -980,12 +973,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: RADIUS.full,
     marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   quickPingPillSos: {
     backgroundColor: '#FEF2F2',
-    borderColor: '#FCA5A5',
   },
   quickPingText: {
     fontSize: 12,
@@ -1005,7 +995,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#F1F5F9',
   },
   textInput: {
     flex: 1,
@@ -1085,8 +1075,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   modalSearchInput: {
     flex: 1,

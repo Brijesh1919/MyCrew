@@ -66,21 +66,26 @@ export default function PrivacyDetailScreen() {
           </Text>
         </View>
 
-        {/* PILLARS */}
-        {privacyPillars.map((pillar, i) => {
-          const Icon = pillar.icon;
-          return (
-            <View key={i} style={styles.pillarCard}>
-              <View style={styles.pillarIconBubble}>
-                <Icon size={20} color={COLORS.primary} />
-              </View>
-              <View style={styles.pillarInfo}>
-                <Text style={styles.pillarTitle}>{pillar.title}</Text>
-                <Text style={styles.pillarDesc}>{pillar.desc}</Text>
-              </View>
-            </View>
-          );
-        })}
+        {/* PILLARS GROUPED CONTAINER */}
+        <View style={styles.pillarsContainer}>
+          {privacyPillars.map((pillar, i) => {
+            const Icon = pillar.icon;
+            return (
+              <React.Fragment key={i}>
+                {i > 0 && <View style={styles.pillarDivider} />}
+                <View style={styles.pillarRow}>
+                  <View style={styles.pillarIconBubble}>
+                    <Icon size={20} color={COLORS.primary} />
+                  </View>
+                  <View style={styles.pillarInfo}>
+                    <Text style={styles.pillarTitle}>{pillar.title}</Text>
+                    <Text style={styles.pillarDesc}>{pillar.desc}</Text>
+                  </View>
+                </View>
+              </React.Fragment>
+            );
+          })}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -101,7 +106,7 @@ const styles = StyleSheet.create({
     padding: 22,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     marginBottom: 20,
     ...SHADOWS.sm,
   },
@@ -109,7 +114,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -126,22 +131,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  pillarCard: {
+  pillarsContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
+    ...SHADOWS.sm,
+  },
+  pillarRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: COLORS.surface,
     padding: 16,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 12,
-    ...SHADOWS.sm,
+  },
+  pillarDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginLeft: 68,
   },
   pillarIconBubble: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,

@@ -360,50 +360,48 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* 1. LIVE GROUP MAP */}
-        <View style={styles.mapCard}>
-          <View style={styles.mapHeaderRow}>
-            <Text style={styles.mapSectionLabel}>LIVE GROUP MAP</Text>
-            <TouchableOpacity
-              onPress={() => router.push('/(tabs)/map')}
-              style={styles.expandMapLink}
-            >
-              <Text style={styles.expandMapText}>Full Map</Text>
-              <ChevronRight size={14} color={COLORS.primary} />
-            </TouchableOpacity>
-          </View>
+        {/* 1. HERO LIVE GROUP MAP (Seamless Spatial Viewport) */}
+        <View style={styles.mapViewport}>
+          <MapView
+            userLocation={userLocation}
+            members={members}
+            clusters={clusters}
+            meetingPoints={meetingPoints}
+            onSelectCluster={handleClusterPress}
+            onSelectMember={handleMemberPress}
+            height={280}
+            interactive={true}
+            showClusters={true}
+            controlsBottomOffset={14}
+            onPanStart={() => setIsScrollEnabled(false)}
+            onPanEnd={() => setIsScrollEnabled(true)}
+          />
 
-          <View style={styles.mapFrame}>
-            <MapView
-              userLocation={userLocation}
+          {/* Floating Top Header Pill */}
+          <TouchableOpacity
+            style={styles.mapTopPill}
+            onPress={() => router.push('/(tabs)/map')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.mapLiveDot} />
+            <Text style={styles.mapTopPillText}>Full Map</Text>
+            <ChevronRight size={13} color={COLORS.primary} style={{ marginLeft: 2 }} />
+          </TouchableOpacity>
+
+          {/* Quick Live Members Facepile Capsule */}
+          <View style={styles.mapFacepileContainer}>
+            <CrewFacepileCapsule
               members={members}
-              clusters={clusters}
-              meetingPoints={meetingPoints}
-              onSelectCluster={handleClusterPress}
-              onSelectMember={handleMemberPress}
-              height={270}
-              interactive={true}
-              showClusters={true}
-              controlsBottomOffset={12}
-              onPanStart={() => setIsScrollEnabled(false)}
-              onPanEnd={() => setIsScrollEnabled(true)}
+              onlineCount={statusCounts.online || statusCounts.active || 0}
+              onPress={() => router.push('/(tabs)/people')}
             />
-
-            {/* Quick Live Members Facepile Capsule */}
-            <View style={styles.mapFacepileContainer}>
-              <CrewFacepileCapsule
-                members={members}
-                onlineCount={statusCounts.online || statusCounts.active || 0}
-                onPress={() => router.push('/(tabs)/people')}
-              />
-            </View>
           </View>
         </View>
 
         {/* 2. PRIMARY ACTION: FIND MY PEOPLE */}
         <View style={styles.primaryActionSection}>
           <PrimaryButton
-            title="FIND MY PEOPLE"
+            title="Find My People"
             onPress={() => router.push('/features/find-people')}
             icon={Compass}
             size="lg"
@@ -411,7 +409,7 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* 3. QUICK ACTIONS: FIND NEAREST | I'M LOST | MEET HERE */}
+        {/* 3. QUICK ACTIONS HUB (Tactile OS Control Tiles) */}
         <View style={styles.quickActionsRow}>
           <QuickAction
             title="Find Nearest"
@@ -433,74 +431,91 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* 4. GROUP STATUS */}
-        <TouchableOpacity
-          style={styles.groupStatusCard}
-          activeOpacity={0.85}
-          onPress={() => router.push('/features/group-status')}
-        >
-          <View style={styles.statusCardHeader}>
-            <Text style={styles.statusCardLabel}>GROUP STATUS</Text>
-            <View style={styles.viewDetailsRow}>
-              <Text style={styles.viewDetailsText}>Overview</Text>
-              <ChevronRight size={14} color={COLORS.textSecondary} />
-            </View>
-          </View>
-
-          <View style={styles.statusPillsRow}>
-            <View style={[styles.statusStatPill, { backgroundColor: COLORS.successBg }]}>
-              <View style={[styles.statusMiniDot, { backgroundColor: COLORS.success }]} />
-              <Text style={[styles.statusStatValue, { color: COLORS.success }]}>
-                {statusCounts.active} Active
-              </Text>
-            </View>
-
-            <View style={[styles.statusStatPill, { backgroundColor: COLORS.warningBg }]}>
-              <View style={[styles.statusMiniDot, { backgroundColor: COLORS.warning }]} />
-              <Text style={[styles.statusStatValue, { color: COLORS.warning }]}>
-                {statusCounts.delayed} Delayed
-              </Text>
-            </View>
-
-            <View style={[styles.statusStatPill, { backgroundColor: COLORS.dangerBg }]}>
-              <View style={[styles.statusMiniDot, { backgroundColor: COLORS.danger }]} />
-              <Text style={[styles.statusStatValue, { color: COLORS.danger }]}>
-                {statusCounts.offline} Offline
-              </Text>
-            </View>
-          </View>
-
-          {/* Quick Check-in CTA banner */}
-          <View style={styles.checkInStrip}>
-            <View style={styles.checkInLeft}>
-              <ShieldCheck size={16} color={COLORS.success} />
-              <Text style={styles.checkInText}>
-                {currentUser?.isSafe ? "You're checked in as Safe" : 'Not checked in yet'}
-              </Text>
-            </View>
+        {/* 4. CREW SAFETY & STATUS SECTION (Unified Hub) */}
+        <View style={styles.statusSection}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Crew Status</Text>
             <TouchableOpacity
-              onPress={() => router.push('/features/check-in')}
-              style={styles.checkInBtn}
+              onPress={() => router.push('/features/group-status')}
+              style={styles.sectionLinkRow}
+              activeOpacity={0.7}
             >
-              <Text style={styles.checkInBtnText}>Check In</Text>
+              <Text style={styles.sectionLinkText}>Overview</Text>
+              <ChevronRight size={14} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
 
-        {/* 5. GROUP RADAR LINK BANNER */}
+          <View style={styles.statusUnifiedContainer}>
+            {/* 3 Metrics Segmented Bar */}
+            <View style={styles.statusPillsRow}>
+              <View style={[styles.statusStatPill, { backgroundColor: COLORS.successBg }]}>
+                <View style={[styles.statusMiniDot, { backgroundColor: COLORS.success }]} />
+                <Text style={[styles.statusStatValue, { color: COLORS.success }]}>
+                  {statusCounts.active} Active
+                </Text>
+              </View>
+
+              <View style={[styles.statusStatPill, { backgroundColor: COLORS.warningBg }]}>
+                <View style={[styles.statusMiniDot, { backgroundColor: COLORS.warning }]} />
+                <Text style={[styles.statusStatValue, { color: COLORS.warning }]}>
+                  {statusCounts.delayed} Delayed
+                </Text>
+              </View>
+
+              <View style={[styles.statusStatPill, { backgroundColor: '#F1F5F9' }]}>
+                <View style={[styles.statusMiniDot, { backgroundColor: COLORS.textMuted }]} />
+                <Text style={[styles.statusStatValue, { color: COLORS.textSecondary }]}>
+                  {statusCounts.offline} Offline
+                </Text>
+              </View>
+            </View>
+
+            {/* Hairline Divider */}
+            <View style={styles.statusDivider} />
+
+            {/* Integrated Safety Check-in Bar */}
+            <View style={styles.checkInRow}>
+              <View style={styles.checkInLeft}>
+                <ShieldCheck size={18} color={currentUser?.isSafe ? COLORS.success : COLORS.primary} />
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.checkInTitle}>
+                    {currentUser?.isSafe ? 'You are marked Safe' : 'Safety Check-in'}
+                  </Text>
+                  <Text style={styles.checkInSub}>
+                    {currentUser?.isSafe ? 'Visible to your crew' : 'Let your crew know you are okay'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push('/features/check-in')}
+                style={[
+                  styles.checkInBtn,
+                  currentUser?.isSafe && styles.checkInBtnSafe,
+                ]}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.checkInBtnText, currentUser?.isSafe && styles.checkInBtnTextSafe]}>
+                  {currentUser?.isSafe ? 'Update' : 'Check In'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* 5. GROUP RADAR TILE */}
         <TouchableOpacity
-          style={styles.radarBanner}
-          activeOpacity={0.85}
+          style={styles.radarTile}
+          activeOpacity={0.82}
           onPress={() => router.push('/features/group-radar')}
         >
-          <View style={styles.radarBannerLeft}>
+          <View style={styles.radarTileLeft}>
             <View style={styles.radarCircle}>
               <Compass size={20} color={COLORS.primary} />
             </View>
-            <View>
+            <View style={{ marginLeft: 12 }}>
               <Text style={styles.radarTitle}>Group Radar</Text>
               <Text style={styles.radarSub}>
-                See who is ahead and behind you in real-time
+                Live compass view of who is ahead and behind you
               </Text>
             </View>
           </View>
@@ -867,102 +882,105 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  mapCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
-    padding: 14,
+  mapViewport: {
+    borderRadius: 22,
+    overflow: 'hidden',
+    position: 'relative',
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginBottom: 14,
     ...SHADOWS.md,
   },
-  mapHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  mapSectionLabel: {
-    ...TYPOGRAPHY.badge,
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    letterSpacing: 0.5,
-  },
-  expandMapLink: {
+  mapTopPill: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
+    ...SHADOWS.sm,
   },
-  expandMapText: {
+  mapLiveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: COLORS.success,
+    marginRight: 6,
+  },
+  mapTopPillText: {
     ...TYPOGRAPHY.caption,
     color: COLORS.primary,
     fontWeight: '700',
-    marginRight: 2,
-  },
-  mapFrame: {
-    borderRadius: RADIUS.lg,
-    overflow: 'hidden',
-    position: 'relative',
+    fontSize: 12,
   },
   mapFacepileContainer: {
     position: 'absolute',
-    bottom: 10,
-    left: 10,
-    maxWidth: '78%',
+    bottom: 12,
+    left: 12,
+    maxWidth: '80%',
   },
   primaryActionSection: {
     marginBottom: 14,
   },
   findMyPeopleBtn: {
-    height: 56,
+    height: 54,
+    borderRadius: RADIUS.lg,
   },
   quickActionsRow: {
     flexDirection: 'row',
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: 18,
+    gap: 10,
   },
-  groupStatusCard: {
+  statusSection: {
+    marginBottom: 16,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  sectionTitle: {
+    ...TYPOGRAPHY.h3,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  sectionLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionLinkText: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.primary,
+    fontWeight: '700',
+    marginRight: 2,
+  },
+  statusUnifiedContainer: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
     padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginBottom: 14,
     ...SHADOWS.sm,
-  },
-  statusCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statusCardLabel: {
-    ...TYPOGRAPHY.badge,
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    letterSpacing: 0.5,
-  },
-  viewDetailsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  viewDetailsText: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginRight: 2,
   },
   statusPillsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 14,
-    gap: 6,
+    gap: 8,
   },
   statusStatPill: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 2,
+    paddingVertical: 9,
+    paddingHorizontal: 4,
     borderRadius: RADIUS.md,
     minWidth: 0,
   },
@@ -970,55 +988,71 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    marginRight: 5,
+    marginRight: 6,
   },
   statusStatValue: {
-    ...TYPOGRAPHY.badge,
-    fontSize: 11,
+    ...TYPOGRAPHY.caption,
+    fontSize: 12,
+    fontWeight: '700',
   },
-  checkInStrip: {
+  statusDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 14,
+  },
+  checkInRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    padding: 10,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   checkInLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  checkInText: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textPrimary,
-    marginLeft: 8,
+  checkInTitle: {
+    ...TYPOGRAPHY.body,
+    fontSize: 14,
     fontWeight: '600',
+    color: COLORS.textPrimary,
+  },
+  checkInSub: {
+    ...TYPOGRAPHY.caption,
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginTop: 1,
   },
   checkInBtn: {
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: RADIUS.pill,
+  },
+  checkInBtnSafe: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
   },
   checkInBtnText: {
-    color: COLORS.primary,
+    color: COLORS.white,
     fontSize: 12,
     fontWeight: '700',
   },
-  radarBanner: {
+  checkInBtnTextSafe: {
+    color: COLORS.primary,
+  },
+  radarTile: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#F8FAFC',
     padding: 14,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    marginBottom: 16,
   },
-  radarBannerLeft: {
+  radarTileLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
@@ -1027,20 +1061,20 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
     alignItems: 'center',
-    marginRight: 12,
+    justifyContent: 'center',
   },
   radarTitle: {
     ...TYPOGRAPHY.h3,
-    fontSize: 15,
+    fontSize: 14,
+    color: COLORS.textPrimary,
   },
   radarSub: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    fontSize: 12,
-    marginTop: 1,
+    fontSize: 11,
+    marginTop: 2,
   },
   clusterSheetContainer: {
     paddingBottom: 10,

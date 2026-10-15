@@ -151,20 +151,20 @@ export default function TripScreen() {
           {hasHistory && (
             <View style={styles.historySection}>
               <View style={styles.historySectionHeader}>
-                <View style={styles.historyHeaderLeft}>
-                  <History size={16} color={COLORS.textSecondary} />
-                  <Text style={styles.historySectionTitle}>TRIP HISTORY</Text>
-                </View>
+                <Text style={styles.sectionLabel}>TRIP HISTORY</Text>
                 <Text style={styles.historyCountText}>{tripHistory.length} previous</Text>
               </View>
 
-              {tripHistory.map((t) => (
-                <TripHistoryCard
-                  key={t.id}
-                  trip={t}
-                  onPress={(item) => setSelectedHistoryTrip(item)}
-                />
-              ))}
+              <View style={styles.historyGroupContainer}>
+                {tripHistory.map((t) => (
+                  <TripHistoryCard
+                    key={t.id}
+                    trip={t}
+                    variant="row"
+                    onPress={(item) => setSelectedHistoryTrip(item)}
+                  />
+                ))}
+              </View>
             </View>
           )}
         </ScrollView>
@@ -302,84 +302,78 @@ export default function TripScreen() {
           </View>
         </View>
 
-        {/* HOST & PRIVACY INFO */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoCardLabel}>HOST & PRIVACY</Text>
+        {/* 2. TRIP DETAILS & CONTROLS (Inset Grouped Section) */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionLabel}>TRIP DETAILS & CONTROLS</Text>
+          <View style={styles.menuBox}>
+            <View style={styles.infoRow}>
+              <View style={[styles.menuIconBox, { backgroundColor: '#EFF6FF' }]}>
+                <Shield size={18} color={COLORS.primary} />
+              </View>
+              <View style={styles.infoTextContainer}>
+                <Text style={styles.infoTitle}>Organizer</Text>
+                <Text style={styles.infoSub}>
+                  {activeTrip?.organizer?.name || (userRole === 'organizer' ? 'You (Host)' : 'Organizer')}
+                </Text>
+              </View>
+            </View>
 
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconBox}>
-              <Shield size={18} color={COLORS.primary} />
-            </View>
-            <View style={styles.infoTextContainer}>
-              <Text style={styles.infoTitle}>Organizer</Text>
-              <Text style={styles.infoSub}>
-                {activeTrip?.organizer?.name || (userRole === 'organizer' ? 'You (Host)' : 'Organizer')}
-              </Text>
-            </View>
-          </View>
+            <View style={styles.menuDivider} />
 
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconBox}>
-              <Clock size={18} color={COLORS.primary} />
+            <View style={styles.infoRow}>
+              <View style={[styles.menuIconBox, { backgroundColor: '#EFF6FF' }]}>
+                <Clock size={18} color={COLORS.primary} />
+              </View>
+              <View style={styles.infoTextContainer}>
+                <Text style={styles.infoTitle}>Auto-Expiration</Text>
+                <Text style={styles.infoSub}>
+                  Location tracking automatically ends in {timeLeft}.
+                </Text>
+              </View>
             </View>
-            <View style={styles.infoTextContainer}>
-              <Text style={styles.infoTitle}>Auto-Expiration</Text>
-              <Text style={styles.infoSub}>
-                Location tracking automatically ends in {timeLeft}.
-              </Text>
+
+            <View style={styles.menuDivider} />
+
+            <View style={styles.controlActionBox}>
+              {userRole === 'organizer' ? (
+                <PrimaryButton
+                  title="End Trip & Stop Sharing"
+                  onPress={() => setShowConfirmModal({ visible: true, type: 'end' })}
+                  variant="danger"
+                  size="md"
+                  fullWidth={true}
+                />
+              ) : (
+                <PrimaryButton
+                  title="Leave Crew"
+                  onPress={() => setShowConfirmModal({ visible: true, type: 'leave' })}
+                  variant="danger"
+                  size="md"
+                  fullWidth={true}
+                />
+              )}
             </View>
           </View>
         </View>
 
-        {/* TRIP CONTROLS ACCORDING TO USER ROLE */}
-        {userRole === 'organizer' ? (
-          <View style={styles.dangerZoneCard}>
-            <Text style={styles.dangerCardLabel}>ORGANIZER CONTROLS</Text>
-            <Text style={styles.dangerCardDesc}>
-              Ending the trip immediately stops all live location sharing for every participant. The trip will be saved to your Trip History.
-            </Text>
-
-            <PrimaryButton
-              title="End Trip & Stop Sharing"
-              onPress={() => setShowConfirmModal({ visible: true, type: 'end' })}
-              variant="danger"
-              size="md"
-            />
-          </View>
-        ) : (
-          <View style={styles.dangerZoneCard}>
-            <Text style={styles.dangerCardLabel}>CREW MEMBERSHIP</Text>
-            <Text style={styles.dangerCardDesc}>
-              Leaving will stop sharing your location with {activeTrip?.name}.
-            </Text>
-
-            <PrimaryButton
-              title="Leave Crew"
-              onPress={() => setShowConfirmModal({ visible: true, type: 'leave' })}
-              variant="danger"
-              size="md"
-            />
-          </View>
-        )}
-
-        {/* TRIP HISTORY SECTION */}
+        {/* 3. TRIP HISTORY SECTION (Inset Grouped) */}
         {tripHistory && tripHistory.length > 0 && (
           <View style={styles.historySection}>
             <View style={styles.historySectionHeader}>
-              <View style={styles.historyHeaderLeft}>
-                <History size={16} color={COLORS.textSecondary} />
-                <Text style={styles.historySectionTitle}>TRIP HISTORY</Text>
-              </View>
+              <Text style={styles.sectionLabel}>TRIP HISTORY</Text>
               <Text style={styles.historyCountText}>{tripHistory.length} previous</Text>
             </View>
 
-            {tripHistory.map((t) => (
-              <TripHistoryCard
-                key={t.id}
-                trip={t}
-                onPress={(item) => setSelectedHistoryTrip(item)}
-              />
-            ))}
+            <View style={styles.historyGroupContainer}>
+              {tripHistory.map((t) => (
+                <TripHistoryCard
+                  key={t.id}
+                  trip={t}
+                  variant="row"
+                  onPress={(item) => setSelectedHistoryTrip(item)}
+                />
+              ))}
+            </View>
           </View>
         )}
       </ScrollView>
@@ -595,8 +589,8 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.xl,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 16,
+    borderColor: '#F1F5F9',
+    marginBottom: 18,
     ...SHADOWS.sm,
   },
   heroHeader: {
@@ -614,12 +608,10 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   heroTypeBadge: {
-    backgroundColor: COLORS.surfaceSubtle,
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   heroTypeText: {
     ...TYPOGRAPHY.badge,
@@ -649,12 +641,12 @@ const styles = StyleSheet.create({
   heroTitle: {
     ...TYPOGRAPHY.h1,
     fontSize: 22,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   heroConnectedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   heroConnectedText: {
     ...TYPOGRAPHY.bodySecondary,
@@ -664,10 +656,11 @@ const styles = StyleSheet.create({
   },
   timeRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surfaceSubtle,
+    backgroundColor: '#F8FAFC',
     borderRadius: RADIUS.lg,
-    padding: 12,
-    marginBottom: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
   },
   timeBox: {
     flex: 1,
@@ -675,13 +668,13 @@ const styles = StyleSheet.create({
   },
   timeBoxDivider: {
     width: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#F1F5F9',
   },
   timeLabel: {
     ...TYPOGRAPHY.badge,
     fontSize: 10,
     color: COLORS.textMuted,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   timeValue: {
     ...TYPOGRAPHY.body,
@@ -693,11 +686,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceSubtle,
+    backgroundColor: '#F8FAFC',
     borderRadius: RADIUS.lg,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    padding: 12,
     marginBottom: 16,
   },
   codeLabel: {
@@ -706,7 +697,7 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
   },
   codeDisplay: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: COLORS.primary,
     letterSpacing: 2,
@@ -715,12 +706,10 @@ const styles = StyleSheet.create({
   copyPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#EFF6FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: RADIUS.pill,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
   },
   copyPillText: {
     fontSize: 12,
@@ -736,11 +725,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.surfaceSubtle,
+    backgroundColor: '#F1F5F9',
     paddingVertical: 12,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+    borderRadius: RADIUS.pill,
   },
   actionBtnText: {
     color: COLORS.textPrimary,
@@ -755,7 +742,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: COLORS.primary,
     paddingVertical: 12,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.pill,
   },
   actionBtnPrimaryText: {
     color: COLORS.white,
@@ -763,32 +750,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 8,
   },
-  infoCard: {
+  sectionContainer: {
+    marginBottom: 20,
+  },
+  sectionLabel: {
+    ...TYPOGRAPHY.badge,
+    color: '#64748B',
+    fontSize: 11,
+    marginBottom: 8,
+    marginLeft: 4,
+    letterSpacing: 0.8,
+  },
+  menuBox: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
-    padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 16,
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
     ...SHADOWS.sm,
-  },
-  infoCardLabel: {
-    ...TYPOGRAPHY.badge,
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    marginBottom: 12,
-    letterSpacing: 0.5,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
   },
-  infoIconBox: {
+  menuIconBox: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.surfaceSubtle,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -798,36 +788,29 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     ...TYPOGRAPHY.h3,
-    fontSize: 14,
+    fontSize: 15,
   },
   infoSub: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    marginTop: 2,
+    marginTop: 1,
     fontSize: 12,
   },
-  dangerZoneCard: {
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginLeft: 64,
+  },
+  controlActionBox: {
+    padding: 14,
+  },
+  historyGroupContainer: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
-    padding: 16,
     borderWidth: 1,
-    borderColor: '#FEE2E2',
-    marginBottom: 20,
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
     ...SHADOWS.sm,
-  },
-  dangerCardLabel: {
-    ...TYPOGRAPHY.badge,
-    color: COLORS.danger,
-    fontSize: 11,
-    marginBottom: 6,
-    letterSpacing: 0.5,
-  },
-  dangerCardDesc: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    fontSize: 12,
-    lineHeight: 17,
-    marginBottom: 14,
   },
   confirmModalContent: {
     paddingVertical: 12,

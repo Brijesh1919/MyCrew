@@ -181,30 +181,33 @@ export default function EmergencyScreen() {
             <Text style={styles.sectionLabel}>CLOSEST CREW NEARBY</Text>
             <View style={styles.nearbyList}>
               {nearestList.length > 0 ? (
-                nearestList.map((m) => (
-                  <View key={m.id} style={styles.nearbyRow}>
-                    <MemberAvatar
-                      uri={m.avatar}
-                      name={m.name}
-                      size="sm"
-                      status={m.status}
-                    />
-                    <View style={styles.nearbyInfo}>
-                      <Text style={styles.nearbyName}>{m.name}</Text>
-                      <Text style={styles.nearbyDistance}>
-                        {formatDistance(m.distanceMeters)} away{m.phone ? ` • 📞 ${m.phone}` : ''}
-                      </Text>
+                nearestList.map((m, idx) => (
+                  <React.Fragment key={m.id}>
+                    {idx > 0 && <View style={styles.nearbyDivider} />}
+                    <View style={styles.nearbyRow}>
+                      <MemberAvatar
+                        uri={m.avatar}
+                        name={m.name}
+                        size="sm"
+                        status={m.status}
+                      />
+                      <View style={styles.nearbyInfo}>
+                        <Text style={styles.nearbyName}>{m.name}</Text>
+                        <Text style={styles.nearbyDistance}>
+                          {formatDistance(m.distanceMeters)} away{m.phone ? ` • 📞 ${m.phone}` : ''}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.callIconBtn}
+                        onPress={() => handleCallMember(m)}
+                      >
+                        <Phone size={16} color={COLORS.primary} />
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity
-                      style={styles.callIconBtn}
-                      onPress={() => handleCallMember(m)}
-                    >
-                      <Phone size={16} color={COLORS.primary} />
-                    </TouchableOpacity>
-                  </View>
+                  </React.Fragment>
                 ))
               ) : (
-                <View style={{ padding: 14, alignItems: 'center' }}>
+                <View style={{ padding: 18, alignItems: 'center' }}>
                   <Text style={{ ...TYPOGRAPHY.caption, color: COLORS.textSecondary }}>
                     No crew members nearby with location active
                   </Text>
@@ -268,11 +271,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: COLORS.surface,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FECACA',
     alignSelf: 'flex-end',
   },
   confirmBox: {
@@ -289,8 +290,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
-    borderWidth: 2,
-    borderColor: '#FECACA',
     ...SHADOWS.md,
   },
   confirmTitle: {
@@ -306,11 +305,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   disclaimerBox: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: '#FEF3C7',
     padding: 14,
     borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
     marginBottom: 28,
   },
   disclaimerText: {
@@ -370,17 +367,23 @@ const styles = StyleSheet.create({
   nearbyList: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
-    padding: 12,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: '#FEE2E2',
     marginBottom: 24,
     ...SHADOWS.sm,
   },
   nearbyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 58,
+  },
+  nearbyDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginLeft: 60,
   },
   nearbyInfo: {
     marginLeft: 12,
@@ -399,7 +402,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
   },

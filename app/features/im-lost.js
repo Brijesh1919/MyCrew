@@ -177,34 +177,36 @@ export default function ImLostScreen() {
                   <>
                     <Text style={styles.sectionLabel}>ALSO NEARBY</Text>
                     <View style={styles.othersList}>
-                      {nearestList.slice(1).map((m) => (
-                        <TouchableOpacity
-                          key={m.id}
-                          style={styles.otherItem}
-                          onPress={() => {
-                            setSelectedMember(m);
-                            router.replace({
-                              pathname: '/features/navigation',
-                              params: { memberId: m.id },
-                            });
-                          }}
-                        >
-                          <MemberAvatar
-                            uri={m.avatar}
-                            name={m.name}
-                            size="sm"
-                            status={m.status}
-                          />
-                          <View style={styles.otherInfo}>
-                            <Text style={styles.otherName}>{m.name}</Text>
-                            <Text style={styles.otherDist}>
-                              {m.distanceMeters !== null && m.distanceMeters !== undefined
-                                ? `${formatDistance(m.distanceMeters)} away`
-                                : 'Location unavailable'}
-                            </Text>
-                          </View>
-                          <ChevronRight size={16} color={COLORS.textMuted} />
-                        </TouchableOpacity>
+                      {nearestList.slice(1).map((m, idx) => (
+                        <React.Fragment key={m.id}>
+                          {idx > 0 && <View style={styles.otherDivider} />}
+                          <TouchableOpacity
+                            style={styles.otherItem}
+                            onPress={() => {
+                              setSelectedMember(m);
+                              router.replace({
+                                pathname: '/features/navigation',
+                                params: { memberId: m.id },
+                              });
+                            }}
+                          >
+                            <MemberAvatar
+                              uri={m.avatar}
+                              name={m.name}
+                              size="sm"
+                              status={m.status}
+                            />
+                            <View style={styles.otherInfo}>
+                              <Text style={styles.otherName}>{m.name}</Text>
+                              <Text style={styles.otherDist}>
+                                {m.distanceMeters !== null && m.distanceMeters !== undefined
+                                  ? `${formatDistance(m.distanceMeters)} away`
+                                  : 'Location unavailable'}
+                              </Text>
+                            </View>
+                            <ChevronRight size={16} color={COLORS.textMuted} />
+                          </TouchableOpacity>
+                        </React.Fragment>
                       ))}
                     </View>
                   </>
@@ -242,11 +244,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
     alignSelf: 'flex-end',
   },
   header: {
@@ -292,10 +292,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xxl,
     padding: 20,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
     marginBottom: 20,
-    ...SHADOWS.lg,
+    ...SHADOWS.md,
   },
   closestHeaderRow: {
     flexDirection: 'row',
@@ -353,17 +353,23 @@ const styles = StyleSheet.create({
   },
   othersList: {
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    padding: 10,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
     ...SHADOWS.sm,
   },
   otherItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 58,
+  },
+  otherDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginLeft: 60,
   },
   otherInfo: {
     marginLeft: 12,
@@ -385,7 +391,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     marginTop: 20,
     ...SHADOWS.sm,
   },

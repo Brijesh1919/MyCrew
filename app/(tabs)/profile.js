@@ -329,184 +329,248 @@ export default function ProfileScreen() {
           <Text style={styles.screenTitle}>Profile & Settings</Text>
         </View>
 
-        {/* REAL USER PROFILE CARD */}
-        <View style={styles.profileCard}>
-          <MemberAvatar
-            uri={currentUser?.avatar}
-            name={displayName}
-            size="lg"
-            status={activeTrip ? (isSharing ? 'live' : 'offline') : 'offline'}
-            isUser={true}
-          />
-          <View style={styles.profileInfo}>
-            <View style={styles.profileHeaderRow}>
-              <Text style={styles.userName} numberOfLines={1}>
-                {displayName}
-              </Text>
-              <TouchableOpacity
-                style={styles.editProfilePill}
-                onPress={handleOpenEditModal}
-                activeOpacity={0.75}
-              >
-                <Edit3 size={12} color={COLORS.primary} style={{ marginRight: 4 }} />
-                <Text style={styles.editProfilePillText}>Edit</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.userEmail} numberOfLines={1}>
-              {displayEmail}
-            </Text>
-
-            {/* Contact / Phone Row */}
+        {/* 1. OPEN PROFILE HERO HEADER (No heavy card box) */}
+        <View style={styles.profileHero}>
+          <View style={styles.avatarWrap}>
+            <MemberAvatar
+              uri={currentUser?.avatar}
+              name={displayName}
+              size="lg"
+              status={activeTrip ? (isSharing ? 'live' : 'offline') : 'offline'}
+              isUser={true}
+            />
             <TouchableOpacity
-              style={styles.contactRow}
+              style={styles.avatarEditBadge}
+              onPress={handleOpenEditModal}
+              activeOpacity={0.8}
+            >
+              <Camera size={13} color={COLORS.white} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.userName} numberOfLines={1}>
+            {displayName}
+          </Text>
+          <Text style={styles.userEmail} numberOfLines={1}>
+            {displayEmail}
+          </Text>
+
+          {/* Quick Info & Action Chips */}
+          <View style={styles.heroPillsRow}>
+            <TouchableOpacity
+              style={[
+                styles.contactPill,
+                !currentUser?.phone && styles.contactPillWarning,
+              ]}
               onPress={() => {
                 triggerLight();
                 setShowContactModal(true);
               }}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
             >
               <Phone
                 size={12}
-                color={currentUser?.phone ? COLORS.primary : COLORS.textMuted}
-                style={{ marginRight: 6 }}
+                color={currentUser?.phone ? COLORS.primary : '#D97706'}
+                style={{ marginRight: 5 }}
               />
               <Text
                 style={[
-                  styles.contactText,
-                  !currentUser?.phone && styles.contactTextEmpty,
+                  styles.contactPillText,
+                  !currentUser?.phone && styles.contactPillWarningText,
                 ]}
                 numberOfLines={1}
               >
-                {currentUser?.phone ? currentUser.phone : '+ Add Contact Number'}
+                {currentUser?.phone ? currentUser.phone : '+ Add Phone'}
               </Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.editProfileBtn}
+              onPress={handleOpenEditModal}
+              activeOpacity={0.75}
+            >
+              <Edit3 size={12} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
+              <Text style={styles.editProfileBtnText}>Edit Profile</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Active Trip Status Indicator */}
+          <View
+            style={[
+              styles.statusPill,
+              !activeTrip && { backgroundColor: '#F1F5F9' },
+              activeTrip && !isSharing && { backgroundColor: '#FEF2F2' },
+            ]}
+          >
             <View
               style={[
-                styles.statusPill,
-                !activeTrip && { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' },
-                activeTrip && !isSharing && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+                styles.statusDot,
+                !activeTrip && { backgroundColor: COLORS.textMuted },
+                activeTrip && !isSharing && { backgroundColor: COLORS.danger },
+              ]}
+            />
+            <Text
+              style={[
+                styles.statusPillText,
+                !activeTrip && { color: COLORS.textSecondary },
+                activeTrip && !isSharing && { color: COLORS.danger },
               ]}
             >
-              <View
-                style={[
-                  styles.statusDot,
-                  !activeTrip && { backgroundColor: COLORS.textMuted },
-                  activeTrip && !isSharing && { backgroundColor: COLORS.danger },
-                ]}
-              />
-              <Text
-                style={[
-                  styles.statusPillText,
-                  !activeTrip && { color: COLORS.textSecondary },
-                  activeTrip && !isSharing && { color: COLORS.danger },
-                ]}
-              >
-                {!activeTrip
-                  ? 'Not in any crew'
-                  : isSharing
-                  ? `Active in ${activeTrip.name} (${userRole === 'organizer' ? 'Host' : 'Member'})`
-                  : `Location Paused in ${activeTrip.name} (${userRole === 'organizer' ? 'Host' : 'Member'})`}
-              </Text>
-            </View>
+              {!activeTrip
+                ? 'Not in any crew'
+                : isSharing
+                ? `Active in ${activeTrip.name} (${userRole === 'organizer' ? 'Host' : 'Member'})`
+                : `Location Paused in ${activeTrip.name} (${userRole === 'organizer' ? 'Host' : 'Member'})`}
+            </Text>
           </View>
         </View>
 
-        {/* Missing Phone Number Alert Banner */}
-        {!currentUser?.phone && (
-          <View style={styles.phoneAlertBanner}>
-            <View style={styles.phoneAlertIconBox}>
-              <Phone size={18} color="#D97706" />
+        {/* 2. CREW & SHARING INSET GROUP */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionLabel}>CREW & SHARING</Text>
+          <View style={styles.menuBox}>
+            {/* Integrated Location Sharing Row */}
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleRowLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: '#EFF6FF' }]}>
+                  <MapPin size={18} color={COLORS.primary} />
+                </View>
+                <View style={{ flex: 1, marginRight: 10 }}>
+                  <Text style={styles.menuItemLabel}>Location Sharing</Text>
+                  <Text style={styles.menuItemSub} numberOfLines={1}>
+                    {!activeTrip
+                      ? 'No sharing active (no crew joined)'
+                      : isSharing
+                      ? 'Visible to crew members'
+                      : 'Temporarily paused'}
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={Boolean(activeTrip && isSharing)}
+                disabled={!activeTrip}
+                onValueChange={handleToggleLocationSharing}
+                trackColor={{ false: '#CBD5E1', true: COLORS.primaryLight }}
+                thumbColor={isSharing && activeTrip ? COLORS.primary : '#F1F5F9'}
+              />
             </View>
-            <View style={styles.phoneAlertTextCol}>
-              <Text style={styles.phoneAlertTitle}>Contact Number Missing</Text>
-              <Text style={styles.phoneAlertSub}>
-                Add your phone number so your crew can call you if separated.
-              </Text>
-            </View>
+
+            <View style={styles.menuDivider} />
+
+            {/* Smart Tracking */}
             <TouchableOpacity
-              style={styles.phoneAlertActionBtn}
-              onPress={() => {
-                triggerLight();
-                setShowContactModal(true);
-              }}
-              activeOpacity={0.8}
+              style={styles.menuItem}
+              onPress={() => router.push('/features/smart-tracking')}
+              activeOpacity={0.7}
             >
-              <Text style={styles.phoneAlertActionBtnText}>Add Now</Text>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: '#EFF6FF' }]}>
+                  <Cpu size={18} color={COLORS.primary} />
+                </View>
+                <View>
+                  <Text style={styles.menuItemLabel}>Smart Tracking</Text>
+                  <Text style={styles.menuItemSub}>Crowded Mode • Battery optimized</Text>
+                </View>
+              </View>
+              <ChevronRight size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            {/* Privacy & Sharing */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/features/privacy')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: '#EFF6FF' }]}>
+                  <Shield size={18} color={COLORS.primary} />
+                </View>
+                <View>
+                  <Text style={styles.menuItemLabel}>Privacy & Sharing</Text>
+                  <Text style={styles.menuItemSub}>Only shared during active trips</Text>
+                </View>
+              </View>
+              <ChevronRight size={18} color={COLORS.textMuted} />
             </TouchableOpacity>
           </View>
-        )}
-
-        {/* LOCATION SHARING TOGGLE CARD */}
-        <View style={styles.toggleCard}>
-          <View style={styles.toggleLeft}>
-            <View style={styles.iconCircle}>
-              <MapPin size={20} color={COLORS.primary} />
-            </View>
-            <View style={styles.toggleTextContainer}>
-              <Text style={styles.toggleTitle}>Location Sharing</Text>
-              <Text style={styles.toggleSub}>
-                {!activeTrip
-                  ? 'No sharing active (no crew joined)'
-                  : isSharing
-                  ? 'Visible to crew members'
-                  : 'Temporarily paused'}
-              </Text>
-            </View>
-          </View>
-          <Switch
-            value={Boolean(activeTrip && isSharing)}
-            disabled={!activeTrip}
-            onValueChange={handleToggleLocationSharing}
-            trackColor={{ false: '#CBD5E1', true: COLORS.primaryLight }}
-            thumbColor={isSharing && activeTrip ? COLORS.primary : '#F1F5F9'}
-          />
         </View>
 
-        {/* SETTINGS MENU SECTIONS */}
-        {menuSections.map((section) => (
-          <View key={section.title} style={styles.sectionContainer}>
-            <Text style={styles.sectionLabel}>{section.title}</Text>
-            <View style={styles.menuBox}>
-              {section.items.map((item, idx) => {
-                const Icon = item.icon;
-                return (
-                  <React.Fragment key={item.id}>
-                    <TouchableOpacity
-                      style={styles.menuItem}
-                      onPress={() => {
-                        if (item.action) {
-                          item.action();
-                        } else if (item.route) {
-                          router.push(item.route);
-                        }
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.menuItemLeft}>
-                        <View style={styles.menuIconBox}>
-                          <Icon size={18} color={COLORS.primary} />
-                        </View>
-                        <View>
-                          <Text style={styles.menuItemLabel}>{item.label}</Text>
-                          {item.sublabel && (
-                            <Text style={styles.menuItemSub}>{item.sublabel}</Text>
-                          )}
-                        </View>
-                      </View>
-                      <ChevronRight size={18} color={COLORS.textMuted} />
-                    </TouchableOpacity>
-                    {idx < section.items.length - 1 && (
-                      <View style={styles.menuDivider} />
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </View>
-          </View>
-        ))}
+        {/* 3. APP & PREFERENCES INSET GROUP */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionLabel}>APP & PREFERENCES</Text>
+          <View style={styles.menuBox}>
+            {/* Trip History */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                triggerLight();
+                setShowHistoryModal(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: '#F8FAFC' }]}>
+                  <History size={18} color={COLORS.textPrimary} />
+                </View>
+                <View>
+                  <Text style={styles.menuItemLabel}>Trip History</Text>
+                  <Text style={styles.menuItemSub}>
+                    {tripHistory.length > 0
+                      ? `${tripHistory.length} past crew${tripHistory.length === 1 ? '' : 's'}`
+                      : 'No past trips yet'}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
 
-        {/* ACCOUNT / LOG OUT SECTION */}
+            <View style={styles.menuDivider} />
+
+            {/* Group Radar */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/features/group-radar')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: '#F8FAFC' }]}>
+                  <MapPin size={18} color={COLORS.textPrimary} />
+                </View>
+                <View>
+                  <Text style={styles.menuItemLabel}>Group Radar</Text>
+                  <Text style={styles.menuItemSub}>Relative compass view</Text>
+                </View>
+              </View>
+              <ChevronRight size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            {/* Safety Check-in */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/features/check-in')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIconBox, { backgroundColor: '#F0FDF4' }]}>
+                  <Sparkles size={18} color={COLORS.success} />
+                </View>
+                <View>
+                  <Text style={styles.menuItemLabel}>Safety Check-in</Text>
+                  <Text style={styles.menuItemSub}>
+                    {currentUser?.isSafe ? 'Checked in as Safe' : 'Not checked in'}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 4. ACCOUNT INSET GROUP */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionLabel}>ACCOUNT</Text>
           <View style={styles.menuBox}>
@@ -839,40 +903,87 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.h1,
     fontSize: 24,
   },
-  profileCard: {
-    flexDirection: 'row',
+  profileHero: {
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 18,
-    borderRadius: RADIUS.xl,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 14,
-    ...SHADOWS.sm,
+    paddingVertical: 12,
+    marginBottom: 18,
   },
-  profileInfo: {
-    marginLeft: 16,
-    flex: 1,
+  avatarWrap: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: COLORS.primary,
+    borderWidth: 2,
+    borderColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   userName: {
-    ...TYPOGRAPHY.h2,
-    fontSize: 19,
+    ...TYPOGRAPHY.h1,
+    fontSize: 22,
+    textAlign: 'center',
   },
   userEmail: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: 2,
     fontSize: 13,
+    textAlign: 'center',
+  },
+  heroPillsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  contactPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADIUS.pill,
+  },
+  contactPillWarning: {
+    backgroundColor: '#FEF3C7',
+  },
+  contactPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  contactPillWarningText: {
+    color: '#D97706',
+  },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADIUS.pill,
+  },
+  editProfileBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
   },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.successBg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: RADIUS.pill,
-    alignSelf: 'flex-start',
-    marginTop: 8,
+    marginTop: 10,
   },
   statusDot: {
     width: 6,
@@ -886,59 +997,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 11,
   },
-  toggleCard: {
+  toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.surface,
-    padding: 16,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 20,
-    ...SHADOWS.sm,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
-  toggleLeft: {
+  toggleRowLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-  },
-  iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  toggleTextContainer: {
-    flex: 1,
-  },
-  toggleTitle: {
-    ...TYPOGRAPHY.h3,
-    fontSize: 15,
-  },
-  toggleSub: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginTop: 1,
   },
   sectionContainer: {
     marginBottom: 20,
   },
   sectionLabel: {
     ...TYPOGRAPHY.badge,
-    color: COLORS.textSecondary,
+    color: '#64748B',
     fontSize: 11,
     marginBottom: 8,
-    letterSpacing: 0.5,
+    marginLeft: 4,
+    letterSpacing: 0.8,
   },
   menuBox: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     overflow: 'hidden',
     ...SHADOWS.sm,
   },
@@ -946,7 +1032,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
+    paddingVertical: 13,
     paddingHorizontal: 16,
   },
   menuItemLeft: {
@@ -955,9 +1041,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: COLORS.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
@@ -965,18 +1051,18 @@ const styles = StyleSheet.create({
   },
   menuItemLabel: {
     ...TYPOGRAPHY.h3,
-    fontSize: 14,
+    fontSize: 15,
   },
   menuItemSub: {
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    marginTop: 2,
-    fontSize: 11,
+    marginTop: 1,
+    fontSize: 12,
   },
   menuDivider: {
     height: 1,
     backgroundColor: '#F1F5F9',
-    marginLeft: 62,
+    marginLeft: 64,
   },
   logoutBtn: {
     flexDirection: 'row',

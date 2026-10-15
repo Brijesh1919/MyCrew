@@ -112,7 +112,7 @@ export default function GroupRadarScreen() {
           </View>
         </View>
 
-        {/* NEARBY MEMBERS PROXIMITY LIST */}
+        {/* NEARBY MEMBERS PROXIMITY LIST (INSET GROUPED) */}
         <Text style={styles.sectionLabel}>CREW PROXIMITY</Text>
 
         {nearestList.length === 0 ? (
@@ -125,38 +125,43 @@ export default function GroupRadarScreen() {
             </Text>
           </View>
         ) : (
-          nearestList.map((m) => {
-            const bearing = userLocation && m.coordinates ? calculateBearing(userLocation, m.coordinates) : 0;
-            const rel = getRelativeDirection(userLocation?.heading || 0, bearing);
+          <View style={styles.groupedContainer}>
+            {nearestList.map((m, idx) => {
+              const bearing = userLocation && m.coordinates ? calculateBearing(userLocation, m.coordinates) : 0;
+              const rel = getRelativeDirection(userLocation?.heading || 0, bearing);
 
-            return (
-              <TouchableOpacity
-                key={m.id}
-                style={styles.memberRow}
-                activeOpacity={0.8}
-                onPress={() => handleSelectMember(m)}
-              >
-                <View style={styles.bearingArrowBox}>
-                  <Text style={styles.bearingArrow}>{rel.arrow}</Text>
-                </View>
+              return (
+                <TouchableOpacity
+                  key={m.id}
+                  style={[
+                    styles.memberRow,
+                    idx < nearestList.length - 1 && styles.memberRowBorder,
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => handleSelectMember(m)}
+                >
+                  <View style={styles.bearingArrowBox}>
+                    <Text style={styles.bearingArrow}>{rel.arrow}</Text>
+                  </View>
 
-                <MemberAvatar
-                  uri={m.avatar}
-                  name={m.name}
-                  size="md"
-                  status={m.status}
-                />
+                  <MemberAvatar
+                    uri={m.avatar}
+                    name={m.name}
+                    size="sm"
+                    status={m.status}
+                  />
 
-                <View style={styles.info}>
-                  <Text style={styles.name}>{m.name}</Text>
-                  <Text style={styles.relText}>{rel.label}</Text>
-                </View>
+                  <View style={styles.info}>
+                    <Text style={styles.name}>{m.name}</Text>
+                    <Text style={styles.relText}>{rel.label}</Text>
+                  </View>
 
-                <DistanceBadge meters={m.distanceMeters} />
-                <ChevronRight size={16} color={COLORS.textMuted} style={{ marginLeft: 8 }} />
-              </TouchableOpacity>
-            );
-          })
+                  <DistanceBadge meters={m.distanceMeters} />
+                  <ChevronRight size={16} color={COLORS.textMuted} style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -167,9 +172,9 @@ const styles = StyleSheet.create({
   emptyRadarBox: {
     backgroundColor: COLORS.surface,
     padding: 24,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
@@ -194,9 +199,9 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     marginBottom: 20,
-    ...SHADOWS.md,
+    ...SHADOWS.sm,
   },
   radarCircleGraphic: {
     width: 140,
@@ -241,7 +246,7 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 36,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#F1F5F9',
   },
   statCount: {
     fontSize: 22,
@@ -257,24 +262,32 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     ...TYPOGRAPHY.badge,
-    color: COLORS.textSecondary,
+    color: '#64748B',
     fontSize: 11,
-    letterSpacing: 0.5,
-    marginBottom: 12,
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    marginLeft: 4,
+  },
+  groupedContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
+    ...SHADOWS.sm,
   },
   memberRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: 12,
-    borderRadius: RADIUS.lg,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    ...SHADOWS.sm,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  memberRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   bearingArrowBox: {
-    width: 32,
+    width: 30,
     alignItems: 'center',
     marginRight: 8,
   },

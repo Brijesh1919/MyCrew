@@ -184,33 +184,37 @@ export default function PeopleScreen() {
         </View>
 
         {/* Member List */}
-        <FlatList
-          data={membersWithDistance}
-          keyExtractor={(item, index) => (item.id ? `person_${item.id}` : `person_idx_${index}`)}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <MemberCard
-              member={item}
-              distanceMeters={item.distanceMeters}
-              isCurrentUser={item.id === currentUser?.id || item.id === 'user'}
-              onPress={handleSelectMember}
+        {membersWithDistance.length > 0 ? (
+          <View style={styles.groupedListContainer}>
+            <FlatList
+              data={membersWithDistance}
+              keyExtractor={(item, index) => (item.id ? `person_${item.id}` : `person_idx_${index}`)}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => (
+                <MemberCard
+                  member={item}
+                  distanceMeters={item.distanceMeters}
+                  isCurrentUser={item.id === currentUser?.id || item.id === 'user'}
+                  onPress={handleSelectMember}
+                  variant="row"
+                />
+              )}
             />
-          )}
-          ListEmptyComponent={
-            <EmptyState
-              icon={Users}
-              title="No crew members found"
-              description={
-                searchQuery
-                  ? `No one matched "${searchQuery}" in this filter.`
-                  : 'No members in this category right now.'
-              }
-              actionLabel={searchQuery ? 'Clear Search' : undefined}
-              onAction={() => setSearchQuery('')}
-            />
-          }
-        />
+          </View>
+        ) : (
+          <EmptyState
+            icon={Users}
+            title="No crew members found"
+            description={
+              searchQuery
+                ? `No one matched "${searchQuery}" in this filter.`
+                : 'No members in this category right now.'
+            }
+            actionLabel={searchQuery ? 'Clear Search' : undefined}
+            onAction={() => setSearchQuery('')}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -252,14 +256,11 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
+    backgroundColor: '#F1F5F9',
+    borderRadius: RADIUS.md,
     paddingHorizontal: 12,
-    height: 46,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    height: 44,
     marginBottom: 12,
-    ...SHADOWS.sm,
   },
   searchIcon: {
     marginRight: 8,
@@ -275,16 +276,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   filterTab: {
-    paddingVertical: 7,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: RADIUS.pill,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#F1F5F9',
   },
   filterTabActive: {
     backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
   },
   filterTabTxt: {
     fontSize: 12,
@@ -295,8 +293,18 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: '700',
   },
+  groupedListContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    ...SHADOWS.sm,
+    marginBottom: 16,
+    flex: 1,
+  },
   listContent: {
-    paddingBottom: 24,
+    paddingBottom: 8,
   },
   emptyContainer: {
     flex: 1,

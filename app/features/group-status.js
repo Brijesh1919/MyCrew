@@ -143,93 +143,96 @@ export default function GroupStatusScreen() {
           </View>
         </View>
 
-        {/* EXTREMES / HIGHLIGHTS CARDS */}
-        <Text style={styles.sectionLabel}>CREW GEOMETRY</Text>
+        {/* CREW GEOMETRY (INSET GROUPED SECTION) */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionLabel}>CREW GEOMETRY</Text>
+          <View style={styles.groupedContainer}>
+            {/* Closest to you */}
+            {closest ? (
+              <TouchableOpacity
+                style={styles.groupedRow}
+                onPress={() => handleSelectMember(closest)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.highlightLeft}>
+                  <View style={[styles.iconCircle, { backgroundColor: '#DCFCE7' }]}>
+                    <Users size={18} color={COLORS.success} />
+                  </View>
+                  <View>
+                    <Text style={styles.highlightLabel}>CLOSEST TO YOU</Text>
+                    <Text style={styles.highlightName}>{closest.name}</Text>
+                  </View>
+                </View>
+                <View style={styles.highlightRight}>
+                  <DistanceBadge meters={closest.distanceMeters} isHighlight={true} />
+                  <ChevronRight size={16} color={COLORS.textMuted} />
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.emptyHighlightRow}>
+                <Users size={20} color={COLORS.textMuted} />
+                <Text style={styles.emptyHighlightText}>
+                  {otherMembers.length > 0
+                    ? 'No members sharing live location'
+                    : 'No other members in this trip yet'}
+                </Text>
+              </View>
+            )}
 
-        {/* Closest to you */}
-        {closest ? (
-          <TouchableOpacity
-            style={styles.highlightCard}
-            onPress={() => handleSelectMember(closest)}
-          >
-            <View style={styles.highlightLeft}>
-              <View style={[styles.iconCircle, { backgroundColor: COLORS.successBg }]}>
-                <Users size={18} color={COLORS.success} />
-              </View>
-              <View>
-                <Text style={styles.highlightLabel}>CLOSEST TO YOU</Text>
-                <Text style={styles.highlightName}>{closest.name}</Text>
-              </View>
-            </View>
-            <View style={styles.highlightRight}>
-              <DistanceBadge meters={closest.distanceMeters} isHighlight={true} />
-              <ChevronRight size={16} color={COLORS.textMuted} />
-            </View>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.emptyHighlightCard}>
-            <Users size={22} color={COLORS.textMuted} />
-            <Text style={styles.emptyHighlightText}>
-              {otherMembers.length > 0
-                ? 'No members sharing live location'
-                : 'No other members in this trip yet'}
-            </Text>
-            <Text style={styles.emptyHighlightSub}>
-              {otherMembers.length > 0
-                ? 'Other crew members have location sharing paused'
-                : 'Share your trip code to invite friends!'}
-            </Text>
-          </View>
-        )}
+            {/* Farthest (only shown if there are multiple other sharing members) */}
+            {farthest && (
+              <>
+                <View style={styles.hairlineDivider} />
+                <TouchableOpacity
+                  style={styles.groupedRow}
+                  onPress={() => handleSelectMember(farthest)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.highlightLeft}>
+                    <View style={[styles.iconCircle, { backgroundColor: '#F1F5F9' }]}>
+                      <ArrowUpRight size={18} color={COLORS.textSecondary} />
+                    </View>
+                    <View>
+                      <Text style={styles.highlightLabel}>FARTHEST IN TRIP</Text>
+                      <Text style={styles.highlightName}>{farthest.name}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.highlightRight}>
+                    <DistanceBadge meters={farthest.distanceMeters} />
+                    <ChevronRight size={16} color={COLORS.textMuted} />
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
 
-        {/* Farthest (only shown if there are multiple other sharing members) */}
-        {farthest && (
-          <TouchableOpacity
-            style={styles.highlightCard}
-            onPress={() => handleSelectMember(farthest)}
-          >
-            <View style={styles.highlightLeft}>
-              <View style={[styles.iconCircle, { backgroundColor: '#F1F5F9' }]}>
-                <ArrowUpRight size={18} color={COLORS.textSecondary} />
-              </View>
-              <View>
-                <Text style={styles.highlightLabel}>FARTHEST IN TRIP</Text>
-                <Text style={styles.highlightName}>{farthest.name}</Text>
-              </View>
-            </View>
-            <View style={styles.highlightRight}>
-              <DistanceBadge meters={farthest.distanceMeters} />
-              <ChevronRight size={16} color={COLORS.textMuted} />
-            </View>
-          </TouchableOpacity>
-        )}
+            <View style={styles.hairlineDivider} />
 
-        {/* Dynamic Group Center / Midpoint */}
-        <TouchableOpacity
-          style={styles.highlightCard}
-          activeOpacity={0.8}
-          onPress={() => router.push('/(tabs)/map')}
-        >
-          <View style={styles.highlightLeft}>
-            <View style={[styles.iconCircle, { backgroundColor: COLORS.primaryLight }]}>
-              <Compass size={18} color={COLORS.primary} />
-            </View>
-            <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={styles.highlightLabel}>GROUP CENTER (CREW MIDPOINT)</Text>
-              <Text style={styles.highlightName} numberOfLines={1}>
-                {centerTitle}
-              </Text>
-            </View>
+            {/* Dynamic Group Center / Midpoint */}
+            <TouchableOpacity
+              style={styles.groupedRow}
+              activeOpacity={0.7}
+              onPress={() => router.push('/(tabs)/map')}
+            >
+              <View style={styles.highlightLeft}>
+                <View style={[styles.iconCircle, { backgroundColor: '#EFF6FF' }]}>
+                  <Compass size={18} color={COLORS.primary} />
+                </View>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.highlightLabel}>GROUP CENTER</Text>
+                  <Text style={styles.highlightName} numberOfLines={1}>
+                    {centerTitle}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.highlightRight}>
+                <Text style={styles.clusterCountTag}>
+                  {nearbyActiveCount > 0 ? `${nearbyActiveCount} live` : 'Paused'}
+                </Text>
+                <ChevronRight size={16} color={COLORS.textMuted} style={{ marginLeft: 4 }} />
+              </View>
+            </TouchableOpacity>
           </View>
-          <View style={styles.highlightRight}>
-            <Text style={styles.clusterCountTag}>
-              {nearbyActiveCount > 0
-                ? `${nearbyActiveCount} sharing live`
-                : 'Sharing paused'}
-            </Text>
-            <ChevronRight size={16} color={COLORS.textMuted} style={{ marginLeft: 4 }} />
-          </View>
-        </TouchableOpacity>
+        </View>
 
         {/* SAFETY STATUS CARD */}
         <TouchableOpacity
@@ -282,16 +285,20 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.xl,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     marginBottom: 20,
     ...SHADOWS.sm,
   },
+  sectionContainer: {
+    marginBottom: 20,
+  },
   sectionLabel: {
     ...TYPOGRAPHY.badge,
-    color: COLORS.textSecondary,
+    color: '#64748B',
     fontSize: 11,
-    letterSpacing: 0.5,
-    marginBottom: 12,
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   statusGrid: {
     flexDirection: 'row',
@@ -323,17 +330,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textPrimary,
   },
-  highlightCard: {
+  groupedContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    overflow: 'hidden',
+    ...SHADOWS.sm,
+  },
+  groupedRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.surface,
-    padding: 14,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 10,
-    ...SHADOWS.sm,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  hairlineDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginLeft: 64,
   },
   highlightLeft: {
     flexDirection: 'row',
@@ -341,31 +356,45 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   highlightLabel: {
     ...TYPOGRAPHY.badge,
-    color: COLORS.textSecondary,
+    color: COLORS.textMuted,
     fontSize: 10,
   },
   highlightName: {
     ...TYPOGRAPHY.h3,
     fontSize: 15,
-    marginTop: 2,
+    marginTop: 1,
   },
   highlightRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
   clusterCountTag: {
     ...TYPOGRAPHY.caption,
     color: COLORS.primary,
     fontWeight: '700',
+    fontSize: 12,
+  },
+  emptyHighlightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  emptyHighlightText: {
+    ...TYPOGRAPHY.body,
+    fontSize: 13,
+    color: COLORS.textSecondary,
   },
   safetyCard: {
     flexDirection: 'row',
@@ -373,14 +402,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#F0FDF4',
     padding: 16,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: '#DCFCE7',
     marginTop: 10,
   },
   safetyCardPending: {
     backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A',
+    borderColor: '#FEF3C7',
   },
   safetyCardLeft: {
     flexDirection: 'row',
@@ -402,27 +431,5 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: 2,
-  },
-  emptyHighlightCard: {
-    backgroundColor: COLORS.surface,
-    padding: 18,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    ...SHADOWS.sm,
-  },
-  emptyHighlightText: {
-    ...TYPOGRAPHY.body,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-    marginTop: 8,
-  },
-  emptyHighlightSub: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginTop: 4,
   },
 });

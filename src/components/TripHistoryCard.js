@@ -9,7 +9,7 @@ import { Calendar, Users, ChevronRight, ShieldCheck, Clock } from 'lucide-react-
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
 import { getTripStatusBadge } from '../utils/tripStatus';
 
-export const TripHistoryCard = ({ trip, onPress }) => {
+export const TripHistoryCard = ({ trip, onPress, variant = 'row' }) => {
   if (!trip) return null;
 
   const badge = getTripStatusBadge(trip);
@@ -36,6 +36,56 @@ export const TripHistoryCard = ({ trip, onPress }) => {
   }
 
   const isOrganizer = trip.userRole === 'organizer';
+
+  if (variant === 'row') {
+    return (
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => onPress && onPress(trip)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.leftInfo}>
+          <View style={styles.emojiCircle}>
+            <Text style={styles.emojiText}>{trip.emoji || '🎪'}</Text>
+          </View>
+          <View style={styles.nameBlock}>
+            <View style={styles.rowTitleWrap}>
+              <Text style={styles.tripName} numberOfLines={1}>
+                {trip.name}
+              </Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  badge.status === 'active' && styles.statusActive,
+                  badge.status === 'upcoming' && styles.statusUpcoming,
+                  badge.status === 'expired' && styles.statusExpired,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusText,
+                    badge.status === 'active' && styles.statusActiveText,
+                    badge.status === 'upcoming' && styles.statusUpcomingText,
+                    badge.status === 'expired' && styles.statusExpiredText,
+                  ]}
+                >
+                  {badge.label}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.rowSubWrap}>
+              <Text style={styles.dateText} numberOfLines={1}>
+                {formattedDateRange}
+              </Text>
+              <Text style={styles.rowDot}>•</Text>
+              <Text style={styles.rowRole}>{isOrganizer ? '👑 Host' : '👤 Member'}</Text>
+            </View>
+          </View>
+        </View>
+        <ChevronRight size={18} color={COLORS.textMuted} />
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -103,13 +153,43 @@ export const TripHistoryCard = ({ trip, onPress }) => {
 };
 
 const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surface,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  rowTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rowSubWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+    gap: 6,
+  },
+  rowDot: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+  },
+  rowRole: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.xl,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 12,
+    borderColor: '#F1F5F9',
+    marginBottom: 10,
     ...SHADOWS.sm,
   },
   topRow: {
@@ -125,25 +205,23 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   emojiCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.surfaceSubtle,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   emojiText: {
-    fontSize: 22,
+    fontSize: 20,
   },
   nameBlock: {
     flex: 1,
   },
   tripName: {
     ...TYPOGRAPHY.h3,
-    fontSize: 16,
+    fontSize: 15,
     color: COLORS.textPrimary,
   },
   dateText: {
@@ -154,23 +232,17 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: RADIUS.pill,
   },
   statusActive: {
     backgroundColor: COLORS.successBg,
-    borderColor: '#BBF7D0',
-    borderWidth: 1,
   },
   statusUpcoming: {
     backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
-    borderWidth: 1,
   },
   statusExpired: {
     backgroundColor: '#F1F5F9',
-    borderColor: '#E2E8F0',
-    borderWidth: 1,
   },
   statusText: {
     fontSize: 11,

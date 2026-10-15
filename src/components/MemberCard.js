@@ -15,6 +15,7 @@ export const MemberCard = ({
   onNavigate,
   isHighlighted = false,
   isCurrentUser = false,
+  variant = 'row',
 }) => {
   const { triggerLight } = useHapticFeedback();
 
@@ -30,9 +31,9 @@ export const MemberCard = ({
       activeOpacity={0.78}
       onPress={handlePress}
       style={[
-        styles.card,
-        isHighlighted && styles.cardHighlighted,
-        isCurrentUser && styles.cardCurrentUser,
+        variant === 'card' ? styles.card : styles.row,
+        isHighlighted && (variant === 'card' ? styles.cardHighlighted : styles.rowHighlighted),
+        isCurrentUser && (variant === 'card' ? styles.cardCurrentUser : styles.rowCurrentUser),
       ]}
     >
       <View style={styles.leftRow}>
@@ -97,26 +98,43 @@ export const MemberCard = ({
 };
 
 const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.surface,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    minHeight: 58,
+  },
+  rowHighlighted: {
+    backgroundColor: '#F0F7FF',
+  },
+  rowCurrentUser: {
+    backgroundColor: '#F8FAFC',
+  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.surface,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: RADIUS.lg,
-    marginBottom: 10,
+    marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     ...SHADOWS.sm,
   },
   cardHighlighted: {
-    borderColor: COLORS.primary,
+    borderColor: '#BFDBFE',
     backgroundColor: '#F8FAFF',
   },
   cardCurrentUser: {
-    borderColor: '#93C5FD',
-    backgroundColor: '#F0F7FF',
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
   },
   leftRow: {
     flexDirection: 'row',
