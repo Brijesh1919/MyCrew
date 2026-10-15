@@ -322,6 +322,9 @@ export default function MapScreen() {
               <Compass size={14} color={COLORS.primary} style={{ marginRight: 6 }} />
               <Text style={styles.pinDropCoordText}>
                 Target: {pinCenterCoord ? `${pinCenterCoord.latitude.toFixed(5)}, ${pinCenterCoord.longitude.toFixed(5)}` : 'Locating center...'}
+                {userLocation && pinCenterCoord
+                  ? ` • ${formatDistance(calculateDistanceMeters(userLocation, pinCenterCoord))} from you`
+                  : ''}
               </Text>
             </View>
             <View style={styles.pinDropBtnRow}>
@@ -1032,6 +1035,8 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   pinDropBottomCard: {
+    width: '92%',
+    maxWidth: 440,
     backgroundColor: 'rgba(15, 23, 42, 0.96)',
     borderRadius: RADIUS.xl,
     padding: 16,
