@@ -59,7 +59,7 @@ export default function ForgotPasswordScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/(auth)/login');
+      router.replace('/(auth)');
     }
   };
 
@@ -96,7 +96,7 @@ export default function ForgotPasswordScreen() {
 
               <PrimaryButton
                 title="Return to Log In"
-                onPress={() => router.replace('/(auth)/login')}
+                onPress={() => router.replace('/(auth)')}
                 size="lg"
                 style={{ marginTop: 8 }}
               />

@@ -302,7 +302,7 @@ export default function ProfileScreen() {
   ];
 
   const displayName = currentUser?.name || 'Crew Member';
-  const displayEmail = currentUser?.email || 'Authenticated User';
+  const displayEmail = currentUser?.email || currentUser?.phone || 'Crew Member';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>

@@ -237,9 +237,13 @@ export const useTripStore = create((set, get) => ({
   createTrip: async (tripData, userId) => {
     set({ isLoading: true });
 
+    const { useUserStore } = require('./useUserStore');
+    const userPhone = tripData.phone || useUserStore.getState().currentUser?.phone || null;
+
     const res = await tripService.createTrip({
       ...tripData,
       ownerId: userId,
+      ownerPhone: userPhone,
     });
 
     if (res.success) {
@@ -259,6 +263,7 @@ export const useTripStore = create((set, get) => ({
           id: userId,
           name: tripData.organizerName || 'You (Host)',
           role: 'organizer',
+          phone: userPhone,
           status: 'live',
           lastSeenSecondsAgo: 0,
           isSafe: true,
@@ -287,11 +292,15 @@ export const useTripStore = create((set, get) => ({
   joinTrip: async (code, user) => {
     set({ isLoading: true });
 
+    const { useUserStore } = require('./useUserStore');
+    const userPhone = user?.phone || useUserStore.getState().currentUser?.phone || null;
+
     const res = await tripService.joinTrip({
       code,
       userId: user?.id,
       userName: user?.name,
       avatarUrl: user?.avatar,
+      phone: userPhone,
     });
 
     if (res.success) {

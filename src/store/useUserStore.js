@@ -25,19 +25,19 @@ export const useUserStore = create((set, get) => ({
 
       if (session && user) {
         const profile = await authService.getProfile(user.id);
+        const isSyntheticEmail = user.email && user.email.includes('@mycrew.internal');
         const displayName =
           profile?.full_name ||
           user.user_metadata?.full_name ||
           user.user_metadata?.name ||
-          user.email?.split('@')[0] ||
-          'Crew Member';
+          (!isSyntheticEmail && user.email ? user.email.split('@')[0] : 'Crew Member');
 
         set({
           session,
           profile,
           currentUser: {
             id: user.id,
-            email: user.email,
+            email: isSyntheticEmail ? null : user.email,
             name: displayName,
             avatar: profile?.avatar_url || user.user_metadata?.avatar_url || null,
             phone: profile?.phone || user.user_metadata?.phone || null,
@@ -72,19 +72,19 @@ export const useUserStore = create((set, get) => ({
           crashlytics.setUserId(newSession.user.id);
           analytics.logLogin();
           const profile = await authService.getProfile(newSession.user.id);
+          const isSyntheticEmail = newSession.user.email && newSession.user.email.includes('@mycrew.internal');
           const displayName =
             profile?.full_name ||
             newSession.user.user_metadata?.full_name ||
             newSession.user.user_metadata?.name ||
-            newSession.user.email?.split('@')[0] ||
-            'Crew Member';
+            (!isSyntheticEmail && newSession.user.email ? newSession.user.email.split('@')[0] : 'Crew Member');
 
           set({
             session: newSession,
             profile,
             currentUser: {
               id: newSession.user.id,
-              email: newSession.user.email,
+              email: isSyntheticEmail ? null : newSession.user.email,
               name: displayName,
               avatar: profile?.avatar_url || newSession.user.user_metadata?.avatar_url || null,
               phone: profile?.phone || newSession.user.user_metadata?.phone || null,
@@ -127,12 +127,12 @@ export const useUserStore = create((set, get) => ({
    * Set user session after successful signup or login
    */
   setSession: (session, user, profile) => {
+    const isSyntheticEmail = user?.email && user.email.includes('@mycrew.internal');
     const displayName =
       profile?.full_name ||
       user?.user_metadata?.full_name ||
       user?.user_metadata?.name ||
-      user?.email?.split('@')[0] ||
-      'Crew Member';
+      (!isSyntheticEmail && user?.email ? user.email.split('@')[0] : 'Crew Member');
 
     set({
       session,
@@ -140,7 +140,7 @@ export const useUserStore = create((set, get) => ({
       currentUser: user
         ? {
             id: user.id,
-            email: user.email,
+            email: isSyntheticEmail ? null : user.email,
             name: displayName,
             avatar: profile?.avatar_url || user.user_metadata?.avatar_url || null,
             phone: profile?.phone || user.user_metadata?.phone || null,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,143 +7,343 @@ import {
   StatusBar,
   ScrollView,
   Dimensions,
+  TextInput,
+  TouchableOpacity,
+  Modal,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Users, Shield, ArrowRight, Sparkles } from 'lucide-react-native';
+import { Shield, ArrowRight, Sparkles, Phone, ChevronDown, Check, X, Search } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
-import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { GoogleButton } from '../../src/components/GoogleButton';
+import { authService } from '../../src/services/authService';
+import { useUserStore } from '../../src/store/useUserStore';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.38);
+const HERO_HEIGHT = Math.round(SCREEN_HEIGHT * 0.36);
+
+const COUNTRY_CODES = [
+  { flag: '🇮🇳', name: 'India', code: '+91' },
+  { flag: '🇺🇸', name: 'United States', code: '+1' },
+  { flag: '🇬🇧', name: 'United Kingdom', code: '+44' },
+  { flag: '🇦🇪', name: 'United Arab Emirates', code: '+971' },
+  { flag: '🇦🇺', name: 'Australia', code: '+61' },
+  { flag: '🇨🇦', name: 'Canada', code: '+1' },
+  { flag: '🇸🇬', name: 'Singapore', code: '+65' },
+  { flag: '🇩🇪', name: 'Germany', code: '+49' },
+  { flag: '🇫🇷', name: 'France', code: '+33' },
+  { flag: '🇯🇵', name: 'Japan', code: '+81' },
+  { flag: '🇳🇵', name: 'Nepal', code: '+977' },
+  { flag: '🇧🇩', name: 'Bangladesh', code: '+880' },
+  { flag: '🇵🇰', name: 'Pakistan', code: '+92' },
+  { flag: '🇱🇰', name: 'Sri Lanka', code: '+94' },
+];
 
 export default function AuthLandingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { triggerLight } = useHapticFeedback();
+  const { triggerLight, triggerWarning } = useHapticFeedback();
 
-  const handleCreateAccount = () => {
+  // Phone input states
+  const [phone, setPhone] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]); // Default +91
+  const [phoneError, setPhoneError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Country Picker Modal
+  const [showCountryModal, setShowCountryModal] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
+
+  const handlePhoneContinue = async () => {
+    const rawDigits = phone.replace(/\D/g, '');
+    if (!phone.trim()) {
+      setPhoneError('Please enter your mobile number');
+      triggerWarning();
+      return;
+    }
+    if (rawDigits.length < 8) {
+      setPhoneError('Please enter a valid mobile number with at least 8 digits');
+      triggerWarning();
+      return;
+    }
+
     triggerLight();
-    router.push('/(auth)/signup');
+    setLoading(true);
+    setPhoneError('');
+
+    let formattedNumber = phone.trim();
+    if (!formattedNumber.startsWith('+')) {
+      let trimmed = rawDigits;
+      if (selectedCountry.code === '+91' && trimmed.startsWith('0')) {
+        trimmed = trimmed.slice(1);
+      }
+      formattedNumber = `${selectedCountry.code} ${trimmed}`;
+    }
+
+    // Check if user already exists to pre-fill their name
+    const checkResult = await authService.checkExistingPhone({
+      phone: formattedNumber,
+      countryCode: selectedCountry.code,
+    });
+
+    setLoading(false);
+
+    // Proceed to Step 2: Name Entry Screen
+    router.push({
+      pathname: '/(auth)/name',
+      params: {
+        phone: formattedNumber,
+        countryCode: selectedCountry.code,
+        initialName: checkResult.name || '',
+      },
+    });
   };
 
-  const handleLogIn = () => {
-    triggerLight();
-    router.push('/(auth)/login');
+  const handleGoogleSuccess = () => {
+    // When Google sign-in succeeds, proceed to name confirmation
+    const user = useUserStore.getState().currentUser;
+    const profile = useUserStore.getState().profile;
+    const existingName =
+      profile?.full_name ||
+      user?.user_metadata?.full_name ||
+      user?.user_metadata?.name ||
+      user?.name ||
+      '';
+
+    router.push({
+      pathname: '/(auth)/name',
+      params: {
+        googleAuth: 'true',
+        initialName: existingName,
+        phone: profile?.phone || '',
+      },
+    });
   };
+
+  const filteredCountries = COUNTRY_CODES.filter(
+    (c) =>
+      c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+      c.code.includes(countrySearch)
+  );
 
   return (
     <View style={styles.rootContainer}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        bounces={false}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {/* Top Hero Photography with Gradient Scrim */}
-        <View style={styles.heroSection}>
-          <Image
-            source={require('../../assets/auth_hero.jpg')}
-            style={styles.heroImage}
-            resizeMode="cover"
-          />
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Top Hero Photography with Gradient Scrim */}
+          <View style={styles.heroSection}>
+            <Image
+              source={require('../../assets/auth_hero.jpg')}
+              style={styles.heroImage}
+              resizeMode="cover"
+            />
 
-          {/* Top subtle scrim for status bar clarity */}
-          <LinearGradient
-            colors={['rgba(15, 23, 42, 0.65)', 'transparent']}
-            style={styles.heroTopScrim}
-            pointerEvents="none"
-          />
+            {/* Top subtle scrim for status bar clarity */}
+            <LinearGradient
+              colors={['rgba(15, 23, 42, 0.65)', 'transparent']}
+              style={styles.heroTopScrim}
+              pointerEvents="none"
+            />
 
-          {/* Bottom gradient fade into the card */}
-          <LinearGradient
-            colors={['transparent', 'rgba(15, 23, 42, 0.35)', 'rgba(15, 23, 42, 0.75)']}
-            style={styles.heroBottomScrim}
-            pointerEvents="none"
-          />
+            {/* Bottom gradient fade into the card */}
+            <LinearGradient
+              colors={['transparent', 'rgba(15, 23, 42, 0.35)', 'rgba(15, 23, 42, 0.75)']}
+              style={styles.heroBottomScrim}
+              pointerEvents="none"
+            />
 
-          {/* Floating Brand Emblem & Badge */}
-          <View
-            style={[
-              styles.heroBadgeSafe,
-              { paddingTop: Math.max(insets.top, 16) },
-            ]}
-          >
-            <View style={styles.brandHeroBadge}>
-              <Image
-                source={require('../../assets/icon.png')}
-                style={{ width: 22, height: 22, borderRadius: 6, marginRight: 8 }}
+            {/* Floating Brand Emblem & Badge */}
+            <View
+              style={[
+                styles.heroBadgeSafe,
+                { paddingTop: Math.max(insets.top, 16) },
+              ]}
+            >
+              <View style={styles.brandHeroBadge}>
+                <Image
+                  source={require('../../assets/icon.png')}
+                  style={{ width: 22, height: 22, borderRadius: 6, marginRight: 8 }}
+                />
+                <Text style={styles.brandHeroText}>MYCREW</Text>
+              </View>
+
+              <View style={styles.taglineChip}>
+                <Sparkles size={11} color="#38BDF8" style={{ marginRight: 5 }} />
+                <Text style={styles.taglineChipText}>GROUP LIVE COORDINATION</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Elevated Bottom Action Card */}
+          <View style={styles.cardSection}>
+            {/* Card Header Typography */}
+            <View style={styles.titleSection}>
+              <Text style={styles.headline}>Welcome to MyCrew</Text>
+              <Text style={styles.subheadline}>
+                Find your people. Stay together. Leave the trip behind when it's over.
+              </Text>
+            </View>
+
+            {/* Option 1: Continue with Google */}
+            <GoogleButton
+              onSuccess={handleGoogleSuccess}
+              style={styles.googleBtn}
+            />
+
+            {/* Clean OR Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or continue with mobile number</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Option 2: Enter Phone Number */}
+            <View style={styles.phoneSection}>
+              <View style={styles.labelRow}>
+                <Text style={styles.phoneLabel}>Mobile Number</Text>
+                <Text style={styles.phoneLabelHint}>For SOS calls & crew safety</Text>
+              </View>
+
+              <View style={styles.phoneInputRow}>
+                {/* Country Code Pill Button */}
+                <TouchableOpacity
+                  style={styles.countryBtn}
+                  onPress={() => {
+                    triggerLight();
+                    setCountrySearch('');
+                    setShowCountryModal(true);
+                  }}
+                  activeOpacity={0.75}
+                  accessibilityLabel="Select country code"
+                >
+                  <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
+                  <Text style={styles.countryCodeText}>{selectedCountry.code}</Text>
+                  <ChevronDown size={14} color={COLORS.textSecondary} />
+                </TouchableOpacity>
+
+                {/* Number Input */}
+                <View style={[styles.phoneInputBox, phoneError && styles.inputError]}>
+                  <Phone size={16} color={COLORS.textSecondary} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="98765 43210"
+                    placeholderTextColor={COLORS.textMuted}
+                    value={phone}
+                    onChangeText={(val) => {
+                      setPhone(val);
+                      if (phoneError) setPhoneError('');
+                    }}
+                    keyboardType="phone-pad"
+                    maxLength={15}
+                  />
+                </View>
+              </View>
+              {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
+
+              {/* Continue Button */}
+              <PrimaryButton
+                title="Continue"
+                onPress={handlePhoneContinue}
+                loading={loading}
+                icon={ArrowRight}
+                size="lg"
+                style={styles.continueBtn}
               />
-              <Text style={styles.brandHeroText}>MYCREW</Text>
             </View>
 
-            <View style={styles.taglineChip}>
-              <Sparkles size={11} color="#38BDF8" style={{ marginRight: 5 }} />
-              <Text style={styles.taglineChipText}>GROUP LIVE COORDINATION</Text>
+            {/* Privacy Guarantee Banner */}
+            <View style={styles.privacyBanner}>
+              <Shield size={14} color="#0284C7" style={{ marginRight: 7 }} />
+              <Text style={styles.privacyText}>
+                Temporary by design. Your crew trip ends when the trip ends.
+              </Text>
             </View>
-          </View>
-        </View>
 
-        {/* Elevated Bottom Action Card */}
-        <View style={styles.cardSection}>
-          {/* Card Header Typography */}
-          <View style={styles.titleSection}>
-            <Text style={styles.headline}>Welcome to MyCrew</Text>
-            <Text style={styles.subheadline}>
-              Find your people. Stay together. Leave the trip behind when it's over.
+            {/* Legal / Terms */}
+            <Text style={styles.legalText}>
+              By continuing, you agree to MyCrew's Terms & Privacy Policy.
             </Text>
           </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-          {/* Continue with Google */}
-          <GoogleButton
-            onSuccess={() => router.replace('/(tabs)/home')}
-            style={styles.googleBtn}
-          />
+      {/* Country Code Picker Modal */}
+      <Modal
+        visible={showCountryModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowCountryModal(false)}
+      >
+        <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Country Code</Text>
+              <TouchableOpacity
+                onPress={() => setShowCountryModal(false)}
+                style={styles.modalCloseBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={20} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
 
-          {/* Divider */}
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or continue with email</Text>
-            <View style={styles.dividerLine} />
+            {/* Search Input */}
+            <View style={styles.searchBox}>
+              <Search size={16} color={COLORS.textSecondary} style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search country or code..."
+                placeholderTextColor={COLORS.textMuted}
+                value={countrySearch}
+                onChangeText={setCountrySearch}
+                autoCorrect={false}
+              />
+            </View>
+
+            {/* Country List */}
+            <FlatList
+              data={filteredCountries}
+              keyExtractor={(item) => `${item.name}-${item.code}`}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => {
+                const isSelected = selectedCountry.name === item.name && selectedCountry.code === item.code;
+                return (
+                  <TouchableOpacity
+                    style={[styles.countryItem, isSelected && styles.countryItemSelected]}
+                    onPress={() => {
+                      triggerLight();
+                      setSelectedCountry(item);
+                      setShowCountryModal(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.itemFlag}>{item.flag}</Text>
+                    <Text style={styles.itemName}>{item.name}</Text>
+                    <Text style={styles.itemCode}>{item.code}</Text>
+                    {isSelected && <Check size={18} color={COLORS.primary} style={{ marginLeft: 8 }} />}
+                  </TouchableOpacity>
+                );
+              }}
+            />
           </View>
-
-          {/* Primary CTA: Create Account */}
-          <PrimaryButton
-            title="Create Account"
-            onPress={handleCreateAccount}
-            icon={ArrowRight}
-            size="lg"
-            style={styles.createBtn}
-          />
-
-          {/* Secondary CTA: Log In */}
-          <SecondaryButton
-            title="Log In"
-            onPress={handleLogIn}
-            size="lg"
-            variant="outline"
-            style={styles.loginBtn}
-          />
-
-          {/* Privacy Guarantee Banner */}
-          <View style={styles.privacyBanner}>
-            <Shield size={14} color="#0284C7" style={{ marginRight: 7 }} />
-            <Text style={styles.privacyText}>
-              Temporary by design. Your crew trip ends when the trip ends.
-            </Text>
-          </View>
-
-          {/* Legal / Terms */}
-          <Text style={styles.legalText}>
-            By continuing, you agree to MyCrew's Terms & Privacy Policy.
-          </Text>
-        </View>
-      </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
@@ -158,7 +358,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
   },
   heroSection: {
-    height: Math.max(HERO_HEIGHT, 260),
+    height: Math.max(HERO_HEIGHT, 250),
     width: '100%',
     position: 'relative',
     backgroundColor: '#0F172A',
@@ -208,15 +408,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
   },
-  brandIconCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(56, 189, 248, 0.18)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
   brandHeroText: {
     ...TYPOGRAPHY.badge,
     fontSize: 12,
@@ -249,12 +440,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     marginTop: -20,
     paddingHorizontal: 24,
-    paddingTop: 28,
+    paddingTop: 26,
     paddingBottom: 24,
     ...SHADOWS.lg,
   },
   titleSection: {
-    marginBottom: 20,
+    marginBottom: 18,
     alignItems: 'center',
   },
   headline: {
@@ -275,12 +466,12 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   googleBtn: {
-    marginBottom: 14,
+    marginBottom: 6,
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 12,
+    marginVertical: 14,
   },
   dividerLine: {
     flex: 1,
@@ -293,14 +484,86 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontWeight: '600',
   },
-  createBtn: {
+  phoneSection: {
+    marginBottom: 10,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  phoneLabel: {
+    ...TYPOGRAPHY.badge,
+    fontSize: 12,
+    color: COLORS.textPrimary,
+    fontWeight: '700',
+    textTransform: 'none',
+  },
+  phoneLabelHint: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    fontWeight: '500',
+  },
+  phoneInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  countryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: RADIUS.md,
+    height: 48,
+    paddingHorizontal: 10,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  countryFlag: {
+    fontSize: 18,
+  },
+  countryCodeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  phoneInputBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    paddingHorizontal: 12,
+    height: 48,
+  },
+  inputError: {
+    borderColor: COLORS.danger,
+    backgroundColor: '#FEF2F2',
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 15,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  errorText: {
+    fontSize: 12,
+    color: COLORS.danger,
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  continueBtn: {
     backgroundColor: '#2563EB',
     borderRadius: RADIUS.xl,
-    marginBottom: 12,
-  },
-  loginBtn: {
-    borderRadius: RADIUS.xl,
-    borderColor: '#CBD5E1',
+    marginTop: 6,
   },
   privacyBanner: {
     flexDirection: 'row',
@@ -310,7 +573,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    marginTop: 18,
+    marginTop: 14,
     borderWidth: 1,
     borderColor: '#BAE6FD',
   },
@@ -326,9 +589,77 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94A3B8',
     textAlign: 'center',
-    marginTop: 14,
+    marginTop: 12,
     paddingHorizontal: 16,
     lineHeight: 16,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: RADIUS.xxl,
+    borderTopRightRadius: RADIUS.xxl,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 28,
+    maxHeight: '75%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  modalTitle: {
+    ...TYPOGRAPHY.h3,
+    fontSize: 17,
+    color: COLORS.textPrimary,
+  },
+  modalCloseBtn: {
+    padding: 4,
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 12,
+    height: 42,
+    marginVertical: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: COLORS.textPrimary,
+  },
+  countryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: RADIUS.md,
+  },
+  countryItemSelected: {
+    backgroundColor: '#EFF6FF',
+  },
+  itemFlag: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  itemName: {
+    flex: 1,
+    fontSize: 15,
+    color: COLORS.textPrimary,
+    fontWeight: '500',
+  },
+  itemCode: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
 });
-

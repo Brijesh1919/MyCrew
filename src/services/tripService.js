@@ -145,6 +145,7 @@ class TripService {
     visibility = 'everyone',
     organizerName = 'You',
     ownerId,
+    ownerPhone,
     centerCoordinate,
     locationName,
   }) {
@@ -197,6 +198,7 @@ class TripService {
           user_id: ownerId,
           role: 'organizer',
           user_name: organizerName || 'You (Host)',
+          phone: ownerPhone || null,
         });
 
       if (memberError) {
@@ -311,7 +313,7 @@ class TripService {
   /**
    * Participant joins a trip by code and records membership in Supabase
    */
-  async joinTrip({ code, userId, userName, avatarUrl }) {
+  async joinTrip({ code, userId, userName, avatarUrl, phone }) {
     const res = await this.findTripByCode(code);
     if (!res.success) {
       return res;
@@ -351,6 +353,7 @@ class TripService {
             role: 'participant',
             user_name: userName || 'You',
             avatar_url: avatarUrl || null,
+            phone: phone || null,
             left_at: null, // Clear left_at if rejoining
           },
           { onConflict: 'trip_id, user_id' }

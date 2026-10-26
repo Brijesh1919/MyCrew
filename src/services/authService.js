@@ -69,6 +69,160 @@ class AuthService {
   }
 
   /**
+   * Seamless Name & Mobile Number Authentication (Option 1)
+   * Frictionless sign in / sign up with zero SMS latency or passwords.
+   */
+  async signInWithPhone({ fullName, phone, countryCode = '+91' }) {
+    try {
+      const rawPhone = String(phone || '').trim();
+      let formattedNumber = rawPhone;
+
+      // Handle country code
+      if (!formattedNumber.startsWith('+')) {
+        let trimmedDigits = rawPhone.replace(/\D/g, '');
+        if (countryCode === '+91' && trimmedDigits.startsWith('0')) {
+          trimmedDigits = trimmedDigits.slice(1);
+        }
+        formattedNumber = `${countryCode} ${trimmedDigits}`;
+      }
+
+      const digits = formattedNumber.replace(/\D/g, '');
+      if (digits.length < 8) {
+        return {
+          success: false,
+          error: 'Please enter a valid mobile number with at least 8 digits.',
+        };
+      }
+
+      const cleanName = String(fullName || '').trim();
+      const syntheticEmail = `phone_${digits}@mycrew.internal`;
+      const deterministicPassword = `mycrew_auth_${digits}_secure_salt_crew2026`;
+
+      // 1. Attempt Sign-In First (Existing User)
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: syntheticEmail,
+        password: deterministicPassword,
+      });
+
+      if (!signInError && signInData?.user) {
+        // User exists! Sync profile if name or phone changed
+        const profileUpdates = { phone: formattedNumber };
+        if (cleanName) {
+          profileUpdates.full_name = cleanName;
+        }
+        await this.upsertProfile(signInData.user.id, profileUpdates);
+        if (cleanName) {
+          try {
+            await supabase.auth.updateUser({
+              data: { full_name: cleanName, phone: formattedNumber },
+            });
+          } catch (_) {}
+        }
+        const profile = await this.getProfile(signInData.user.id);
+
+        return {
+          success: true,
+          user: signInData.user,
+          session: signInData.session,
+          profile: profile || {
+            id: signInData.user.id,
+            full_name: cleanName || 'Crew Member',
+            phone: formattedNumber,
+          },
+          isNewUser: false,
+        };
+      }
+
+      // Check if signInError is a network or rate limit failure (not credentials)
+      if (
+        signInError &&
+        !/invalid login credentials/i.test(signInError.message) &&
+        !/invalid grant/i.test(signInError.message) &&
+        !/user not found/i.test(signInError.message)
+      ) {
+        return { success: false, error: translateAuthError(signInError) };
+      }
+
+      // 2. New User -> Sign Up
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: syntheticEmail,
+        password: deterministicPassword,
+        options: {
+          data: {
+            full_name: cleanName || 'Crew Member',
+            phone: formattedNumber,
+          },
+        },
+      });
+
+      if (signUpError) {
+        return { success: false, error: translateAuthError(signUpError) };
+      }
+
+      const user = signUpData?.user;
+      if (user) {
+        await this.upsertProfile(user.id, {
+          full_name: cleanName || 'Crew Member',
+          phone: formattedNumber,
+        });
+
+        const profile = await this.getProfile(user.id);
+
+        return {
+          success: true,
+          user,
+          session: signUpData.session,
+          profile: profile || {
+            id: user.id,
+            full_name: cleanName || 'Crew Member',
+            phone: formattedNumber,
+          },
+          isNewUser: true,
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Could not create session. Please check your connection and try again.',
+      };
+    } catch (err) {
+      console.warn('AuthService.signInWithPhone error:', err);
+      return { success: false, error: translateAuthError(err) };
+    }
+  }
+
+  /**
+   * Check if a phone number already has a registered profile in Supabase
+   */
+  async checkExistingPhone({ phone, countryCode = '+91' }) {
+    try {
+      const rawPhone = String(phone || '').trim();
+      let formattedNumber = rawPhone;
+      if (!formattedNumber.startsWith('+')) {
+        let trimmedDigits = rawPhone.replace(/\D/g, '');
+        if (countryCode === '+91' && trimmedDigits.startsWith('0')) {
+          trimmedDigits = trimmedDigits.slice(1);
+        }
+        formattedNumber = `${countryCode} ${trimmedDigits}`;
+      }
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, phone')
+        .eq('phone', formattedNumber)
+        .maybeSingle();
+
+      return {
+        exists: !!data,
+        name: data?.full_name || null,
+        formattedPhone: formattedNumber,
+      };
+    } catch (e) {
+      return { exists: false, name: null, formattedPhone: phone };
+    }
+  }
+
+  /**
    * Email & Password Sign Up
    */
   async signUp({ email, password, fullName }) {
