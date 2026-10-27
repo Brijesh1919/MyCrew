@@ -25,8 +25,8 @@ import {
   AlertTriangle,
 } from 'lucide-react-native';
 import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
+import { useThemeStore } from '../../src/store/useThemeStore';
 import { AppHeader } from '../../src/components/AppHeader';
-import { MapView } from '../../src/components/MapView';
 import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useCrewStore } from '../../src/store/useCrewStore';
@@ -50,6 +50,10 @@ export default function ChatScreen({ isTab = false }) {
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { triggerLight, triggerSuccess } = useHapticFeedback();
+
+  // Dynamic Theme
+  const isDark = useThemeStore((state) => state.isDark);
+  const colors = useThemeStore((state) => state.colors);
 
   // Stores
   const activeTrip = useTripStore((state) => state.activeTrip);
@@ -186,7 +190,7 @@ export default function ChatScreen({ isTab = false }) {
   }, [members, currentUser?.id, searchQuery]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       {/* 1. APP HEADER */}
       <AppHeader
         title={activeChannel === 'group' ? 'CREW CHAT' : (activeTargetMember?.name || 'MEMBER CHAT').toUpperCase()}
@@ -203,7 +207,7 @@ export default function ChatScreen({ isTab = false }) {
         rightComponent={
           activeTargetMember && !targetDistanceInfo?.isPaused ? (
             <TouchableOpacity
-              style={styles.headerWalkBtn}
+              style={[styles.headerWalkBtn, { backgroundColor: colors.surfaceSubtle }]}
               activeOpacity={0.8}
               onPress={() => {
                 router.push({
@@ -212,66 +216,76 @@ export default function ChatScreen({ isTab = false }) {
                 });
               }}
             >
-              <Navigation size={15} color={COLORS.primary} style={{ marginRight: 4 }} />
-              <Text style={styles.headerWalkText}>Navigate</Text>
+              <Navigation size={14} color={colors.primary} style={{ marginRight: 4 }} />
+              <Text style={[styles.headerWalkText, { color: colors.primary }]}>Navigate</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={styles.headerMapBtn}
+              style={[styles.headerMapBtn, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}
               activeOpacity={0.8}
-              onPress={() => router.push('/(tabs)/map')}
+              onPress={() => router.push('/(tabs)/home')}
             >
-              <Compass size={16} color={COLORS.textSecondary} />
+              <Compass size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           )
         }
       />
 
       <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={[styles.keyboardContainer, { backgroundColor: colors.background }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : (isTab ? 68 : 20)}
       >
-        {/* 2. TOP LIVE MINI-MAP */}
-        <View style={styles.mapContainer}>
-          <MapView
-            userLocation={userLocation}
-            members={activeChannel === 'group' ? members : activeTargetMember ? [activeTargetMember] : []}
-            center={mapCenter}
-            showRoute={Boolean(activeTargetMember && !targetDistanceInfo?.isPaused && activeTargetMember.coordinates)}
-            routeDestination={activeTargetMember?.coordinates}
-            height={220}
-            interactive={true}
-          />
+        {/* Contextual Member Distance & Status Strip (Only shown when chatting 1:1) */}
+        {activeTargetMember && (
+          <View
+            style={[
+              styles.locationStrip,
+              {
+                backgroundColor: isDark ? 'rgba(30, 41, 59, 0.7)' : '#F1F5F9',
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View style={styles.locationStripLeft}>
+              <View
+                style={[
+                  styles.locationStripDot,
+                  {
+                    backgroundColor: targetDistanceInfo?.isPaused ? colors.warning : colors.success,
+                  },
+                ]}
+              />
+              <Text
+                style={[styles.locationStripText, { color: colors.textPrimary }]}
+                numberOfLines={1}
+              >
+                {targetDistanceInfo?.isPaused
+                  ? `${activeTargetMember.name} has paused location`
+                  : `${activeTargetMember.name} • ${targetDistanceInfo?.text}`}
+              </Text>
+            </View>
 
-          {/* Top Overlay Badge on Map */}
-          <View style={styles.mapOverlayChip}>
-            {activeChannel === 'group' ? (
-              <View style={styles.mapStatusPill}>
-                <View style={styles.pulseDot} />
-                <Text style={styles.mapStatusText}>
-                  {members.filter((m) => m.status === 'active' || m.status === 'online').length} Crew Online
-                </Text>
-              </View>
-            ) : targetDistanceInfo?.isPaused ? (
-              <View style={[styles.mapStatusPill, styles.mapStatusPillPaused]}>
-                <AlertTriangle size={12} color="#D97706" style={{ marginRight: 4 }} />
-                <Text style={[styles.mapStatusText, { color: '#B45309' }]}>
-                  {activeTargetMember?.name || 'Member'} has paused location
-                </Text>
-              </View>
-            ) : (
-              <View style={[styles.mapStatusPill, styles.mapStatusPillConnected]}>
-                <Navigation size={12} color={COLORS.primary} style={{ marginRight: 4 }} />
-                <Text style={[styles.mapStatusText, { color: COLORS.primary }]}>
-                  Connected to {activeTargetMember?.name} • {targetDistanceInfo?.text}
-                </Text>
-              </View>
+            {!targetDistanceInfo?.isPaused && activeTargetMember.coordinates && (
+              <TouchableOpacity
+                style={[styles.locationStripNavBtn, { backgroundColor: colors.primary }]}
+                activeOpacity={0.8}
+                onPress={() => {
+                  router.push({
+                    pathname: '/features/navigation',
+                    params: { memberId: activeTargetMember.id },
+                  });
+                }}
+              >
+                <Navigation size={12} color="#FFFFFF" style={{ marginRight: 4 }} />
+                <Text style={styles.locationStripNavText}>Walk Here</Text>
+              </TouchableOpacity>
             )}
           </View>
-        </View>
+        )}
 
-        {/* 3. HORIZONTAL CHANNEL / PERSON SELECTOR CHIPS */}
-        <View style={styles.channelsBar}>
+        {/* 2. HORIZONTAL CHANNEL / PERSON SELECTOR CHIPS */}
+        <View style={[styles.channelsBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -306,7 +320,9 @@ export default function ChatScreen({ isTab = false }) {
                 <TouchableOpacity
                   style={[
                     styles.channelChip,
-                    isSelected ? styles.channelChipActive : styles.channelChipInactive,
+                    isSelected
+                      ? [styles.channelChipActive, { backgroundColor: colors.primary }]
+                      : [styles.channelChipInactive, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border, borderWidth: 1 }],
                   ]}
                   activeOpacity={0.75}
                   onPress={() => {
@@ -318,12 +334,12 @@ export default function ChatScreen({ isTab = false }) {
                     <View
                       style={[
                         styles.chipIconBubble,
-                        isSelected && styles.chipIconBubbleActive,
+                        isSelected ? styles.chipIconBubbleActive : { backgroundColor: colors.surface },
                       ]}
                     >
                       <Users
                         size={13}
-                        color={isSelected ? COLORS.primary : COLORS.textSecondary}
+                        color={isSelected ? colors.primary : colors.textSecondary}
                       />
                     </View>
                   ) : (
@@ -339,6 +355,7 @@ export default function ChatScreen({ isTab = false }) {
                   <Text
                     style={[
                       styles.channelChipText,
+                      { color: isSelected ? '#FFFFFF' : colors.textPrimary },
                       isSelected && styles.channelChipTextActive,
                     ]}
                     numberOfLines={1}
@@ -350,13 +367,13 @@ export default function ChatScreen({ isTab = false }) {
                     <View
                       style={[
                         styles.chipDistanceBadge,
-                        isSelected && styles.chipDistanceBadgeActive,
+                        isSelected ? styles.chipDistanceBadgeActive : { backgroundColor: colors.border },
                       ]}
                     >
                       <Text
                         style={[
                           styles.chipDistanceText,
-                          isSelected && styles.chipDistanceTextActive,
+                          { color: isSelected ? '#FFFFFF' : colors.textSecondary },
                         ]}
                       >
                         {badgeText}
@@ -368,7 +385,7 @@ export default function ChatScreen({ isTab = false }) {
                     <View
                       style={[
                         styles.chipUnreadBadge,
-                        isSelected && styles.chipUnreadBadgeActive,
+                        { backgroundColor: colors.danger, borderColor: colors.surface },
                       ]}
                     >
                       <Text style={styles.chipUnreadText}>{unread}</Text>
@@ -379,10 +396,10 @@ export default function ChatScreen({ isTab = false }) {
             }}
           />
 
-          {/* PINNED SEARCH BUTTON - Always visible on right, never pushed off */}
-          <View style={styles.searchPinnedContainer}>
+          {/* PINNED SEARCH BUTTON */}
+          <View style={[styles.searchPinnedContainer, { backgroundColor: colors.surface, borderLeftColor: colors.border }]}>
             <TouchableOpacity
-              style={styles.searchPinnedBtn}
+              style={[styles.searchPinnedBtn, { backgroundColor: colors.surfaceSubtle }]}
               activeOpacity={0.75}
               onPress={() => {
                 triggerLight();
@@ -390,24 +407,24 @@ export default function ChatScreen({ isTab = false }) {
               }}
               accessibilityLabel="Search crew members"
             >
-              <Search size={16} color={COLORS.textPrimary} />
+              <Search size={16} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 4. CHAT MESSAGE STREAM */}
-        <View style={styles.messagesContainer}>
+        {/* 3. CHAT MESSAGE STREAM */}
+        <View style={[styles.messagesContainer, { backgroundColor: colors.background }]}>
           {filteredMessages.length === 0 ? (
             <View style={styles.emptyMessagesBox}>
-              <View style={styles.emptyIconCircle}>
-                <Sparkles size={24} color={COLORS.primary} />
+              <View style={[styles.emptyIconCircle, { backgroundColor: colors.surfaceSubtle }]}>
+                <Sparkles size={24} color={colors.primary} />
               </View>
-              <Text style={styles.emptyTitle}>
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
                 {activeChannel === 'group'
                   ? 'No crew messages yet'
                   : `Start a conversation with ${activeTargetMember?.name || 'them'}`}
               </Text>
-              <Text style={styles.emptySub}>
+              <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
                 Send a quick ping or message to coordinate during your trip.
               </Text>
             </View>
@@ -447,11 +464,14 @@ export default function ChatScreen({ isTab = false }) {
                     <View
                       style={[
                         styles.bubble,
-                        isMe ? styles.bubbleMe : styles.bubbleOther,
+                        isMe
+                          ? [styles.bubbleMe, { backgroundColor: colors.primary }]
+                          : [styles.bubbleOther, { backgroundColor: colors.surface, borderColor: colors.border }],
+                        item.message_type === 'sos' && styles.bubbleSos,
                       ]}
                     >
                       {!isMe && activeChannel === 'group' && (
-                        <Text style={styles.bubbleSenderName}>
+                        <Text style={[styles.bubbleSenderName, { color: colors.primary }]}>
                           {item.sender_name}
                         </Text>
                       )}
@@ -459,7 +479,9 @@ export default function ChatScreen({ isTab = false }) {
                       <Text
                         style={[
                           styles.bubbleContent,
-                          isMe ? styles.bubbleContentMe : styles.bubbleContentOther,
+                          isMe
+                            ? styles.bubbleContentMe
+                            : [styles.bubbleContentOther, { color: colors.textPrimary }],
                         ]}
                       >
                         {item.content}
@@ -468,7 +490,9 @@ export default function ChatScreen({ isTab = false }) {
                       <Text
                         style={[
                           styles.bubbleTime,
-                          isMe ? styles.bubbleTimeMe : styles.bubbleTimeOther,
+                          isMe
+                            ? styles.bubbleTimeMe
+                            : [styles.bubbleTimeOther, { color: colors.textMuted }],
                         ]}
                       >
                         {timeStr}
@@ -481,8 +505,8 @@ export default function ChatScreen({ isTab = false }) {
           )}
         </View>
 
-        {/* 5. QUICK PING CHIPS (ONE-TAP PRESETS) */}
-        <View style={styles.quickPingsSection}>
+        {/* 4. QUICK PING CHIPS */}
+        <View style={[styles.quickPingsSection, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -493,6 +517,7 @@ export default function ChatScreen({ isTab = false }) {
               <TouchableOpacity
                 style={[
                   styles.quickPingPill,
+                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.border },
                   item.type === 'sos' && styles.quickPingPillSos,
                 ]}
                 activeOpacity={0.7}
@@ -501,6 +526,7 @@ export default function ChatScreen({ isTab = false }) {
                 <Text
                   style={[
                     styles.quickPingText,
+                    { color: colors.textPrimary },
                     item.type === 'sos' && styles.quickPingTextSos,
                   ]}
                 >
@@ -511,23 +537,32 @@ export default function ChatScreen({ isTab = false }) {
           />
         </View>
 
-        {/* 6. INPUT BAR (Safe Area Padded for Android 3-Button & iOS home bar) */}
+        {/* 5. INPUT BAR */}
         <View
           style={[
             styles.inputBar,
             {
-              paddingBottom: isTab ? 8 : Math.max(insets.bottom, 12),
+              backgroundColor: colors.surface,
+              borderTopColor: colors.border,
+              paddingBottom: isTab ? 10 : Math.max(insets.bottom, 12),
             },
           ]}
         >
           <TextInput
-            style={styles.textInput}
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                color: colors.textPrimary,
+                borderColor: colors.border,
+              },
+            ]}
             placeholder={
               activeChannel === 'group'
                 ? 'Message Entire Crew...'
                 : `Message ${activeTargetMember?.name?.split(' ')[0] || 'member'}...`
             }
-            placeholderTextColor={COLORS.textTertiary}
+            placeholderTextColor={colors.textMuted}
             value={inputText}
             onChangeText={setInputText}
             multiline
@@ -537,6 +572,7 @@ export default function ChatScreen({ isTab = false }) {
           <TouchableOpacity
             style={[
               styles.sendButton,
+              { backgroundColor: inputText.trim() ? colors.primary : colors.surfaceSubtle },
               !inputText.trim() && styles.sendButtonDisabled,
             ]}
             onPress={() => handleSend()}
@@ -545,13 +581,13 @@ export default function ChatScreen({ isTab = false }) {
           >
             <Send
               size={18}
-              color={inputText.trim() ? COLORS.white : COLORS.textTertiary}
+              color={inputText.trim() ? '#FFFFFF' : colors.textMuted}
             />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
 
-      {/* 7. SEARCH & SELECT MEMBER MODAL */}
+      {/* 6. SEARCH & SELECT MEMBER MODAL */}
       <Modal
         visible={showSearchModal}
         animationType="slide"
@@ -571,26 +607,26 @@ export default function ChatScreen({ isTab = false }) {
           <View
             style={[
               styles.modalSheet,
-              { paddingBottom: Math.max(insets.bottom, 24) },
+              { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom, 24) },
             ]}
           >
-            <View style={styles.modalDragHandle} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Crew Member</Text>
+            <View style={[styles.modalDragHandle, { backgroundColor: colors.border }]} />
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Select Crew Member</Text>
               <TouchableOpacity
                 onPress={() => setShowSearchModal(false)}
                 style={styles.modalCloseBtn}
               >
-                <X size={20} color={COLORS.textPrimary} />
+                <X size={20} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalSearchBox}>
-              <Search size={18} color={COLORS.textTertiary} style={{ marginRight: 8 }} />
+            <View style={[styles.modalSearchBox, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
+              <Search size={18} color={colors.textMuted} style={{ marginRight: 8 }} />
               <TextInput
-                style={styles.modalSearchInput}
+                style={[styles.modalSearchInput, { color: colors.textPrimary }]}
                 placeholder="Search member by name..."
-                placeholderTextColor={COLORS.textTertiary}
+                placeholderTextColor={colors.textMuted}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoFocus
@@ -604,7 +640,7 @@ export default function ChatScreen({ isTab = false }) {
               keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.modalMemberRow}
+                  style={[styles.modalMemberRow, { borderBottomColor: colors.border }]}
                   activeOpacity={0.7}
                   onPress={() => {
                     setActiveChannel(String(item.id));
@@ -620,8 +656,8 @@ export default function ChatScreen({ isTab = false }) {
                     style={{ marginRight: 12 }}
                   />
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.modalMemberName}>{item.name}</Text>
-                    <Text style={styles.modalMemberSub}>
+                    <Text style={[styles.modalMemberName, { color: colors.textPrimary }]}>{item.name}</Text>
+                    <Text style={[styles.modalMemberSub, { color: colors.textSecondary }]}>
                       {item.role === 'admin' ? 'Trip Leader' : 'Crew Member'}
                     </Text>
                   </View>
@@ -667,49 +703,42 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
 
-  // Map
-  mapContainer: {
-    height: 220,
-    width: '100%',
-    position: 'relative',
-    backgroundColor: '#0F172A',
-  },
-  mapOverlayChip: {
-    position: 'absolute',
-    top: 12,
-    left: 14,
-    zIndex: 10,
-  },
-  mapStatusPill: {
+  // Contextual Location Strip
+  locationStrip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.94)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: RADIUS.full,
-    ...SHADOWS.sm,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
   },
-  mapStatusPillConnected: {
-    backgroundColor: '#F0F9FF',
-    borderColor: '#BAE6FD',
-    borderWidth: 1,
+  locationStripLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
   },
-  mapStatusPillPaused: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#FDE68A',
-    borderWidth: 1,
-  },
-  pulseDot: {
+  locationStripDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.success,
-    marginRight: 6,
+    marginRight: 8,
   },
-  mapStatusText: {
+  locationStripText: {
     fontSize: 12,
+    fontWeight: '600',
+  },
+  locationStripNavBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADIUS.full,
+  },
+  locationStripNavText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: COLORS.textPrimary,
+    color: '#FFFFFF',
   },
 
   // Channels bar

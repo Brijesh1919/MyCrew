@@ -7,16 +7,16 @@ import {
   TouchableOpacity,
   Dimensions,
   Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   Users,
   AlertTriangle,
   MapPin,
   Compass,
   ArrowRight,
-  ShieldAlert,
   Clock,
   Sparkles,
   ChevronRight,
@@ -27,9 +27,12 @@ import {
   User,
   Phone,
   MessageSquare,
+  X,
 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
+import { useThemeStore } from '../../src/store/useThemeStore';
 import { MapView } from '../../src/components/MapView';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { QuickAction } from '../../src/components/QuickAction';
@@ -40,6 +43,10 @@ import { DistanceBadge } from '../../src/components/DistanceBadge';
 import { ActiveTripPickerModal } from '../../src/components/ActiveTripPickerModal';
 import { CrewFacepileCapsule } from '../../src/components/CrewFacepileCapsule';
 import { ContactNumberModal, PHONE_PROMPT_STORAGE_KEY } from '../../src/components/ContactNumberModal';
+import { MeetingPointBottomSheet } from '../../src/components/MeetingPointBottomSheet';
+import { MemberBottomSheet } from '../../src/components/MemberBottomSheet';
+import { NearestPeopleBottomSheet } from '../../src/components/NearestPeopleBottomSheet';
+import { ShareTripModal } from '../../src/components/ShareTripModal';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
@@ -55,9 +62,14 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function HomeScreen() {
   const router = useRouter();
 
+  // Theme
+  const isDark = useThemeStore((state) => state.isDark);
+  const colors = useThemeStore((state) => state.colors);
+
   // Zustand state
   const activeTrip = useTripStore((state) => state.activeTrip);
   const activeTripsList = useTripStore((state) => state.activeTripsList);
+  const tripHistory = useTripStore((state) => state.tripHistory);
   const selectActiveTrip = useTripStore((state) => state.selectActiveTrip);
   const members = useCrewStore((state) => state.members);
   const getClusters = useCrewStore((state) => state.getClusters);
@@ -74,9 +86,29 @@ export default function HomeScreen() {
   // Local bottom sheet states
   const [selectedClusterData, setSelectedClusterData] = useState(null);
   const [selectedPersonSheet, setSelectedPersonSheet] = useState(null);
+  const [showNearestPeopleSheet, setShowNearestPeopleSheet] = useState(false);
+  const [selectedMeetingPointSheet, setSelectedMeetingPointSheet] = useState(null);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [showTripPicker, setShowTripPicker] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [activeRouteTarget, setActiveRouteTarget] = useState(null);
+
+  // Read incoming navigation params from Meet tab or People bottom sheet
+  const params = useLocalSearchParams();
+  useEffect(() => {
+    if (params?.showPath === 'true' && params?.targetLat && params?.targetLng) {
+      const lat = parseFloat(params.targetLat);
+      const lng = parseFloat(params.targetLng);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setActiveRouteTarget({
+          name: params.targetName || 'Meeting Point',
+          type: params.targetType || 'meeting_point',
+          coordinates: { latitude: lat, longitude: lng },
+        });
+      }
+    }
+  }, [params?.showPath, params?.targetLat, params?.targetLng, params?.targetName, params?.targetType]);
 
   // Check whether to show contact number prompt modal on mount
   useEffect(() => {
@@ -129,6 +161,30 @@ export default function HomeScreen() {
     setSelectedPersonSheet(member);
   };
 
+  // Handle meeting point tap on map
+  const handleMeetingPointPress = (point) => {
+    setSelectedMeetingPointSheet(point);
+  };
+
+  // Navigate to meeting point and plot route on map
+  const handleNavigateToMeetingPoint = (point) => {
+    const coords =
+      point.coordinates ||
+      (point.latitude && point.longitude
+        ? { latitude: Number(point.latitude), longitude: Number(point.longitude) }
+        : null);
+    if (!coords || isNaN(coords.latitude) || isNaN(coords.longitude)) {
+      Alert.alert('Location Unavailable', 'This meeting point does not have valid GPS coordinates.');
+      return;
+    }
+    setActiveRouteTarget({
+      name: point.name || 'Meeting Point',
+      type: 'meeting_point',
+      coordinates: coords,
+    });
+    setSelectedMeetingPointSheet(null);
+  };
+
   // Navigate to person navigation screen
   const handleNavigateToPerson = (member) => {
     setSelectedMember(member);
@@ -142,386 +198,280 @@ export default function HomeScreen() {
   // NO ACTIVE TRIP VIEW (Fresh user / Not joined any crew yet)
   if (!activeTrip) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
         <ScrollView
-          style={styles.container}
+          style={[styles.container, { backgroundColor: colors.background }]}
           contentContainerStyle={styles.emptyScrollContent}
           showsVerticalScrollIndicator={false}
         >
           {/* Header */}
           <View style={styles.emptyHeader}>
             <View style={styles.emptyHeaderLeft}>
-              <Text style={styles.greetingText} numberOfLines={1} ellipsizeMode="tail">
+              <Text style={[styles.greetingText, { color: colors.textPrimary }]} numberOfLines={1} ellipsizeMode="tail">
                 {greeting}, {userName} 👋
               </Text>
               <View style={styles.emptyHeaderSubRow}>
-                <Text style={styles.emptyHeaderSub}>Welcome to MyCrew</Text>
-                <View style={styles.privacyPill}>
-                  <ShieldCheck size={12} color={COLORS.success} />
-                  <Text style={styles.privacyPillText}>Location Private</Text>
+                <View style={[styles.privacyPill, { backgroundColor: colors.surfaceSubtle }]}>
+                  <ShieldCheck size={12} color={colors.primary} />
+                  <Text style={[styles.privacyPillText, { color: colors.primary }]}>Live Coordination Ready</Text>
                 </View>
               </View>
             </View>
-            <TouchableOpacity
-              style={styles.profileAvatarBtn}
-              activeOpacity={0.8}
-              onPress={() => router.push('/(tabs)/profile')}
-              accessibilityLabel="Go to Profile"
-            >
-              <MemberAvatar
-                uri={currentUser?.avatar}
-                name={userName || 'You'}
-                size="sm"
-                isUser={true}
-              />
-            </TouchableOpacity>
           </View>
 
-          {/* Missing Contact Number Quick Banner */}
-          {!currentUser?.phone && (
-            <View style={styles.phonePromptBanner}>
-              <View style={styles.phonePromptIconCircle}>
-                <Phone size={18} color={COLORS.primary} />
-              </View>
-              <View style={styles.phonePromptTextCol}>
-                <Text style={styles.phonePromptTitle}>Add your contact number</Text>
-                <Text style={styles.phonePromptSubtitle}>
-                  Let friends call you directly when you join a crew
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.phonePromptActionBtn}
-                onPress={() => setShowContactModal(true)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.phonePromptActionText}>Add</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Main Empty State Card */}
-          <View style={styles.emptyHeroCard}>
-            {/* Friendly Crew / Radar Illustration */}
-            <View style={styles.illustrationWrapper}>
-              <Image
-                source={require('../../assets/ill_home_empty.jpg')}
-                style={styles.emptyIllustrationImage}
-                resizeMode="contain"
-              />
-            </View>
-
-            <Text style={styles.emptyTitle}>You're not in a crew yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Join a trip with your friends or create one to get started.
-            </Text>
-
-            {/* Action Buttons */}
-            <View style={styles.emptyActionsContainer}>
-              <TouchableOpacity
-                style={styles.primaryJoinButton}
-                activeOpacity={0.88}
-                onPress={() => router.push('/(auth)/join')}
-              >
-                <View style={styles.btnIconWrap}>
-                  <UserPlus size={22} color={COLORS.white} />
-                </View>
-                <View style={styles.btnTextCol}>
-                  <Text style={styles.primaryJoinBtnTitle}>Join a Crew</Text>
-                  <Text style={styles.primaryJoinBtnSub}>Scan a QR code or enter a trip code</Text>
-                </View>
-                <ChevronRight size={18} color="rgba(255, 255, 255, 0.7)" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.secondaryCreateButton}
-                activeOpacity={0.85}
-                onPress={() => router.push('/(auth)/create-trip')}
-              >
-                <View style={[styles.btnIconWrap, styles.btnIconWrapOutlined]}>
-                  <PlusCircle size={22} color={COLORS.primary} />
-                </View>
-                <View style={styles.btnTextCol}>
-                  <Text style={styles.secondaryCreateBtnTitle}>Create a New Trip</Text>
-                  <Text style={styles.secondaryCreateBtnSub}>Start a temporary crew & invite your people</Text>
-                </View>
-                <ChevronRight size={18} color={COLORS.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Privacy Guarantee Note */}
-            <View style={styles.privacyNoticeCard}>
-              <ShieldCheck size={16} color={COLORS.success} />
-              <Text style={styles.privacyNoticeText}>
-                Your location stays private until you join a trip.
+          {/* Tactical Hero Visual Banner */}
+          <View style={[styles.heroBannerWrap, { borderColor: colors.border }]}>
+            <Image
+              source={require('../../assets/auth_hero.jpg')}
+              style={styles.heroBannerImage}
+              resizeMode="cover"
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(10, 14, 23, 0.88)']}
+              style={styles.heroBannerScrim}
+            />
+            <View style={styles.heroBannerContent}>
+              <Text style={styles.heroBannerTitle}>Ready for your next event?</Text>
+              <Text style={styles.heroBannerSubtitle}>
+                Create a temporary crew or enter a code to locate friends in real time.
               </Text>
             </View>
           </View>
-        </ScrollView>
 
-        {/* Contact Number Modal */}
-        <ContactNumberModal
-          visible={showContactModal}
-          onClose={() => setShowContactModal(false)}
-        />
+          {/* Quick Action Tiles (Side-by-Side Tactical Cards) */}
+          <View style={styles.actionTilesRow}>
+            <TouchableOpacity
+              style={[styles.actionTile, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              activeOpacity={0.8}
+              onPress={() => router.push('/(auth)/create-trip')}
+            >
+              <View style={[styles.tileIconBubble, { backgroundColor: colors.tileBgPrimary }]}>
+                <PlusCircle size={22} color={colors.primary} />
+              </View>
+              <Text style={[styles.tileTitle, { color: colors.textPrimary }]}>Create Trip</Text>
+              <Text style={[styles.tileDesc, { color: colors.textSecondary }]}>Start a new crew & invite friends</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionTile, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              activeOpacity={0.8}
+              onPress={() => router.push('/(auth)/join')}
+            >
+              <View style={[styles.tileIconBubble, { backgroundColor: colors.surfaceSubtle }]}>
+                <UserPlus size={22} color={colors.primary} />
+              </View>
+              <Text style={[styles.tileTitle, { color: colors.textPrimary }]}>Join Trip</Text>
+              <Text style={[styles.tileDesc, { color: colors.textSecondary }]}>Enter 6-digit code or scan QR</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Past Trips / History Section if available */}
+          {tripHistory?.length > 0 && (
+            <View style={styles.pastTripsSection}>
+              <Text style={[styles.sectionHeading, { color: colors.textMuted }]}>RECENT CREW TRIPS</Text>
+              {tripHistory.slice(0, 3).map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.historyRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  activeOpacity={0.7}
+                  onPress={() => router.push('/(tabs)/trip')}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.historyName, { color: colors.textPrimary }]}>{item.name}</Text>
+                    <Text style={[styles.historyMeta, { color: colors.textSecondary }]}>
+                      {item.members_count || 1} members • Completed
+                    </Text>
+                  </View>
+                  <ChevronRight size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* Privacy Guarantee Note */}
+          <View style={[styles.privacyNoticeCard, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
+            <ShieldCheck size={16} color={colors.primary} />
+            <Text style={[styles.privacyNoticeText, { color: colors.textSecondary }]}>
+              Temporary by design. Location sharing stops when your trip ends. Zero permanent tracking.
+            </Text>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        scrollEnabled={isScrollEnabled}
-      >
-        {/* HEADER: GREETING & TRIP BADGE */}
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <View style={{ flex: 1, marginRight: 10 }}>
-              <Text style={styles.greetingText} numberOfLines={1} ellipsizeMode="tail">
-                {greeting}, {userName} 👋
-              </Text>
-              <View style={styles.tripBadgeRow}>
-                <Text style={styles.tripEmoji}>{activeTrip?.emoji || '🎪'}</Text>
-                <Text style={styles.tripTitle}>{activeTrip?.name || 'Active Trip'}</Text>
-                {activeTripsList && activeTripsList.length > 1 && (
-                  <TouchableOpacity
-                    style={styles.switchTripPill}
-                    onPress={() => setShowTripPicker(true)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.switchTripPillText}>Switch</Text>
-                  </TouchableOpacity>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+      {/* 1. MINIMAL TACTICAL HEADER */}
+      <View style={[styles.headerMinimal, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+        <View style={styles.headerLeftCol}>
+          <View style={styles.headerTripTitleRow}>
+            <Text style={styles.tripEmoji}>{activeTrip?.emoji || '🎪'}</Text>
+            <Text style={[styles.tripTitleMinimal, { color: colors.textPrimary }]} numberOfLines={1}>
+              {activeTrip?.name || 'Active Trip'}
+            </Text>
+            {activeTripsList && activeTripsList.length > 1 && (
+              <TouchableOpacity
+                style={[styles.switchTripPill, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}
+                onPress={() => setShowTripPicker(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.switchTripPillText, { color: colors.primary }]}>Switch</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <View style={styles.liveStatusRow}>
+            <View style={[styles.liveDot, { backgroundColor: colors.success }]} />
+            <Text style={[styles.liveStatusText, { color: colors.textSecondary }]}>
+              {statusCounts.online || statusCounts.active || 1} online • Ends in {timeLeft}
+            </Text>
+          </View>
+        </View>
+
+        {/* Header Right Actions: Trip Share / Add People Button */}
+        <View style={styles.headerRightActions}>
+          <TouchableOpacity
+            style={[styles.headerShareBtn, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}
+            activeOpacity={0.75}
+            onPress={() => setShowShareModal(true)}
+            accessibilityLabel="Add People or Share Trip"
+          >
+            <UserPlus size={16} color={colors.primary} style={{ marginRight: 5 }} />
+            <Text style={[styles.headerShareBtnText, { color: colors.textPrimary }]}>Add People</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* 2. FULLSCREEN LIVE MAP CANVAS (Zero Clutter, Dark Tactical Radar) */}
+      <View style={styles.fullscreenMapContainer}>
+        <MapView
+          userLocation={userLocation}
+          members={members}
+          clusters={clusters}
+          meetingPoints={meetingPoints}
+          onSelectCluster={handleClusterPress}
+          onSelectMember={handleMemberPress}
+          onSelectMeetingPoint={handleMeetingPointPress}
+          selectedMeetingPoint={selectedMeetingPointSheet}
+          showRoute={Boolean(activeRouteTarget)}
+          routeDestination={activeRouteTarget}
+          center={activeRouteTarget ? activeRouteTarget.coordinates : null}
+          height="100%"
+          interactive={true}
+          showClusters={true}
+          showStylePicker={false}
+          compactControls={true}
+          controlsBottomOffset={130}
+        />
+
+        {/* ACTIVE NAVIGATION HUD BANNER (Top floating tactical route card) */}
+        {activeRouteTarget && (
+          <View
+            style={[
+              styles.navHUDCard,
+              {
+                backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.97)',
+                borderColor: '#22C55E',
+              },
+            ]}
+          >
+            <View style={styles.navHUDMain}>
+              <View style={[styles.navHUDIconBubble, { backgroundColor: 'rgba(34, 197, 94, 0.15)' }]}>
+                <Compass size={22} color="#22C55E" strokeWidth={2.4} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.navHUDSubtitle}>
+                  {activeRouteTarget.type === 'meeting_point' ? 'RALLY POINT ROUTE' : 'CREW MEMBER ROUTE'}
+                </Text>
+                <Text style={[styles.navHUDTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+                  {activeRouteTarget.name}
+                </Text>
+                {userLocation && (
+                  <Text style={styles.navHUDDistance}>
+                    {formatDistance(calculateDistanceMeters(userLocation, activeRouteTarget.coordinates))} away
+                  </Text>
                 )}
               </View>
             </View>
 
-            <View style={styles.headerRightActions}>
-              <TouchableOpacity
-                style={styles.emergencyIconBtn}
-                activeOpacity={0.75}
-                onPress={() => router.push('/features/emergency')}
-                accessibilityLabel="Emergency SOS"
-              >
-                <ShieldAlert size={20} color={COLORS.danger} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.profileAvatarBtn}
-                activeOpacity={0.8}
-                onPress={() => router.push('/(tabs)/profile')}
-                accessibilityLabel="Go to Profile"
-              >
-                <MemberAvatar
-                  uri={currentUser?.avatar}
-                  name={userName || 'You'}
-                  size="sm"
-                  isUser={true}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.presenceRow}>
-            <View style={styles.liveIndicator}>
-              <View style={styles.livePulseDot} />
-              <Text style={styles.liveCountText}>
-                {statusCounts.online} people online
-              </Text>
-            </View>
-
-            <View style={styles.timerPill}>
-              <Clock size={13} color={COLORS.textSecondary} />
-              <Text style={styles.timerText}>Ends in {timeLeft}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Missing Contact Number Quick Banner */}
-        {!currentUser?.phone && (
-          <View style={styles.phonePromptBanner}>
-            <View style={styles.phonePromptIconCircle}>
-              <Phone size={18} color={COLORS.primary} />
-            </View>
-            <View style={styles.phonePromptTextCol}>
-              <Text style={styles.phonePromptTitle}>Add your contact number</Text>
-              <Text style={styles.phonePromptSubtitle}>
-                Let your crew call you directly if separated
-              </Text>
-            </View>
             <TouchableOpacity
-              style={styles.phonePromptActionBtn}
-              onPress={() => setShowContactModal(true)}
+              style={[styles.navHUDExitBtn, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2' }]}
+              onPress={() => setActiveRouteTarget(null)}
               activeOpacity={0.8}
             >
-              <Text style={styles.phonePromptActionText}>Add</Text>
+              <X size={15} color="#EF4444" style={{ marginRight: 4 }} strokeWidth={2.5} />
+              <Text style={styles.navHUDExitText}>End</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* 1. HERO LIVE GROUP MAP (Seamless Spatial Viewport) */}
-        <View style={styles.mapViewport}>
-          <MapView
-            userLocation={userLocation}
-            members={members}
-            clusters={clusters}
-            meetingPoints={meetingPoints}
-            onSelectCluster={handleClusterPress}
-            onSelectMember={handleMemberPress}
-            height={280}
-            interactive={true}
-            showClusters={true}
-            controlsBottomOffset={14}
-            onPanStart={() => setIsScrollEnabled(false)}
-            onPanEnd={() => setIsScrollEnabled(true)}
-          />
-
-          {/* Floating Top Header Pill */}
+        {/* 3. FLOATING TACTICAL BOTTOM HUD (Directly above bottom tabs) */}
+        <View style={styles.floatingBottomHUD}>
+          {/* Status Metrics Bar */}
           <TouchableOpacity
-            style={styles.mapTopPill}
-            onPress={() => router.push('/(tabs)/map')}
+            style={[
+              styles.floatingStatusRow,
+              {
+                backgroundColor: isDark ? 'rgba(22, 27, 34, 0.94)' : 'rgba(255, 255, 255, 0.96)',
+                borderColor: colors.border,
+              },
+            ]}
             activeOpacity={0.85}
+            onPress={() => router.push('/(tabs)/people')}
           >
-            <View style={styles.mapLiveDot} />
-            <Text style={styles.mapTopPillText}>Full Map</Text>
-            <ChevronRight size={13} color={COLORS.primary} style={{ marginLeft: 2 }} />
-          </TouchableOpacity>
-
-          {/* Quick Live Members Facepile Capsule */}
-          <View style={styles.mapFacepileContainer}>
-            <CrewFacepileCapsule
-              members={members}
-              onlineCount={statusCounts.online || statusCounts.active || 0}
-              onPress={() => router.push('/(tabs)/people')}
-            />
-          </View>
-        </View>
-
-        {/* 2. PRIMARY ACTION: FIND MY PEOPLE */}
-        <View style={styles.primaryActionSection}>
-          <PrimaryButton
-            title="Find My People"
-            onPress={() => router.push('/features/find-people')}
-            icon={Compass}
-            size="lg"
-            style={styles.findMyPeopleBtn}
-          />
-        </View>
-
-        {/* 3. QUICK ACTIONS HUB (Tactile OS Control Tiles) */}
-        <View style={styles.quickActionsRow}>
-          <QuickAction
-            title="Find Nearest"
-            icon={Users}
-            onPress={() => router.push('/features/find-nearest')}
-            variant="default"
-          />
-          <QuickAction
-            title="I'm Lost"
-            icon={AlertTriangle}
-            onPress={() => router.push('/features/im-lost')}
-            variant="danger"
-          />
-          <QuickAction
-            title="Meet Here"
-            icon={MapPin}
-            onPress={() => router.push('/features/meeting-point')}
-            variant="default"
-          />
-        </View>
-
-        {/* 4. CREW SAFETY & STATUS SECTION (Unified Hub) */}
-        <View style={styles.statusSection}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>Crew Status</Text>
-            <TouchableOpacity
-              onPress={() => router.push('/features/group-status')}
-              style={styles.sectionLinkRow}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.sectionLinkText}>Overview</Text>
-              <ChevronRight size={14} color={COLORS.primary} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.statusUnifiedContainer}>
-            {/* 3 Metrics Segmented Bar */}
-            <View style={styles.statusPillsRow}>
-              <View style={[styles.statusStatPill, { backgroundColor: COLORS.successBg }]}>
-                <View style={[styles.statusMiniDot, { backgroundColor: COLORS.success }]} />
-                <Text style={[styles.statusStatValue, { color: COLORS.success }]}>
-                  {statusCounts.active} Active
-                </Text>
-              </View>
-
-              <View style={[styles.statusStatPill, { backgroundColor: COLORS.warningBg }]}>
-                <View style={[styles.statusMiniDot, { backgroundColor: COLORS.warning }]} />
-                <Text style={[styles.statusStatValue, { color: COLORS.warning }]}>
-                  {statusCounts.delayed} Delayed
-                </Text>
-              </View>
-
-              <View style={[styles.statusStatPill, { backgroundColor: '#F1F5F9' }]}>
-                <View style={[styles.statusMiniDot, { backgroundColor: COLORS.textMuted }]} />
-                <Text style={[styles.statusStatValue, { color: COLORS.textSecondary }]}>
-                  {statusCounts.offline} Offline
-                </Text>
-              </View>
-            </View>
-
-            {/* Hairline Divider */}
-            <View style={styles.statusDivider} />
-
-            {/* Integrated Safety Check-in Bar */}
-            <View style={styles.checkInRow}>
-              <View style={styles.checkInLeft}>
-                <ShieldCheck size={18} color={currentUser?.isSafe ? COLORS.success : COLORS.primary} />
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.checkInTitle}>
-                    {currentUser?.isSafe ? 'You are marked Safe' : 'Safety Check-in'}
-                  </Text>
-                  <Text style={styles.checkInSub}>
-                    {currentUser?.isSafe ? 'Visible to your crew' : 'Let your crew know you are okay'}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={() => router.push('/features/check-in')}
-                style={[
-                  styles.checkInBtn,
-                  currentUser?.isSafe && styles.checkInBtnSafe,
-                ]}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.checkInBtnText, currentUser?.isSafe && styles.checkInBtnTextSafe]}>
-                  {currentUser?.isSafe ? 'Update' : 'Check In'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* 5. GROUP RADAR TILE */}
-        <TouchableOpacity
-          style={styles.radarTile}
-          activeOpacity={0.82}
-          onPress={() => router.push('/features/group-radar')}
-        >
-          <View style={styles.radarTileLeft}>
-            <View style={styles.radarCircle}>
-              <Compass size={20} color={COLORS.primary} />
-            </View>
-            <View style={{ marginLeft: 12 }}>
-              <Text style={styles.radarTitle}>Group Radar</Text>
-              <Text style={styles.radarSub}>
-                Live compass view of who is ahead and behind you
+            <View style={styles.statusPillItem}>
+              <View style={[styles.statusDotSmall, { backgroundColor: colors.success }]} />
+              <Text style={[styles.statusPillText, { color: colors.textPrimary }]}>
+                {statusCounts.active} Active
               </Text>
             </View>
+            <View style={[styles.statusPillDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.statusPillItem}>
+              <View style={[styles.statusDotSmall, { backgroundColor: colors.warning }]} />
+              <Text style={[styles.statusPillText, { color: colors.textPrimary }]}>
+                {statusCounts.delayed} Delayed
+              </Text>
+            </View>
+            <View style={[styles.statusPillDivider, { backgroundColor: colors.border }]} />
+            <View style={styles.statusPillItem}>
+              <View style={[styles.statusDotSmall, { backgroundColor: colors.textMuted }]} />
+              <Text style={[styles.statusPillText, { color: colors.textSecondary }]}>
+                {statusCounts.offline} Offline
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Action Buttons Row */}
+          <View style={styles.floatingActionsRow}>
+            {/* Primary Find My People Button (~64%) */}
+            <TouchableOpacity
+              style={[styles.findPeopleActionBtn, { backgroundColor: colors.primary }]}
+              activeOpacity={0.85}
+              onPress={() => setShowNearestPeopleSheet(true)}
+            >
+              <Compass size={20} color="#FFFFFF" strokeWidth={2.4} style={{ marginRight: 8 }} />
+              <Text style={styles.findPeopleActionText}>Find My People</Text>
+            </TouchableOpacity>
+
+            {/* I'm Lost Button (~34%) */}
+            <TouchableOpacity
+              style={[
+                styles.imLostActionBtn,
+                {
+                  backgroundColor: isDark ? 'rgba(30, 18, 22, 0.94)' : '#FEF2F2',
+                  borderColor: isDark ? 'rgba(239, 68, 68, 0.45)' : '#FECACA',
+                },
+              ]}
+              activeOpacity={0.85}
+              onPress={() => router.push('/features/im-lost')}
+            >
+              <AlertTriangle size={18} color={colors.danger} strokeWidth={2.2} style={{ marginRight: 6 }} />
+              <Text style={[styles.imLostActionText, { color: colors.danger }]}>I'm Lost</Text>
+            </TouchableOpacity>
           </View>
-          <ChevronRight size={18} color={COLORS.textMuted} />
-        </TouchableOpacity>
-      </ScrollView>
+        </View>
+      </View>
+
 
       {/* CLUSTER DETAILS BOTTOM SHEET */}
       <BottomSheet
@@ -583,167 +533,64 @@ export default function HomeScreen() {
       </BottomSheet>
 
       {/* PERSON DETAILS BOTTOM SHEET */}
-      <BottomSheet
+      <MemberBottomSheet
         visible={Boolean(selectedPersonSheet)}
+        member={selectedPersonSheet}
+        userLocation={userLocation}
         onClose={() => setSelectedPersonSheet(null)}
-        title={selectedPersonSheet?.name?.toUpperCase() || 'PERSON'}
-        subtitle={
-          selectedPersonSheet
-            ? selectedPersonSheet.id === currentUser?.id ||
-              selectedPersonSheet.id === 'me' ||
-              selectedPersonSheet.isCurrentUser
-              ? 'You (Crew Member)'
-              : selectedPersonSheet.status === 'offline' || !selectedPersonSheet.coordinates
-              ? 'Location Paused'
-              : `${formatDistance(calculateDistanceMeters(userLocation, selectedPersonSheet.coordinates))} away`
-            : ''
-        }
-      >
-        {selectedPersonSheet && (() => {
-          const isSelf =
-            selectedPersonSheet.id === currentUser?.id ||
-            selectedPersonSheet.id === 'me' ||
-            selectedPersonSheet.isCurrentUser ||
-            selectedPersonSheet.role === 'me';
+        onNavigate={(member) => {
+          if (!member?.coordinates) return;
+          setActiveRouteTarget({
+            name: member.name,
+            type: 'person',
+            coordinates: member.coordinates,
+          });
+          setSelectedPersonSheet(null);
+        }}
+        onChat={(member) => {
+          setSelectedPersonSheet(null);
+          router.push({
+            pathname: '/(tabs)/chat',
+            params: { memberId: member.id, memberName: member.name },
+          });
+        }}
+        onPing={(member) => {
+          Alert.alert('Ping Sent!', `Sent a reunion beacon ping to ${member.name}.`);
+        }}
+      />
 
-          const isTargetOffline = isSelf
-            ? !isLocationSharingActive || selectedPersonSheet.status === 'offline'
-            : selectedPersonSheet.status === 'offline' || !selectedPersonSheet.coordinates;
+      {/* NEAREST PEOPLE BOTTOM SHEET */}
+      <NearestPeopleBottomSheet
+        visible={showNearestPeopleSheet}
+        onClose={() => setShowNearestPeopleSheet(false)}
+        members={members}
+        userLocation={userLocation}
+        currentUser={currentUser}
+        onSelectMember={(member) => {
+          setShowNearestPeopleSheet(false);
+          setSelectedPersonSheet(member);
+        }}
+        onSeeEveryone={() => {
+          setShowNearestPeopleSheet(false);
+          router.push('/(tabs)/people');
+        }}
+      />
 
-          return (
-            <View style={styles.personSheetContainer}>
-              <View style={styles.personSheetTopRow}>
-                <MemberAvatar
-                  uri={selectedPersonSheet.avatar}
-                  name={selectedPersonSheet.name}
-                  size="lg"
-                  status={selectedPersonSheet.status}
-                />
-                <View style={styles.personSheetInfo}>
-                  <Text style={styles.personSheetName}>
-                    {selectedPersonSheet.name} {isSelf ? '(YOU)' : ''}
-                  </Text>
-                  <StatusBadge
-                    status={selectedPersonSheet.status}
-                    lastSeenSecondsAgo={selectedPersonSheet.lastSeenSecondsAgo}
-                    showDetail={true}
-                  />
-                  <Text style={styles.personSheetDistance}>
-                    {isSelf
-                      ? isLocationSharingActive && selectedPersonSheet.status !== 'offline'
-                        ? 'Your active device position'
-                        : 'Location sharing paused'
-                      : isTargetOffline
-                      ? 'Location hidden by member'
-                      : `${formatDistance(calculateDistanceMeters(userLocation, selectedPersonSheet.coordinates))} away from you`}
-                  </Text>
-                </View>
-              </View>
+      {/* MEETING POINT DETAILS BOTTOM SHEET */}
+      <MeetingPointBottomSheet
+        visible={Boolean(selectedMeetingPointSheet)}
+        meetingPoint={selectedMeetingPointSheet}
+        userLocation={userLocation}
+        onClose={() => setSelectedMeetingPointSheet(null)}
+        onNavigate={handleNavigateToMeetingPoint}
+      />
 
-              <View style={styles.personSheetActions}>
-                {isSelf ? (
-                  <>
-                    <PrimaryButton
-                      title="View My Location on Map"
-                      onPress={() => {
-                        setSelectedPersonSheet(null);
-                        router.push('/(tabs)/map');
-                      }}
-                      icon={Compass}
-                      size="lg"
-                      style={{ marginBottom: 10 }}
-                    />
-                    <View style={styles.personSheetBtnRow}>
-                      <TouchableOpacity
-                        style={styles.sheetActionHalfBtn}
-                        onPress={() => {
-                          setSelectedPersonSheet(null);
-                          router.push({
-                            pathname: '/features/meeting-point',
-                            params: {
-                              customLat: selectedPersonSheet.coordinates?.latitude || userLocation?.latitude,
-                              customLon: selectedPersonSheet.coordinates?.longitude || userLocation?.longitude,
-                              suggestedName: `Meet near ${selectedPersonSheet.name}`,
-                            },
-                          });
-                        }}
-                      >
-                        <MapPin size={16} color={COLORS.primary} />
-                        <Text style={styles.sheetActionBtnText}>Meet Here</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.sheetActionHalfBtn}
-                        onPress={() => {
-                          setSelectedPersonSheet(null);
-                          router.push('/(tabs)/profile');
-                        }}
-                      >
-                        <User size={16} color={COLORS.primary} />
-                        <Text style={styles.sheetActionBtnText}>My Profile</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <PrimaryButton
-                      title={`Walk to ${selectedPersonSheet.name}`}
-                      onPress={() => handleNavigateToPerson(selectedPersonSheet)}
-                      size="lg"
-                      style={{ marginBottom: 10 }}
-                    />
-                    <View style={styles.personSheetBtnRow}>
-                      <TouchableOpacity
-                        style={[styles.sheetActionHalfBtn, styles.sheetActionChatBtn]}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                          setSelectedPersonSheet(null);
-                          router.push({
-                            pathname: '/features/chat',
-                            params: { memberId: selectedPersonSheet.id },
-                          });
-                        }}
-                      >
-                        <MessageSquare size={16} color={COLORS.primary} />
-                        <Text style={[styles.sheetActionBtnText, { color: COLORS.primary }]}>Chat</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.sheetActionHalfBtn}
-                        onPress={() => {
-                          setSelectedPersonSheet(null);
-                          router.push({
-                            pathname: '/features/meeting-point',
-                            params: {
-                              customLat: selectedPersonSheet.coordinates?.latitude || userLocation?.latitude,
-                              customLon: selectedPersonSheet.coordinates?.longitude || userLocation?.longitude,
-                              suggestedName: `Meet near ${selectedPersonSheet.name}`,
-                            },
-                          });
-                        }}
-                      >
-                        <MapPin size={16} color={COLORS.primary} />
-                        <Text style={styles.sheetActionBtnText}>Meet Here</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.sheetActionHalfBtn}
-                        onPress={() => {
-                          setSelectedPersonSheet(null);
-                          router.push('/(tabs)/map');
-                        }}
-                      >
-                        <Compass size={16} color={COLORS.primary} />
-                        <Text style={styles.sheetActionBtnText}>View Map</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                )}
-              </View>
-            </View>
-          );
-        })()}
-      </BottomSheet>
+      {/* TRIP SHARE & ADD PEOPLE MODAL */}
+      <ShareTripModal
+        visible={showShareModal}
+        trip={activeTrip}
+        onClose={() => setShowShareModal(false)}
+      />
 
       {/* MULTIPLE ACTIVE TRIPS PICKER MODAL */}
       <ActiveTripPickerModal
@@ -779,6 +626,183 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 28,
   },
+  // Minimal Tactical Header
+  headerMinimal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  headerLeftCol: {
+    flex: 1,
+    marginRight: 10,
+  },
+  headerTripTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tripTitleMinimal: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  liveStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    marginRight: 6,
+  },
+  liveStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  headerShareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+  },
+  headerShareBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  headerChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    position: 'relative',
+    marginRight: 8,
+  },
+  headerChatBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  headerActionBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    position: 'relative',
+  },
+  headerBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  headerBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+
+  // Fullscreen Map Container
+  fullscreenMapContainer: {
+    flex: 1,
+    position: 'relative',
+    width: '100%',
+  },
+  mapFloatingCapsule: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    zIndex: 10,
+  },
+
+  // Floating Tactical Bottom HUD
+  floatingBottomHUD: {
+    position: 'absolute',
+    bottom: 12,
+    left: 14,
+    right: 14,
+    zIndex: 20,
+    gap: 8,
+  },
+  floatingStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    ...SHADOWS.md,
+  },
+  statusPillItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDotSmall: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    marginRight: 6,
+  },
+  statusPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  statusPillDivider: {
+    width: 1,
+    height: 14,
+    opacity: 0.6,
+  },
+
+  // Dual Action Buttons Row
+  floatingActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  findPeopleActionBtn: {
+    flex: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 52,
+    borderRadius: RADIUS.lg,
+    ...SHADOWS.md,
+  },
+  findPeopleActionText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  imLostActionBtn: {
+    flex: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 52,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1.5,
+    ...SHADOWS.md,
+  },
+  imLostActionText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
   header: {
     marginBottom: 14,
   },
@@ -1363,5 +1387,156 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: '700',
     fontSize: 12,
+  },
+  heroBannerWrap: {
+    height: 160,
+    borderRadius: RADIUS.lg,
+    overflow: 'hidden',
+    position: 'relative',
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  heroBannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroBannerScrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 110,
+  },
+  heroBannerContent: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 14,
+  },
+  heroBannerTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  heroBannerSubtitle: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  actionTilesRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  actionTile: {
+    flex: 1,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    padding: 16,
+    justifyContent: 'space-between',
+    minHeight: 120,
+  },
+  tileIconBubble: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  tileTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  tileDesc: {
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  pastTripsSection: {
+    marginBottom: 20,
+  },
+  sectionHeading: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    paddingLeft: 2,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 8,
+  },
+  historyName: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  historyMeta: {
+    fontSize: 12,
+  },
+  navHUDCard: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1.5,
+    zIndex: 20,
+    ...SHADOWS.md,
+  },
+  navHUDMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  navHUDIconBubble: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  navHUDSubtitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#22C55E',
+    letterSpacing: 0.6,
+  },
+  navHUDTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 1,
+  },
+  navHUDDistance: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#22C55E',
+    marginTop: 1,
+  },
+  navHUDExitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
+  },
+  navHUDExitText: {
+    color: '#EF4444',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

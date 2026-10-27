@@ -28,11 +28,15 @@ import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useUserStore } from '../../src/store/useUserStore';
+import { useThemeStore } from '../../src/store/useThemeStore';
 import { locationService } from '../../src/services/locationService';
 import { formatDistance } from '../../src/utils/distance';
 
 export default function GroupStatusScreen() {
   const router = useRouter();
+
+  const isDark = useThemeStore((state) => state.isDark);
+  const colors = useThemeStore((state) => state.colors);
 
   const members = useCrewStore((state) => state.members);
   const getStatusCounts = useCrewStore((state) => state.getStatusCounts);
@@ -104,7 +108,7 @@ export default function GroupStatusScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: isDark ? '#0B0F17' : colors.background }]} edges={['top', 'left', 'right']}>
       <AppHeader
         title="Group Status"
         subtitle={activeTrip?.name || 'Active Trip'}
@@ -113,40 +117,93 @@ export default function GroupStatusScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* CREW HEALTH OVERVIEW CARD */}
-        <View style={styles.overviewCard}>
-          <Text style={styles.sectionLabel}>YOUR CREW</Text>
+        <View
+          style={[
+            styles.overviewCard,
+            {
+              backgroundColor: isDark ? '#111827' : '#FFFFFF',
+              borderColor: isDark ? '#1F2937' : '#E2E8F0',
+            },
+          ]}
+        >
+          <Text style={[styles.sectionLabel, { color: isDark ? '#9CA3AF' : '#64748B' }]}>
+            YOUR CREW
+          </Text>
 
           <View style={styles.statusGrid}>
-            <View style={[styles.statusBox, { backgroundColor: COLORS.successBg }]}>
-              <View style={[styles.statusDot, { backgroundColor: COLORS.success }]} />
-              <Text style={[styles.statusCount, { color: COLORS.success }]}>
+            <View
+              style={[
+                styles.statusBox,
+                {
+                  backgroundColor: isDark ? 'rgba(34, 197, 94, 0.12)' : COLORS.successBg,
+                  borderColor: isDark ? 'rgba(34, 197, 94, 0.25)' : 'transparent',
+                  borderWidth: isDark ? 1 : 0,
+                },
+              ]}
+            >
+              <View style={[styles.statusDot, { backgroundColor: '#22C55E' }]} />
+              <Text style={[styles.statusCount, { color: '#22C55E' }]}>
                 {counts.active}
               </Text>
-              <Text style={styles.statusName}>Active Live</Text>
+              <Text style={[styles.statusName, { color: isDark ? '#F9FAFB' : COLORS.textPrimary }]}>
+                Active Live
+              </Text>
             </View>
 
-            <View style={[styles.statusBox, { backgroundColor: COLORS.warningBg }]}>
-              <View style={[styles.statusDot, { backgroundColor: COLORS.warning }]} />
-              <Text style={[styles.statusCount, { color: COLORS.warning }]}>
+            <View
+              style={[
+                styles.statusBox,
+                {
+                  backgroundColor: isDark ? 'rgba(245, 158, 11, 0.12)' : COLORS.warningBg,
+                  borderColor: isDark ? 'rgba(245, 158, 11, 0.25)' : 'transparent',
+                  borderWidth: isDark ? 1 : 0,
+                },
+              ]}
+            >
+              <View style={[styles.statusDot, { backgroundColor: '#F59E0B' }]} />
+              <Text style={[styles.statusCount, { color: '#F59E0B' }]}>
                 {counts.delayed}
               </Text>
-              <Text style={styles.statusName}>Delayed</Text>
+              <Text style={[styles.statusName, { color: isDark ? '#F9FAFB' : COLORS.textPrimary }]}>
+                Delayed
+              </Text>
             </View>
 
-            <View style={[styles.statusBox, { backgroundColor: COLORS.dangerBg }]}>
-              <View style={[styles.statusDot, { backgroundColor: COLORS.danger }]} />
-              <Text style={[styles.statusCount, { color: COLORS.danger }]}>
+            <View
+              style={[
+                styles.statusBox,
+                {
+                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : COLORS.dangerBg,
+                  borderColor: isDark ? 'rgba(239, 68, 68, 0.25)' : 'transparent',
+                  borderWidth: isDark ? 1 : 0,
+                },
+              ]}
+            >
+              <View style={[styles.statusDot, { backgroundColor: '#EF4444' }]} />
+              <Text style={[styles.statusCount, { color: '#EF4444' }]}>
                 {counts.offline}
               </Text>
-              <Text style={styles.statusName}>Offline</Text>
+              <Text style={[styles.statusName, { color: isDark ? '#F9FAFB' : COLORS.textPrimary }]}>
+                Offline
+              </Text>
             </View>
           </View>
         </View>
 
         {/* CREW GEOMETRY (INSET GROUPED SECTION) */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionLabel}>CREW GEOMETRY</Text>
-          <View style={styles.groupedContainer}>
+          <Text style={[styles.sectionLabel, { color: isDark ? '#9CA3AF' : '#64748B' }]}>
+            CREW GEOMETRY
+          </Text>
+          <View
+            style={[
+              styles.groupedContainer,
+              {
+                backgroundColor: isDark ? '#111827' : '#FFFFFF',
+                borderColor: isDark ? '#1F2937' : '#E2E8F0',
+              },
+            ]}
+          >
             {/* Closest to you */}
             {closest ? (
               <TouchableOpacity
@@ -155,23 +212,32 @@ export default function GroupStatusScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.highlightLeft}>
-                  <View style={[styles.iconCircle, { backgroundColor: '#DCFCE7' }]}>
-                    <Users size={18} color={COLORS.success} />
+                  <View
+                    style={[
+                      styles.iconCircle,
+                      { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.18)' : '#DCFCE7' },
+                    ]}
+                  >
+                    <Users size={18} color="#22C55E" />
                   </View>
                   <View>
-                    <Text style={styles.highlightLabel}>CLOSEST TO YOU</Text>
-                    <Text style={styles.highlightName}>{closest.name}</Text>
+                    <Text style={[styles.highlightLabel, { color: isDark ? '#9CA3AF' : COLORS.textMuted }]}>
+                      CLOSEST TO YOU
+                    </Text>
+                    <Text style={[styles.highlightName, { color: isDark ? '#F9FAFB' : colors.textPrimary }]}>
+                      {closest.name}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.highlightRight}>
                   <DistanceBadge meters={closest.distanceMeters} isHighlight={true} />
-                  <ChevronRight size={16} color={COLORS.textMuted} />
+                  <ChevronRight size={16} color={isDark ? '#6B7280' : COLORS.textMuted} />
                 </View>
               </TouchableOpacity>
             ) : (
               <View style={styles.emptyHighlightRow}>
-                <Users size={20} color={COLORS.textMuted} />
-                <Text style={styles.emptyHighlightText}>
+                <Users size={20} color={isDark ? '#6B7280' : COLORS.textMuted} />
+                <Text style={[styles.emptyHighlightText, { color: isDark ? '#9CA3AF' : colors.textSecondary }]}>
                   {otherMembers.length > 0
                     ? 'No members sharing live location'
                     : 'No other members in this trip yet'}
@@ -182,44 +248,73 @@ export default function GroupStatusScreen() {
             {/* Farthest (only shown if there are multiple other sharing members) */}
             {farthest && (
               <>
-                <View style={styles.hairlineDivider} />
+                <View
+                  style={[
+                    styles.hairlineDivider,
+                    { backgroundColor: isDark ? '#1F2937' : '#F1F5F9' },
+                  ]}
+                />
                 <TouchableOpacity
                   style={styles.groupedRow}
                   onPress={() => handleSelectMember(farthest)}
                   activeOpacity={0.7}
                 >
                   <View style={styles.highlightLeft}>
-                    <View style={[styles.iconCircle, { backgroundColor: '#F1F5F9' }]}>
-                      <ArrowUpRight size={18} color={COLORS.textSecondary} />
+                    <View
+                      style={[
+                        styles.iconCircle,
+                        { backgroundColor: isDark ? '#1F2937' : '#F1F5F9' },
+                      ]}
+                    >
+                      <ArrowUpRight size={18} color={isDark ? '#9CA3AF' : COLORS.textSecondary} />
                     </View>
                     <View>
-                      <Text style={styles.highlightLabel}>FARTHEST IN TRIP</Text>
-                      <Text style={styles.highlightName}>{farthest.name}</Text>
+                      <Text style={[styles.highlightLabel, { color: isDark ? '#9CA3AF' : COLORS.textMuted }]}>
+                        FARTHEST IN TRIP
+                      </Text>
+                      <Text style={[styles.highlightName, { color: isDark ? '#F9FAFB' : colors.textPrimary }]}>
+                        {farthest.name}
+                      </Text>
                     </View>
                   </View>
                   <View style={styles.highlightRight}>
                     <DistanceBadge meters={farthest.distanceMeters} />
-                    <ChevronRight size={16} color={COLORS.textMuted} />
+                    <ChevronRight size={16} color={isDark ? '#6B7280' : COLORS.textMuted} />
                   </View>
                 </TouchableOpacity>
               </>
             )}
 
-            <View style={styles.hairlineDivider} />
+            <View
+              style={[
+                styles.hairlineDivider,
+                { backgroundColor: isDark ? '#1F2937' : '#F1F5F9' },
+              ]}
+            />
 
             {/* Dynamic Group Center / Midpoint */}
             <TouchableOpacity
               style={styles.groupedRow}
               activeOpacity={0.7}
-              onPress={() => router.push('/(tabs)/map')}
+              onPress={() => router.push('/(tabs)/home')}
             >
               <View style={styles.highlightLeft}>
-                <View style={[styles.iconCircle, { backgroundColor: '#EFF6FF' }]}>
-                  <Compass size={18} color={COLORS.primary} />
+                <View
+                  style={[
+                    styles.iconCircle,
+                    { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.18)' : '#EFF6FF' },
+                  ]}
+                >
+                  <Compass size={18} color="#3B82F6" />
                 </View>
                 <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={styles.highlightLabel}>GROUP CENTER</Text>
-                  <Text style={styles.highlightName} numberOfLines={1}>
+                  <Text style={[styles.highlightLabel, { color: isDark ? '#9CA3AF' : COLORS.textMuted }]}>
+                    GROUP CENTER
+                  </Text>
+                  <Text
+                    style={[styles.highlightName, { color: isDark ? '#F9FAFB' : colors.textPrimary }]}
+                    numberOfLines={1}
+                  >
                     {centerTitle}
                   </Text>
                 </View>
@@ -228,7 +323,7 @@ export default function GroupStatusScreen() {
                 <Text style={styles.clusterCountTag}>
                   {nearbyActiveCount > 0 ? `${nearbyActiveCount} live` : 'Paused'}
                 </Text>
-                <ChevronRight size={16} color={COLORS.textMuted} style={{ marginLeft: 4 }} />
+                <ChevronRight size={16} color={isDark ? '#6B7280' : COLORS.textMuted} style={{ marginLeft: 4 }} />
               </View>
             </TouchableOpacity>
           </View>
@@ -236,26 +331,54 @@ export default function GroupStatusScreen() {
 
         {/* SAFETY STATUS CARD */}
         <TouchableOpacity
-          style={[styles.safetyCard, !isAllSafe && styles.safetyCardPending]}
+          style={[
+            styles.safetyCard,
+            {
+              backgroundColor: isDark
+                ? isAllSafe
+                  ? 'rgba(34, 197, 94, 0.12)'
+                  : 'rgba(245, 158, 11, 0.12)'
+                : isAllSafe
+                ? '#F0FDF4'
+                : '#FFFBEB',
+              borderColor: isDark
+                ? isAllSafe
+                  ? 'rgba(34, 197, 94, 0.3)'
+                  : 'rgba(245, 158, 11, 0.3)'
+                : isAllSafe
+                ? '#DCFCE7'
+                : '#FEF3C7',
+            },
+          ]}
           activeOpacity={0.8}
-          onPress={() => router.push('/features/check-in')}
+          onPress={() => router.push('/(tabs)/people')}
         >
           <View style={styles.safetyCardLeft}>
             <View
               style={[
                 styles.safetyIconCircle,
-                { backgroundColor: isAllSafe ? '#DCFCE7' : '#FEF3C7' },
+                {
+                  backgroundColor: isDark
+                    ? isAllSafe
+                      ? 'rgba(34, 197, 94, 0.22)'
+                      : 'rgba(245, 158, 11, 0.22)'
+                    : isAllSafe
+                    ? '#DCFCE7'
+                    : '#FEF3C7',
+                },
               ]}
             >
               {isAllSafe ? (
-                <ShieldCheck size={20} color={COLORS.success} />
+                <ShieldCheck size={20} color="#22C55E" />
               ) : (
-                <ShieldAlert size={20} color={COLORS.warning} />
+                <ShieldAlert size={20} color="#F59E0B" />
               )}
             </View>
             <View style={{ marginLeft: 12, flex: 1 }}>
-              <Text style={styles.safetyTitle}>Safety Status Check-In</Text>
-              <Text style={styles.safetySub}>
+              <Text style={[styles.safetyTitle, { color: isDark ? '#F9FAFB' : colors.textPrimary }]}>
+                Safety Status Check-In
+              </Text>
+              <Text style={[styles.safetySub, { color: isDark ? '#9CA3AF' : colors.textSecondary }]}>
                 {totalCrew > 0
                   ? `${safeCrew} of ${totalCrew} ${
                       totalCrew === 1 ? 'friend has' : 'friends have'
@@ -264,7 +387,7 @@ export default function GroupStatusScreen() {
               </Text>
             </View>
           </View>
-          <ChevronRight size={18} color={COLORS.textSecondary} />
+          <ChevronRight size={18} color={isDark ? '#9CA3AF' : colors.textSecondary} />
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -274,18 +397,15 @@ export default function GroupStatusScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   scrollContent: {
     padding: 16,
     paddingBottom: 32,
   },
   overviewCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
     marginBottom: 20,
     ...SHADOWS.sm,
   },
@@ -294,11 +414,11 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     ...TYPOGRAPHY.badge,
-    color: '#64748B',
     fontSize: 11,
     letterSpacing: 0.8,
     marginBottom: 8,
     marginLeft: 4,
+    fontWeight: '800',
   },
   statusGrid: {
     flexDirection: 'row',
@@ -328,13 +448,10 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.caption,
     fontWeight: '700',
     fontSize: 11,
-    color: COLORS.textPrimary,
   },
   groupedContainer: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
     overflow: 'hidden',
     ...SHADOWS.sm,
   },
@@ -347,7 +464,6 @@ const styles = StyleSheet.create({
   },
   hairlineDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
     marginLeft: 64,
   },
   highlightLeft: {
@@ -365,13 +481,14 @@ const styles = StyleSheet.create({
   },
   highlightLabel: {
     ...TYPOGRAPHY.badge,
-    color: COLORS.textMuted,
     fontSize: 10,
+    fontWeight: '800',
   },
   highlightName: {
     ...TYPOGRAPHY.h3,
     fontSize: 15,
     marginTop: 1,
+    fontWeight: '700',
   },
   highlightRight: {
     flexDirection: 'row',
@@ -380,7 +497,7 @@ const styles = StyleSheet.create({
   },
   clusterCountTag: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.primary,
+    color: '#3B82F6',
     fontWeight: '700',
     fontSize: 12,
   },
@@ -394,22 +511,15 @@ const styles = StyleSheet.create({
   emptyHighlightText: {
     ...TYPOGRAPHY.body,
     fontSize: 13,
-    color: COLORS.textSecondary,
   },
   safetyCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F0FDF4',
     padding: 16,
     borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#DCFCE7',
     marginTop: 10,
-  },
-  safetyCardPending: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FEF3C7',
   },
   safetyCardLeft: {
     flexDirection: 'row',
@@ -426,10 +536,10 @@ const styles = StyleSheet.create({
   safetyTitle: {
     ...TYPOGRAPHY.h3,
     fontSize: 15,
+    fontWeight: '700',
   },
   safetySub: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
     marginTop: 2,
   },
 });

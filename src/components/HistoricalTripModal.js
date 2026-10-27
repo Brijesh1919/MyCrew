@@ -24,8 +24,11 @@ import {
 } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
 import { getTripStatusBadge } from '../utils/tripStatus';
+import { useThemeStore } from '../store/useThemeStore';
 
 export const HistoricalTripModal = ({ visible, trip, onClose }) => {
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
   if (!trip) return null;
 
   const badge = getTripStatusBadge(trip);
@@ -52,15 +55,15 @@ export const HistoricalTripModal = ({ visible, trip, onClose }) => {
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.sheetContainer}>
+        <View style={[styles.sheetContainer, { backgroundColor: colors.surface }]}>
           {/* Header */}
           <View style={styles.sheetHeader}>
             <View style={styles.titleRow}>
-              <View style={styles.emojiBadge}>
+              <View style={[styles.emojiBadge, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
                 <Text style={styles.emojiText}>{trip.emoji || '🎪'}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.sheetTitle} numberOfLines={1}>
+                <Text style={[styles.sheetTitle, { color: colors.textPrimary }]} numberOfLines={1}>
                   {trip.name}
                 </Text>
                 <View style={styles.badgeRow}>
@@ -69,7 +72,7 @@ export const HistoricalTripModal = ({ visible, trip, onClose }) => {
                       styles.statusPill,
                       badge.status === 'active' && styles.statusActive,
                       badge.status === 'upcoming' && styles.statusUpcoming,
-                      badge.status === 'expired' && styles.statusExpired,
+                      badge.status === 'expired' && [styles.statusExpired, { backgroundColor: colors.surfaceSubtle }],
                     ]}
                   >
                     <Text
@@ -77,13 +80,13 @@ export const HistoricalTripModal = ({ visible, trip, onClose }) => {
                         styles.statusText,
                         badge.status === 'active' && styles.statusActiveText,
                         badge.status === 'upcoming' && styles.statusUpcomingText,
-                        badge.status === 'expired' && styles.statusExpiredText,
+                        badge.status === 'expired' && [styles.statusExpiredText, { color: colors.textSecondary }],
                       ]}
                     >
                       {badge.label}
                     </Text>
                   </View>
-                  <Text style={styles.roleSubtext}>
+                  <Text style={[styles.roleSubtext, { color: colors.textSecondary }]}>
                     {isOrganizer ? '• You were Host' : '• You joined as Member'}
                   </Text>
                 </View>
@@ -95,85 +98,85 @@ export const HistoricalTripModal = ({ visible, trip, onClose }) => {
               onPress={onClose}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <X size={20} color={COLORS.textPrimary} />
+              <X size={20} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.contentScroll} showsVerticalScrollIndicator={false}>
             {/* Historical Notice Card */}
-            <View style={styles.noticeCard}>
-              <ShieldCheck size={18} color={COLORS.success} />
+            <View style={[styles.noticeCard, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
+              <ShieldCheck size={18} color={colors.success} />
               <View style={styles.noticeTextCol}>
-                <Text style={styles.noticeTitle}>Temporary trip completed</Text>
-                <Text style={styles.noticeDesc}>
+                <Text style={[styles.noticeTitle, { color: colors.textPrimary }]}>Temporary trip completed</Text>
+                <Text style={[styles.noticeDesc, { color: colors.textSecondary }]}>
                   Location sharing ended when this trip expired. All member GPS tracking is terminated.
                 </Text>
               </View>
             </View>
 
             {/* Structured Details Grid */}
-            <View style={styles.detailsBox}>
+            <View style={[styles.detailsBox, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
               <View style={styles.detailRow}>
-                <View style={styles.detailIconBox}>
-                  <Calendar size={18} color={COLORS.primary} />
+                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' }]}>
+                  <Calendar size={18} color={colors.primary} />
                 </View>
                 <View style={styles.detailCol}>
-                  <Text style={styles.detailLabel}>TIMEFRAME</Text>
-                  <Text style={styles.detailValue}>
+                  <Text style={[styles.detailLabel, { color: colors.textMuted }]}>TIMEFRAME</Text>
+                  <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
                     {startDate ? startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Past'}
                     {endDate ? ` · Ended ${endDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}` : ''}
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
               <View style={styles.detailRow}>
-                <View style={styles.detailIconBox}>
-                  <Clock size={18} color={COLORS.primary} />
+                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' }]}>
+                  <Clock size={18} color={colors.primary} />
                 </View>
                 <View style={styles.detailCol}>
-                  <Text style={styles.detailLabel}>TOTAL DURATION</Text>
-                  <Text style={styles.detailValue}>{durationStr}</Text>
+                  <Text style={[styles.detailLabel, { color: colors.textMuted }]}>TOTAL DURATION</Text>
+                  <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{durationStr}</Text>
                 </View>
               </View>
 
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
               <View style={styles.detailRow}>
-                <View style={styles.detailIconBox}>
-                  <Users size={18} color={COLORS.primary} />
+                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' }]}>
+                  <Users size={18} color={colors.primary} />
                 </View>
                 <View style={styles.detailCol}>
-                  <Text style={styles.detailLabel}>CREW MEMBERS</Text>
-                  <Text style={styles.detailValue}>
+                  <Text style={[styles.detailLabel, { color: colors.textMuted }]}>CREW MEMBERS</Text>
+                  <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
                     {trip.memberCount || 1} connected members
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
               <View style={styles.detailRow}>
-                <View style={styles.detailIconBox}>
-                  <KeyRound size={18} color={COLORS.primary} />
+                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' }]}>
+                  <KeyRound size={18} color={colors.primary} />
                 </View>
                 <View style={styles.detailCol}>
-                  <Text style={styles.detailLabel}>TRIP CODE</Text>
-                  <Text style={styles.detailValueCode}>{trip.code || trip.trip_code}</Text>
+                  <Text style={[styles.detailLabel, { color: colors.textMuted }]}>TRIP CODE</Text>
+                  <Text style={[styles.detailValueCode, { color: colors.primary }]}>{trip.code || trip.trip_code}</Text>
                 </View>
               </View>
 
               {trip.locationName && (
                 <>
-                  <View style={styles.divider} />
+                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
                   <View style={styles.detailRow}>
-                    <View style={styles.detailIconBox}>
-                      <MapPin size={18} color={COLORS.primary} />
+                    <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' }]}>
+                      <MapPin size={18} color={colors.primary} />
                     </View>
                     <View style={styles.detailCol}>
-                      <Text style={styles.detailLabel}>LOCATION</Text>
-                      <Text style={styles.detailValue}>{trip.locationName}</Text>
+                      <Text style={[styles.detailLabel, { color: colors.textMuted }]}>LOCATION</Text>
+                      <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{trip.locationName}</Text>
                     </View>
                   </View>
                 </>
@@ -181,7 +184,7 @@ export const HistoricalTripModal = ({ visible, trip, onClose }) => {
             </View>
 
             <TouchableOpacity
-              style={styles.doneBtn}
+              style={[styles.doneBtn, { backgroundColor: colors.primary }]}
               onPress={onClose}
               activeOpacity={0.85}
             >

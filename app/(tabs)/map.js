@@ -128,7 +128,7 @@ export default function MapScreen() {
       <SafeAreaView style={styles.emptySafeContainer}>
         <View style={styles.emptyContentBox}>
           <Image
-            source={require('../../assets/ill_map_empty.jpg')}
+            source={require('../../assets/ill_map_empty.png')}
             style={styles.emptyIllustrationImage}
             resizeMode="contain"
           />

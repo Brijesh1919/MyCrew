@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Locate, Plus, Minus, Maximize2, MapPin } from 'lucide-react-native';
-import { COLORS, RADIUS, SHADOWS } from '../constants/theme';
+import { RADIUS, SHADOWS } from '../constants/theme';
+import { useThemeStore } from '../store/useThemeStore';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
 
 export const MapControls = ({
@@ -16,6 +17,8 @@ export const MapControls = ({
   style,
 }) => {
   const { triggerLight } = useHapticFeedback();
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
 
   const handleAction = (callback) => {
     triggerLight();
@@ -24,26 +27,31 @@ export const MapControls = ({
 
   const btnStyle = compact ? styles.btnCompact : styles.btn;
   const singleBtnStyle = compact ? styles.singleBtnCompact : styles.singleBtn;
-  const iconSize = compact ? 15 : 18;
+  const iconSize = compact ? 16 : 18;
+
+  const bgStyle = {
+    backgroundColor: isDark ? 'rgba(22, 27, 34, 0.88)' : 'rgba(255, 255, 255, 0.92)',
+    borderColor: colors.border,
+  };
 
   return (
     <View style={[styles.container, { bottom: bottomOffset }, style]}>
       {/* Zoom In & Out Group */}
-      <View style={[styles.buttonGroup, compact && styles.buttonGroupCompact]}>
+      <View style={[styles.buttonGroup, bgStyle, compact && styles.buttonGroupCompact]}>
         <TouchableOpacity
           style={[btnStyle, styles.btnTop]}
           activeOpacity={0.75}
           onPress={() => handleAction(onZoomIn)}
         >
-          <Plus size={iconSize} color={COLORS.textPrimary} />
+          <Plus size={iconSize} color={colors.textPrimary} />
         </TouchableOpacity>
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.border }]} />
         <TouchableOpacity
           style={[btnStyle, styles.btnBottom]}
           activeOpacity={0.75}
           onPress={() => handleAction(onZoomOut)}
         >
-          <Minus size={iconSize} color={COLORS.textPrimary} />
+          <Minus size={iconSize} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -51,24 +59,25 @@ export const MapControls = ({
       {!compact && (
         <>
           <TouchableOpacity
-            style={singleBtnStyle}
+            style={[singleBtnStyle, bgStyle]}
             activeOpacity={0.75}
             onPress={() => handleAction(onFitGroup)}
           >
-            <Maximize2 size={iconSize} color={COLORS.textPrimary} />
+            <Maximize2 size={iconSize} color={colors.textPrimary} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[
               singleBtnStyle,
-              isMeetingPointsActive && styles.activeBtn,
+              bgStyle,
+              isMeetingPointsActive && { borderColor: colors.primary, backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' },
             ]}
             activeOpacity={0.75}
             onPress={() => handleAction(onToggleMeetingPoints)}
           >
             <MapPin
               size={iconSize}
-              color={isMeetingPointsActive ? COLORS.primary : COLORS.textMuted}
+              color={isMeetingPointsActive ? colors.primary : colors.textMuted}
             />
           </TouchableOpacity>
         </>
@@ -76,11 +85,11 @@ export const MapControls = ({
 
       {/* Recenter on User Location */}
       <TouchableOpacity
-        style={[singleBtnStyle, styles.recenterBtn]}
+        style={[singleBtnStyle, bgStyle, { borderColor: colors.primary }]}
         activeOpacity={0.75}
         onPress={() => handleAction(onRecenter)}
       >
-        <Locate size={iconSize} color={COLORS.primary} />
+        <Locate size={iconSize} color={colors.primary} />
       </TouchableOpacity>
     </View>
   );
@@ -96,10 +105,8 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   buttonGroup: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     marginBottom: 10,
     ...SHADOWS.md,
   },
@@ -119,46 +126,40 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
   },
   singleBtn: {
     width: 40,
     height: 40,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     ...SHADOWS.md,
   },
   activeBtn: {
-    borderColor: COLORS.primaryLight,
-    backgroundColor: '#EFF6FF',
+    borderColor: '#22C55E',
   },
   recenterBtn: {
-    borderColor: COLORS.primaryLight,
+    borderColor: '#22C55E',
   },
   buttonGroupCompact: {
     marginBottom: 6,
   },
   btnCompact: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
   },
   singleBtnCompact: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     ...SHADOWS.md,
   },
 });

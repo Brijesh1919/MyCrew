@@ -20,18 +20,22 @@ import {
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
 import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
-import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { DistanceBadge } from '../../src/components/DistanceBadge';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useUserStore } from '../../src/store/useUserStore';
+import { useThemeStore } from '../../src/store/useThemeStore';
 import { locationService } from '../../src/services/locationService';
 import { formatDistance } from '../../src/utils/distance';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
 export default function ImLostScreen() {
   const router = useRouter();
-  const { triggerDanger, triggerHeavy, triggerLight } = useHapticFeedback();
+  const { triggerHeavy, triggerLight } = useHapticFeedback();
+
+  // Dark/Light Theme
+  const isDark = useThemeStore((state) => state.isDark);
+  const colors = useThemeStore((state) => state.colors);
 
   const members = useCrewStore((state) => state.members);
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
@@ -68,14 +72,33 @@ export default function ImLostScreen() {
   const handleNavigateToClosest = () => {
     if (!closestPerson) return;
     setSelectedMember(closestPerson);
-    router.replace({
-      pathname: '/features/navigation',
-      params: { memberId: closestPerson.id },
-    });
+    const coords = closestPerson.coordinates;
+    if (coords && !isNaN(coords.latitude) && !isNaN(coords.longitude)) {
+      router.replace({
+        pathname: '/(tabs)/home',
+        params: {
+          targetLat: coords.latitude,
+          targetLng: coords.longitude,
+          targetName: closestPerson.name,
+          targetType: 'member',
+          showPath: 'true',
+        },
+      });
+    } else {
+      router.replace({
+        pathname: '/features/navigation',
+        params: { memberId: closestPerson.id },
+      });
+    }
   };
 
   const handleShowEveryone = () => {
-    router.replace('/(tabs)/map');
+    try {
+      triggerLight?.();
+    } catch (e) {
+      // ignore
+    }
+    router.replace('/(tabs)/home');
   };
 
   const handleClose = () => {
@@ -92,24 +115,35 @@ export default function ImLostScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: isDark ? '#0B0F17' : colors.background }]}>
       <View style={styles.container}>
         {/* Top Dismiss Button */}
         <TouchableOpacity
-          style={styles.closeBtn}
+          style={[styles.closeBtn, { backgroundColor: isDark ? '#1F2937' : '#F1F5F9' }]}
           onPress={handleClose}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <X size={22} color={COLORS.textPrimary} />
+          <X size={22} color={isDark ? '#F3F4F6' : colors.textPrimary} />
         </TouchableOpacity>
 
         {/* SOS HEADER */}
         <View style={styles.header}>
-          <View style={styles.sosBadge}>
+          <View
+            style={[
+              styles.sosBadge,
+              {
+                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.16)' : '#FEE2E2',
+                borderColor: isDark ? 'rgba(239, 68, 68, 0.35)' : '#FECACA',
+                borderWidth: 1,
+              },
+            ]}
+          >
             <Text style={styles.sosBadgeText}>🆘 ASSISTANCE MODE</Text>
           </View>
-          <Text style={styles.title}>You're not alone.</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: isDark ? '#F9FAFB' : colors.textPrimary }]}>
+            You're not alone.
+          </Text>
+          <Text style={[styles.subtitle, { color: isDark ? '#9CA3AF' : colors.textSecondary }]}>
             {isScanning
               ? 'Finding the closest people in your crew...'
               : 'Here are the closest friends who can reunite with you right now.'}
@@ -119,15 +153,27 @@ export default function ImLostScreen() {
         {/* SCANNING STATE */}
         {isScanning ? (
           <View style={styles.scanningBox}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.scanningText}>Scanning nearby coordinates...</Text>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.scanningText, { color: isDark ? '#9CA3AF' : colors.textSecondary }]}>
+              Scanning nearby coordinates...
+            </Text>
           </View>
         ) : (
           <View style={styles.content}>
             {!closestPerson ? (
-              <View style={styles.noNearbyBox}>
-                <Text style={styles.noNearbyTitle}>No active crew members nearby</Text>
-                <Text style={styles.noNearbyDesc}>
+              <View
+                style={[
+                  styles.noNearbyBox,
+                  {
+                    backgroundColor: isDark ? '#111827' : '#FFFFFF',
+                    borderColor: isDark ? '#1F2937' : '#E2E8F0',
+                  },
+                ]}
+              >
+                <Text style={[styles.noNearbyTitle, { color: isDark ? '#F9FAFB' : colors.textPrimary }]}>
+                  No active crew members nearby
+                </Text>
+                <Text style={[styles.noNearbyDesc, { color: isDark ? '#9CA3AF' : colors.textSecondary }]}>
                   {!userLocation
                     ? 'Acquiring high accuracy GPS coordinates for your device...'
                     : 'None of your crew members have their location sharing active right now.'}
@@ -136,11 +182,26 @@ export default function ImLostScreen() {
             ) : (
               <>
                 {/* CLOSEST PERSON HERO CARD */}
-                <View style={styles.closestHeroCard}>
+                <View
+                  style={[
+                    styles.closestHeroCard,
+                    {
+                      backgroundColor: isDark ? '#111827' : '#FFFFFF',
+                      borderColor: isDark ? 'rgba(59, 130, 246, 0.35)' : '#BFDBFE',
+                    },
+                  ]}
+                >
                   <View style={styles.closestHeaderRow}>
-                    <View style={styles.closestTag}>
-                      <Sparkles size={12} color={COLORS.primary} />
-                      <Text style={styles.closestTagText}>CLOSEST TO YOU</Text>
+                    <View
+                      style={[
+                        styles.closestTag,
+                        {
+                          backgroundColor: isDark ? 'rgba(59, 130, 246, 0.18)' : COLORS.primaryLight,
+                        },
+                      ]}
+                    >
+                      <Sparkles size={12} color="#3B82F6" />
+                      <Text style={[styles.closestTagText, { color: '#3B82F6' }]}>CLOSEST TO YOU</Text>
                     </View>
                     <DistanceBadge meters={closestPerson.distanceMeters} isHighlight={true} size="lg" />
                   </View>
@@ -153,8 +214,10 @@ export default function ImLostScreen() {
                       status={closestPerson.status}
                     />
                     <View style={styles.heroInfo}>
-                      <Text style={styles.heroName}>{closestPerson.name}</Text>
-                      <Text style={styles.heroSub}>
+                      <Text style={[styles.heroName, { color: isDark ? '#F9FAFB' : colors.textPrimary }]}>
+                        {closestPerson.name}
+                      </Text>
+                      <Text style={[styles.heroSub, { color: isDark ? '#9CA3AF' : colors.textSecondary }]}>
                         {closestPerson.distanceMeters} meters away • Live
                       </Text>
                       <Text style={styles.heroTime}>
@@ -175,19 +238,50 @@ export default function ImLostScreen() {
                 {/* OTHER NEARBY MEMBERS LIST */}
                 {nearestList.length > 1 && (
                   <>
-                    <Text style={styles.sectionLabel}>ALSO NEARBY</Text>
-                    <View style={styles.othersList}>
+                    <Text style={[styles.sectionLabel, { color: isDark ? '#9CA3AF' : colors.textSecondary }]}>
+                      ALSO NEARBY
+                    </Text>
+                    <View
+                      style={[
+                        styles.othersList,
+                        {
+                          backgroundColor: isDark ? '#111827' : '#FFFFFF',
+                          borderColor: isDark ? '#1F2937' : '#E2E8F0',
+                        },
+                      ]}
+                    >
                       {nearestList.slice(1).map((m, idx) => (
                         <React.Fragment key={m.id}>
-                          {idx > 0 && <View style={styles.otherDivider} />}
+                          {idx > 0 && (
+                            <View
+                              style={[
+                                styles.otherDivider,
+                                { backgroundColor: isDark ? '#1F2937' : '#F1F5F9' },
+                              ]}
+                            />
+                          )}
                           <TouchableOpacity
                             style={styles.otherItem}
                             onPress={() => {
                               setSelectedMember(m);
-                              router.replace({
-                                pathname: '/features/navigation',
-                                params: { memberId: m.id },
-                              });
+                              const mCoords = m.coordinates;
+                              if (mCoords && !isNaN(mCoords.latitude) && !isNaN(mCoords.longitude)) {
+                                router.replace({
+                                  pathname: '/(tabs)/home',
+                                  params: {
+                                    targetLat: mCoords.latitude,
+                                    targetLng: mCoords.longitude,
+                                    targetName: m.name,
+                                    targetType: 'member',
+                                    showPath: 'true',
+                                  },
+                                });
+                              } else {
+                                router.replace({
+                                  pathname: '/features/navigation',
+                                  params: { memberId: m.id },
+                                });
+                              }
                             }}
                           >
                             <MemberAvatar
@@ -197,14 +291,16 @@ export default function ImLostScreen() {
                               status={m.status}
                             />
                             <View style={styles.otherInfo}>
-                              <Text style={styles.otherName}>{m.name}</Text>
-                              <Text style={styles.otherDist}>
+                              <Text style={[styles.otherName, { color: isDark ? '#F9FAFB' : colors.textPrimary }]}>
+                                {m.name}
+                              </Text>
+                              <Text style={[styles.otherDist, { color: isDark ? '#9CA3AF' : colors.textSecondary }]}>
                                 {m.distanceMeters !== null && m.distanceMeters !== undefined
                                   ? `${formatDistance(m.distanceMeters)} away`
                                   : 'Location unavailable'}
                               </Text>
                             </View>
-                            <ChevronRight size={16} color={COLORS.textMuted} />
+                            <ChevronRight size={16} color={isDark ? '#6B7280' : COLORS.textMuted} />
                           </TouchableOpacity>
                         </React.Fragment>
                       ))}
@@ -216,14 +312,24 @@ export default function ImLostScreen() {
           </View>
         )}
 
-        {/* BOTTOM ACTION */}
+        {/* BOTTOM ACTION: SHOW EVERYONE ON MAP */}
         <View style={styles.bottomSection}>
-          <SecondaryButton
-            title="Show Everyone on Map"
+          <TouchableOpacity
+            style={[
+              styles.showEveryoneBtn,
+              {
+                backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+                borderColor: isDark ? '#374151' : '#CBD5E1',
+              },
+            ]}
+            activeOpacity={0.8}
             onPress={handleShowEveryone}
-            size="md"
-            variant="outline"
-          />
+          >
+            <Compass size={18} color={isDark ? '#F9FAFB' : colors.primary} style={{ marginRight: 8 }} />
+            <Text style={[styles.showEveryoneBtnText, { color: isDark ? '#F9FAFB' : colors.primary }]}>
+              Show Everyone on Map
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -233,7 +339,6 @@ export default function ImLostScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FAFAF9',
   },
   container: {
     flex: 1,
@@ -244,7 +349,6 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'flex-end',
@@ -254,7 +358,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sosBadge: {
-    backgroundColor: '#FEE2E2',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: RADIUS.pill,
@@ -263,13 +366,15 @@ const styles = StyleSheet.create({
   },
   sosBadgeText: {
     ...TYPOGRAPHY.badge,
-    color: COLORS.danger,
+    color: '#EF4444',
     fontSize: 11,
+    fontWeight: '800',
   },
   title: {
     ...TYPOGRAPHY.h1,
     fontSize: 28,
     marginBottom: 6,
+    fontWeight: '800',
   },
   subtitle: {
     ...TYPOGRAPHY.bodySecondary,
@@ -289,11 +394,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   closestHeroCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xxl,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
     marginBottom: 20,
     ...SHADOWS.md,
   },
@@ -306,16 +409,15 @@ const styles = StyleSheet.create({
   closestTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: RADIUS.pill,
   },
   closestTagText: {
     ...TYPOGRAPHY.badge,
-    color: COLORS.primary,
     marginLeft: 4,
     fontSize: 10,
+    fontWeight: '800',
   },
   personHeroRow: {
     flexDirection: 'row',
@@ -327,17 +429,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   heroName: {
-    ...TYPOGRAPHY.h1,
     fontSize: 22,
+    fontWeight: '800',
   },
   heroSub: {
     ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
     marginTop: 2,
   },
   heroTime: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.success,
+    color: '#22C55E',
     fontWeight: '700',
     marginTop: 4,
   },
@@ -346,16 +447,13 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     ...TYPOGRAPHY.badge,
-    color: COLORS.textSecondary,
     fontSize: 11,
     marginBottom: 10,
     letterSpacing: 0.5,
   },
   othersList: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
     overflow: 'hidden',
     ...SHADOWS.sm,
   },
@@ -368,7 +466,6 @@ const styles = StyleSheet.create({
   },
   otherDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
     marginLeft: 60,
   },
   otherInfo: {
@@ -381,35 +478,44 @@ const styles = StyleSheet.create({
   },
   otherDist: {
     ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
     marginTop: 2,
   },
   noNearbyBox: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
     marginTop: 20,
     ...SHADOWS.sm,
   },
   noNearbyTitle: {
     ...TYPOGRAPHY.h3,
     fontSize: 16,
-    color: COLORS.textPrimary,
     marginBottom: 6,
     textAlign: 'center',
+    fontWeight: '700',
   },
   noNearbyDesc: {
     ...TYPOGRAPHY.bodySecondary,
     fontSize: 13,
-    color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
   },
   bottomSection: {
     paddingTop: 12,
+  },
+  showEveryoneBtn: {
+    height: 48,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+  },
+  showEveryoneBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

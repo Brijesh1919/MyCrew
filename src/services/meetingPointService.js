@@ -7,7 +7,24 @@ import { calculateDistanceMeters } from '../utils/distance';
 
 class MeetingPointService {
   constructor() {
-    this.meetingPoints = [];
+    this.meetingPoints = [
+      {
+        id: 'mp_goa_default',
+        tripId: 'trip_goa_001',
+        name: 'Main Beach Entrance Gate',
+        description: 'Wait near the blue umbrella entrance beside the lifeguard tower',
+        landmarkNote: 'Wait near the blue umbrella entrance beside the lifeguard tower',
+        scheduledTime: '9:30 PM after dinner',
+        createdBy: 'Rahul (Organizer)',
+        createdById: 'rahul_01',
+        createdAt: new Date().toISOString(),
+        coordinates: { latitude: 15.2998, longitude: 74.1245 },
+        latitude: 15.2998,
+        longitude: 74.1245,
+        radiusMeters: 500,
+        nearbyCount: 4,
+      },
+    ];
   }
 
   getMeetingPoints() {
@@ -36,15 +53,21 @@ class MeetingPointService {
       return d <= (row.radius_meters || 500);
     }).length;
 
+    const note = row.description || '';
+
     return {
       id: row.id,
       tripId: row.trip_id,
       name: row.name,
-      description: row.description || '',
+      description: note,
+      landmarkNote: note,
+      scheduledTime: row.scheduled_time || 'Whenever separated',
       createdBy: row.created_by_name || 'Crew Member',
       createdById: row.created_by || null,
       createdAt: row.created_at,
       coordinates: coords,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
       radiusMeters: row.radius_meters || 500,
       nearbyCount: Math.max(1, nearbyCount),
     };
@@ -82,13 +105,29 @@ class MeetingPointService {
   /**
    * Creates a meeting point in Supabase and local store
    */
-  async createMeetingPoint(
-    { tripId, name, description, createdBy, createdById, coordinates, radiusMeters = 500 },
-    members = []
-  ) {
-    const nearbyCount = members.filter((m) => {
+  async createMeetingPoint(pointData, members = []) {
+    const {
+      tripId,
+      name,
+      description,
+      landmarkNote,
+      scheduledTime,
+      createdBy,
+      createdById,
+      coordinates,
+      radiusMeters = 500,
+    } = pointData;
+
+    const coords = coordinates || {
+      latitude: Number(pointData.latitude || 15.2993),
+      longitude: Number(pointData.longitude || 74.1240),
+    };
+
+    const note = (landmarkNote || description || '').trim();
+
+    const nearbyCount = (members || []).filter((m) => {
       if (!m.coordinates) return false;
-      const d = calculateDistanceMeters(coordinates, m.coordinates);
+      const d = calculateDistanceMeters(coords, m.coordinates);
       return d <= radiusMeters;
     }).length;
 
@@ -96,12 +135,16 @@ class MeetingPointService {
     const localPoint = {
       id: `mp_${Date.now()}`,
       tripId: tripId || null,
-      name: name.trim() || 'Regroup Point',
-      description: description?.trim() || '',
+      name: (name || 'Regroup Point').trim(),
+      description: note,
+      landmarkNote: note,
+      scheduledTime: scheduledTime?.trim() || 'Whenever separated',
       createdBy: createdBy || 'You',
       createdById: createdById || 'me',
       createdAt: new Date().toISOString(),
-      coordinates,
+      coordinates: coords,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
       radiusMeters,
       nearbyCount: Math.max(1, nearbyCount),
     };
@@ -110,12 +153,12 @@ class MeetingPointService {
       try {
         const payload = {
           trip_id: tripId,
-          name: name.trim() || 'Regroup Point',
-          description: description?.trim() || null,
+          name: (name || 'Regroup Point').trim(),
+          description: note || null,
           created_by: createdById && createdById !== 'me' ? createdById : null,
           created_by_name: createdBy || 'You',
-          latitude: Number(coordinates.latitude),
-          longitude: Number(coordinates.longitude),
+          latitude: Number(coords.latitude),
+          longitude: Number(coords.longitude),
           radius_meters: radiusMeters,
         };
 

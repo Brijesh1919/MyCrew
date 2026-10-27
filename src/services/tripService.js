@@ -477,7 +477,7 @@ class TripService {
         .order('created_at', { ascending: false });
 
       if (ownedError) {
-        console.error('getUserTrips ownedTrips error:', ownedError);
+        console.warn('getUserTrips ownedTrips error:', ownedError);
       }
 
       // 2. Fetch memberships joined by the user
@@ -488,7 +488,7 @@ class TripService {
         .order('joined_at', { ascending: false });
 
       if (memberError) {
-        console.error('getUserTrips memberships error:', memberError);
+        console.warn('getUserTrips memberships error:', memberError);
       }
 
       // Combine and deduplicate

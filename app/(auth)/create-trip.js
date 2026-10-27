@@ -32,11 +32,14 @@ import { BottomSheet } from '../../src/components/BottomSheet';
 import { QRCodeView } from '../../src/components/QRCodeView';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useUserStore } from '../../src/store/useUserStore';
+import { useThemeStore } from '../../src/store/useThemeStore';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
 export default function CreateTripScreen() {
   const router = useRouter();
   const { triggerSuccess, triggerLight, triggerWarning } = useHapticFeedback();
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
   const createTrip = useTripStore((state) => state.createTrip);
   const activeTrip = useTripStore((state) => state.activeTrip);
   const userRole = useTripStore((state) => state.userRole);
@@ -144,7 +147,7 @@ export default function CreateTripScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <AppHeader
         title={step === 5 ? 'Trip Created!' : 'Create Your Trip'}
         subtitle={step === 5 ? 'Share code with friends' : `Step ${step} of 4`}
@@ -164,25 +167,25 @@ export default function CreateTripScreen() {
       >
         {/* STEP 1: TRIP NAME */}
         {step === 1 && (
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             {hasActiveTrip && (
-              <View style={styles.activeTripNotice}>
-                <AlertTriangle size={16} color={COLORS.warning} />
-                <Text style={styles.activeTripNoticeText}>
+              <View style={[styles.activeTripNotice, { backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : COLORS.warningBg, borderColor: isDark ? 'rgba(245, 158, 11, 0.3)' : '#FDE68A' }]}>
+                <AlertTriangle size={16} color={colors.warning} />
+                <Text style={[styles.activeTripNoticeText, { color: isDark ? '#FDE68A' : '#92400E' }]}>
                   Notice: Creating this trip will replace your active crew "{activeTrip?.name}".
                 </Text>
               </View>
             )}
 
-            <Text style={styles.stepTitle}>What's the occasion?</Text>
-            <Text style={styles.stepDesc}>
+            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>What's the occasion?</Text>
+            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
               Give your temporary crew a memorable name.
             </Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.surfaceSubtle, color: colors.textPrimary, borderColor: colors.border }]}
               placeholder="e.g. Goa Trip, Sunburn Festival, Rahul's Wedding"
-              placeholderTextColor={COLORS.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={tripName}
               onChangeText={setTripName}
               autoFocus
@@ -207,9 +210,9 @@ export default function CreateTripScreen() {
 
         {/* STEP 2: TRIP TYPE */}
         {step === 2 && (
-          <View style={styles.card}>
-            <Text style={styles.stepTitle}>Select trip category</Text>
-            <Text style={styles.stepDesc}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Select trip category</Text>
+            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
               Optimizes tracking accuracy and map icons for your outing.
             </Text>
 
@@ -221,7 +224,8 @@ export default function CreateTripScreen() {
                     key={t.id}
                     style={[
                       styles.typeItem,
-                      isSelected && styles.typeItemSelected,
+                      { backgroundColor: colors.surfaceSubtle, borderColor: isSelected ? colors.primary : colors.border },
+                      isSelected && { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF' },
                     ]}
                     onPress={() => setSelectedType(t.id)}
                     activeOpacity={0.75}
@@ -230,6 +234,7 @@ export default function CreateTripScreen() {
                     <Text
                       style={[
                         styles.typeLabel,
+                        { color: isSelected ? colors.primary : colors.textPrimary },
                         isSelected && styles.typeLabelSelected,
                       ]}
                     >
@@ -250,37 +255,41 @@ export default function CreateTripScreen() {
 
         {/* STEP 3: DURATION */}
         {step === 3 && (
-          <View style={styles.card}>
-            <Text style={styles.stepTitle}>How long will you be together?</Text>
-            <Text style={styles.stepDesc}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>How long will you be together?</Text>
+            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
               MyCrew trips expire automatically so nobody is tracked forever.
             </Text>
 
             <View style={styles.durationOptions}>
-              {['3', '6', '12', '24', '48'].map((hr) => (
-                <TouchableOpacity
-                  key={hr}
-                  style={[
-                    styles.durationPill,
-                    durationHours === hr && styles.durationPillActive,
-                  ]}
-                  onPress={() => setDurationHours(hr)}
-                >
-                  <Text
+              {['3', '6', '12', '24', '48'].map((hr) => {
+                const isSelected = durationHours === hr;
+                return (
+                  <TouchableOpacity
+                    key={hr}
                     style={[
-                      styles.durationTxt,
-                      durationHours === hr && styles.durationTxtActive,
+                      styles.durationPill,
+                      { backgroundColor: isSelected ? (isDark ? 'rgba(34, 197, 94, 0.18)' : colors.primaryLight) : colors.surfaceSubtle, borderColor: isSelected ? colors.primary : colors.border },
                     ]}
+                    onPress={() => setDurationHours(hr)}
                   >
-                    {hr} hours
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.durationTxt,
+                        { color: isSelected ? colors.primary : colors.textSecondary },
+                        isSelected && styles.durationTxtActive,
+                      ]}
+                    >
+                      {hr} hours
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
-            <View style={styles.autoExpireNotice}>
-              <Clock size={16} color={COLORS.primary} />
-              <Text style={styles.expireNoticeText}>
+            <View style={[styles.autoExpireNotice, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
+              <Clock size={16} color={colors.primary} />
+              <Text style={[styles.expireNoticeText, { color: colors.primary }]}>
                 Trip will expire in {durationHours} hours. Location sharing will stop automatically.
               </Text>
             </View>
@@ -295,9 +304,9 @@ export default function CreateTripScreen() {
 
         {/* STEP 4: VISIBILITY */}
         {step === 4 && (
-          <View style={styles.card}>
-            <Text style={styles.stepTitle}>Who can see me?</Text>
-            <Text style={styles.stepDesc}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Who can see me?</Text>
+            <Text style={[styles.stepDesc, { color: colors.textSecondary }]}>
               Choose who can see your live marker inside this trip.
             </Text>
 
@@ -317,33 +326,36 @@ export default function CreateTripScreen() {
                 title: 'Selected people',
                 desc: 'Custom permissions per friend',
               },
-            ].map((option) => (
-              <TouchableOpacity
-                key={option.id}
-                style={[
-                  styles.visOption,
-                  visibility === option.id && styles.visOptionActive,
-                ]}
-                onPress={() => setVisibility(option.id)}
-              >
-                <View style={styles.visRadio}>
-                  {visibility === option.id && <View style={styles.visRadioInner} />}
-                </View>
-                <View style={styles.visTextContainer}>
-                  <Text style={styles.visTitle}>{option.title}</Text>
-                  <Text style={styles.visDesc}>{option.desc}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+            ].map((option) => {
+              const isSelected = visibility === option.id;
+              return (
+                <TouchableOpacity
+                  key={option.id}
+                  style={[
+                    styles.visOption,
+                    { backgroundColor: isSelected ? (isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF') : colors.surfaceSubtle, borderColor: isSelected ? colors.primary : colors.border },
+                  ]}
+                  onPress={() => setVisibility(option.id)}
+                >
+                  <View style={[styles.visRadio, { borderColor: isSelected ? colors.primary : colors.textMuted }]}>
+                    {isSelected && <View style={[styles.visRadioInner, { backgroundColor: colors.primary }]} />}
+                  </View>
+                  <View style={styles.visTextContainer}>
+                    <Text style={[styles.visTitle, { color: colors.textPrimary }]}>{option.title}</Text>
+                    <Text style={[styles.visDesc, { color: colors.textSecondary }]}>{option.desc}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
 
             {createError ? (
-              <View style={styles.errorBox}>
-                <AlertCircle size={18} color={COLORS.danger} />
+              <View style={[styles.errorBox, { backgroundColor: colors.dangerBg, borderColor: colors.danger }]}>
+                <AlertCircle size={18} color={colors.danger} />
                 <View style={{ flex: 1, marginLeft: 8 }}>
-                  <Text style={styles.errorTitle}>Couldn't create your trip</Text>
-                  <Text style={styles.errorSub}>{createError}</Text>
+                  <Text style={[styles.errorTitle, { color: colors.danger }]}>Couldn't create your trip</Text>
+                  <Text style={[styles.errorSub, { color: colors.danger }]}>{createError}</Text>
                 </View>
-                <TouchableOpacity onPress={handleCreate} style={styles.retryBtn}>
+                <TouchableOpacity onPress={handleCreate} style={[styles.retryBtn, { backgroundColor: colors.danger }]}>
                   <Text style={styles.retryBtnText}>Try Again</Text>
                 </TouchableOpacity>
               </View>
@@ -362,20 +374,20 @@ export default function CreateTripScreen() {
 
         {/* STEP 5: SUCCESS / CREATED CODE & QR */}
         {step === 5 && createdTrip && (
-          <View style={styles.card}>
-            <View style={styles.successIconBubble}>
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.successIconBubble, { backgroundColor: colors.success }]}>
               <Check size={32} color={COLORS.white} />
             </View>
 
-            <Text style={styles.successHeading}>Your Crew is Ready!</Text>
-            <Text style={styles.successSub}>
+            <Text style={[styles.successHeading, { color: colors.textPrimary }]}>Your Crew is Ready!</Text>
+            <Text style={[styles.successSub, { color: colors.textSecondary }]}>
               Share this code or QR code with friends to join {createdTrip.name}.
             </Text>
 
             {/* Trip Code Box */}
-            <View style={styles.codeContainer}>
-              <Text style={styles.codeLabel}>CREW TRIP CODE</Text>
-              <Text style={styles.codeDisplay}>{createdTrip.code}</Text>
+            <View style={[styles.codeContainer, { backgroundColor: colors.surfaceSubtle, borderColor: colors.primary }]}>
+              <Text style={[styles.codeLabel, { color: colors.textSecondary }]}>CREW TRIP CODE</Text>
+              <Text style={[styles.codeDisplay, { color: colors.primary }]}>{createdTrip.code}</Text>
             </View>
 
             {/* Dynamic Scannable QR Code */}
@@ -415,22 +427,22 @@ export default function CreateTripScreen() {
       >
         <View style={styles.warningModalContent}>
           <View style={styles.warningIconCircle}>
-            <AlertTriangle size={32} color={COLORS.warning} />
+            <AlertTriangle size={32} color={colors.warning} />
           </View>
 
-          <Text style={styles.warningModalTitle}>
+          <Text style={[styles.warningModalTitle, { color: colors.textPrimary }]}>
             You already have an active trip
           </Text>
 
-          <View style={styles.currentTripBadge}>
-            <Text style={styles.currentTripBadgeLabel}>CURRENT ACTIVE CREW</Text>
-            <Text style={styles.currentTripBadgeName}>{activeTrip?.name}</Text>
-            <Text style={styles.currentTripBadgeRole}>
+          <View style={[styles.currentTripBadge, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
+            <Text style={[styles.currentTripBadgeLabel, { color: colors.textMuted }]}>CURRENT ACTIVE CREW</Text>
+            <Text style={[styles.currentTripBadgeName, { color: colors.textPrimary }]}>{activeTrip?.name}</Text>
+            <Text style={[styles.currentTripBadgeRole, { color: colors.textSecondary }]}>
               Your Role: {userRole === 'organizer' ? 'Trip Organizer / Host' : 'Crew Member'}
             </Text>
           </View>
 
-          <Text style={styles.warningModalDesc}>
+          <Text style={[styles.warningModalDesc, { color: colors.textSecondary }]}>
             {userRole === 'organizer'
               ? `Creating a new trip will automatically end "${activeTrip?.name}" and stop live location sharing for all participants.`
               : `Creating a new trip will remove you from "${activeTrip?.name}" and stop sharing your live location with that crew.`}
@@ -452,8 +464,8 @@ export default function CreateTripScreen() {
             }}
             size="md"
             variant="outline"
-            style={{ borderColor: COLORS.danger }}
-            textStyle={{ color: COLORS.danger, fontWeight: '700' }}
+            style={{ borderColor: colors.danger }}
+            textStyle={{ color: colors.danger, fontWeight: '700' }}
           />
         </View>
       </BottomSheet>

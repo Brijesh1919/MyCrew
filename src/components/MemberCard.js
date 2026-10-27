@@ -1,23 +1,20 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { ChevronRight, ShieldCheck, BatteryWarning } from 'lucide-react-native';
-import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../constants/theme';
-import { MemberAvatar } from './MemberAvatar';
-import { StatusBadge } from './StatusBadge';
-import { DistanceBadge } from './DistanceBadge';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
+import { useThemeStore } from '../store/useThemeStore';
 
 export const MemberCard = ({
   member,
   distanceMeters,
   onPress,
-  showNavigateAction = false,
-  onNavigate,
+  onChatPress,
   isHighlighted = false,
   isCurrentUser = false,
   variant = 'row',
 }) => {
   const { triggerLight } = useHapticFeedback();
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
 
   const handlePress = () => {
     triggerLight();
@@ -25,74 +22,95 @@ export const MemberCard = ({
   };
 
   const isOrganizer = member.role === 'organizer' || member.isOrganizer;
+  const isLive = member.status === 'live';
+  const isDelayed = member.status === 'delayed';
+  const statusColor = isLive ? '#22C55E' : isDelayed ? '#F59E0B' : '#64748B';
+
+  // Last seen text
+  const lastSeenText = isLive
+    ? `Live ${member.lastSeenSecondsAgo ? `${member.lastSeenSecondsAgo}s ago` : 'now'}`
+    : isDelayed
+    ? `Delayed ${member.lastSeenSecondsAgo ? `${Math.round(member.lastSeenSecondsAgo / 60)}m ago` : ''}`
+    : 'Offline';
+
+  const batteryText = member.battery !== undefined && member.battery !== null
+    ? `${member.battery}% battery`
+    : member.status !== 'offline' ? '84% battery' : '';
+
+  const subtitle = member.status === 'offline'
+    ? 'Offline · Sharing paused'
+    : `${lastSeenText}${batteryText ? ` · ${batteryText}` : ''}`;
+
+  // Formatted distance (e.g. 82m, 184m, 1.2km)
+  const formatDist = (meters) => {
+    if (meters === undefined || meters === null || isNaN(meters)) return '';
+    const m = Math.round(meters);
+    if (m < 1000) return `${m}m`;
+    return `${(m / 1000).toFixed(1)}km`;
+  };
+
+  const distFormatted = formatDist(distanceMeters);
+
+  // Avatar initial letter
+  const initial = (member.name || 'M').charAt(0).toUpperCase();
 
   return (
     <TouchableOpacity
-      activeOpacity={0.78}
+      activeOpacity={0.7}
       onPress={handlePress}
       style={[
-        variant === 'card' ? styles.card : styles.row,
-        isHighlighted && (variant === 'card' ? styles.cardHighlighted : styles.rowHighlighted),
-        isCurrentUser && (variant === 'card' ? styles.cardCurrentUser : styles.rowCurrentUser),
+        styles.row,
+        { borderBottomColor: isDark ? '#1F2937' : colors.divider },
+        isHighlighted && [
+          styles.rowHighlighted,
+          { borderColor: isDark ? '#374151' : colors.primary, backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(34, 197, 94, 0.08)' }
+        ],
       ]}
     >
-      <View style={styles.leftRow}>
-        <MemberAvatar
-          uri={member.avatar}
-          name={member.name}
-          size="md"
-          status={member.status}
-        />
-        <View style={styles.info}>
-          <View style={styles.nameRow}>
-            <Text style={styles.name} numberOfLines={1}>
-              {member.name}
-            </Text>
-            {isCurrentUser && (
-              <View style={styles.youBadge}>
-                <Text style={styles.youBadgeText}>YOU</Text>
-              </View>
-            )}
-            {isOrganizer ? (
-              <View style={styles.organizerBadge}>
-                <Text style={styles.organizerText}>HOST</Text>
-              </View>
-            ) : !isCurrentUser ? (
-              <View style={styles.crewBadge}>
-                <Text style={styles.crewBadgeText}>CREW</Text>
-              </View>
-            ) : null}
-            {member.isSafe && (
-              <ShieldCheck size={14} color={COLORS.success} style={styles.safeIcon} />
-            )}
+      {/* Left: Avatar with Status Dot */}
+      <View style={styles.avatarWrap}>
+        {member.avatar ? (
+          <Image source={{ uri: member.avatar }} style={styles.avatarImg} />
+        ) : (
+          <View style={[styles.avatarCircle, { backgroundColor: isDark ? '#1E293B' : '#E2E8F0' }]}>
+            <Text style={[styles.avatarInitial, { color: isDark ? '#F9FAFB' : '#1E293B' }]}>{initial}</Text>
           </View>
-          <View style={styles.statusRow}>
-            <StatusBadge
-              status={member.status}
-              lastSeenSecondsAgo={member.lastSeenSecondsAgo}
-              size="sm"
-            />
-            {member.battery !== null && member.battery !== undefined && member.battery <= 20 && (
-              <View style={styles.lowBatteryBadge}>
-                <BatteryWarning size={12} color={COLORS.danger} />
-                <Text style={styles.lowBatteryText}>{member.battery}%</Text>
-              </View>
-            )}
-            {member.cluster && member.cluster !== 'Active Crew' && member.status !== 'offline' && (
-              <Text style={styles.clusterText} numberOfLines={1}>
-                • {member.cluster}
-              </Text>
-            )}
-          </View>
+        )}
+        <View style={[styles.statusDot, { backgroundColor: statusColor, borderColor: isDark ? '#0B0F17' : '#FFFFFF' }]} />
+      </View>
+
+      {/* Center: Info */}
+      <View style={styles.infoCol}>
+        <View style={styles.nameRow}>
+          <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
+            {member.name}
+          </Text>
+          {isOrganizer && (
+            <View style={[styles.organizerBadge, { backgroundColor: isDark ? '#1E293B' : '#FEF3C7', borderColor: isDark ? '#334155' : '#FDE68A' }]}>
+              <Text style={[styles.organizerText, { color: isDark ? '#94A3B8' : '#B45309' }]}>ORGANIZER</Text>
+            </View>
+          )}
+          {isCurrentUser && (
+            <View style={[styles.youBadge, { backgroundColor: 'rgba(34, 197, 94, 0.15)', borderColor: 'rgba(34, 197, 94, 0.3)' }]}>
+              <Text style={styles.youText}>YOU</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.subRow}>
+          <View style={[styles.inlineStatusDot, { backgroundColor: statusColor }]} />
+          <Text style={[styles.subText, { color: colors.textSecondary }]} numberOfLines={1}>
+            {subtitle}
+          </Text>
         </View>
       </View>
 
-      <View style={styles.rightRow}>
-        {!isCurrentUser && distanceMeters !== undefined && distanceMeters !== null && member.status !== 'offline' && (
-          <DistanceBadge meters={distanceMeters} isHighlight={isHighlighted} />
-        )}
-        <ChevronRight size={18} color={COLORS.textMuted} style={styles.chevron} />
-      </View>
+      {/* Right: Distance */}
+      {distFormatted && member.status !== 'offline' ? (
+        <Text style={[styles.distanceText, { color: colors.textPrimary }]}>
+          {distFormatted}
+        </Text>
+      ) : null}
     </TouchableOpacity>
   );
 };
@@ -101,136 +119,101 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.surface,
     paddingVertical: 13,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    minHeight: 58,
   },
   rowHighlighted: {
-    backgroundColor: '#F0F7FF',
-  },
-  rowCurrentUser: {
-    backgroundColor: '#F8FAFC',
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.surface,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: RADIUS.lg,
-    marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    ...SHADOWS.sm,
+    borderRadius: 10,
+    marginVertical: 2,
   },
-  cardHighlighted: {
-    borderColor: '#BFDBFE',
-    backgroundColor: '#F8FAFF',
+  avatarWrap: {
+    position: 'relative',
+    marginRight: 14,
   },
-  cardCurrentUser: {
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-  },
-  leftRow: {
-    flexDirection: 'row',
+  avatarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
     alignItems: 'center',
-    flex: 1,
   },
-  info: {
-    marginLeft: 12,
+  avatarImg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  avatarInitial: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    position: 'absolute',
+    bottom: -1,
+    right: -1,
+  },
+  infoCol: {
     flex: 1,
+    justifyContent: 'center',
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   name: {
-    ...TYPOGRAPHY.h3,
     fontSize: 16,
-  },
-  youBadge: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginLeft: 6,
-  },
-  youBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: COLORS.white,
-    letterSpacing: 0.5,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   organizerBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginLeft: 6,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  organizerText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#B45309',
-    letterSpacing: 0.5,
-  },
-  crewBadge: {
-    backgroundColor: '#F1F5F9',
     paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginLeft: 6,
-  },
-  crewBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  safeIcon: {
-    marginLeft: 6,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  lowBatteryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginLeft: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    gap: 3,
-  },
-  lowBatteryText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: COLORS.danger,
-  },
-  clusterText: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginLeft: 6,
-    fontSize: 11,
-    flex: 1,
-  },
-  rightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginLeft: 8,
   },
-  chevron: {
-    marginLeft: 6,
+  organizerText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  youBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+    borderWidth: 1,
+    marginLeft: 8,
+  },
+  youText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#22C55E',
+    letterSpacing: 0.6,
+  },
+  subRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+  },
+  inlineStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  subText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  distanceText: {
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    marginLeft: 10,
   },
 });

@@ -28,8 +28,10 @@ import {
   History,
   Layers,
   ChevronRight,
+  ChevronLeft,
 } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
+import { useThemeStore } from '../../src/store/useThemeStore';
 import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { BottomSheet } from '../../src/components/BottomSheet';
@@ -47,6 +49,8 @@ import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 export default function TripScreen() {
   const router = useRouter();
   const { triggerSuccess, triggerLight, triggerWarning } = useHapticFeedback();
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
 
   // Stores
   const activeTrip = useTripStore((state) => state.activeTrip);
@@ -111,23 +115,41 @@ export default function TripScreen() {
     const hasHistory = tripHistory && tripHistory.length > 0;
 
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
+        {/* Top Header with Back Button */}
+        <View style={[styles.header, { paddingHorizontal: 16, paddingTop: 8, marginBottom: 4 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/home')}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <ChevronLeft size={22} color={colors.textPrimary} />
+            </TouchableOpacity>
+            <View style={{ marginLeft: 10 }}>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>Trip History</Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Past and completed crew trips</Text>
+            </View>
+          </View>
+        </View>
+
         <ScrollView
-          style={styles.container}
+          style={[styles.container, { backgroundColor: colors.background }]}
           contentContainerStyle={styles.emptyScrollContent}
           showsVerticalScrollIndicator={false}
         >
           {/* Main Empty State Box */}
-          <View style={styles.emptyContainer}>
+          <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Image
-              source={require('../../assets/ill_trip_empty.jpg')}
+              source={require('../../assets/ill_trip_empty.png')}
               style={styles.emptyIllustrationImage}
               resizeMode="contain"
             />
-            <Text style={styles.emptyTitle}>
+            <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
               {hasHistory ? "You're not in a crew right now." : "You're not in a crew yet."}
             </Text>
-            <Text style={styles.emptyDesc}>
+            <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
               Join a trip with your friends or create one to get started.
             </Text>
 
@@ -151,8 +173,8 @@ export default function TripScreen() {
           {hasHistory && (
             <View style={styles.historySection}>
               <View style={styles.historySectionHeader}>
-                <Text style={styles.sectionLabel}>TRIP HISTORY</Text>
-                <Text style={styles.historyCountText}>{tripHistory.length} previous</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>TRIP HISTORY</Text>
+                <Text style={[styles.historyCountText, { color: colors.textSecondary }]}>{tripHistory.length} previous</Text>
               </View>
 
               <View style={styles.historyGroupContainer}>
@@ -185,98 +207,108 @@ export default function TripScreen() {
   const hasMultipleActive = activeTripsList && activeTripsList.length > 1;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Top Header */}
+        {/* Top Header with Back button */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Active Crew</Text>
-            <Text style={styles.subtitle}>Temporary trip coordination</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/home')}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <ChevronLeft size={22} color={colors.textPrimary} />
+            </TouchableOpacity>
+            <View style={{ marginLeft: 10 }}>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>Active Crew</Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Temporary trip coordination</Text>
+            </View>
           </View>
 
           <View style={styles.headerRightActions}>
             {hasMultipleActive && (
               <TouchableOpacity
-                style={styles.switchCrewBtn}
+                style={[styles.switchCrewBtn, { backgroundColor: colors.surfaceSubtle }]}
                 onPress={() => setShowPickerModal(true)}
                 activeOpacity={0.8}
               >
-                <Layers size={14} color={COLORS.primary} />
-                <Text style={styles.switchCrewText}>Switch ({activeTripsList.length})</Text>
+                <Layers size={14} color={colors.primary} />
+                <Text style={[styles.switchCrewText, { color: colors.primary }]}>Switch ({activeTripsList.length})</Text>
               </TouchableOpacity>
             )}
 
             <TouchableOpacity
-              style={styles.newTripBtn}
+              style={[styles.newTripBtn, { backgroundColor: colors.surfaceSubtle }]}
               onPress={() => router.push('/(auth)/create-trip')}
               activeOpacity={0.8}
             >
-              <Plus size={16} color={COLORS.primary} />
-              <Text style={styles.newTripText}>New</Text>
+              <Plus size={16} color={colors.primary} />
+              <Text style={[styles.newTripText, { color: colors.primary }]}>New</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* HERO ACTIVE TRIP CARD */}
-        <View style={styles.heroCard}>
+        <View style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.heroHeader}>
             <View style={styles.heroBadgeRow}>
               <Text style={styles.heroEmoji}>{activeTrip?.emoji || '🎪'}</Text>
-              <View style={styles.heroTypeBadge}>
-                <Text style={styles.heroTypeText}>
+              <View style={[styles.heroTypeBadge, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF' }]}>
+                <Text style={[styles.heroTypeText, { color: colors.primary }]}>
                   {activeTrip?.type?.toUpperCase() || 'EVENT'}
                 </Text>
               </View>
             </View>
-            <View style={styles.activePill}>
-              <View style={styles.activeDot} />
-              <Text style={styles.activeText}>Active Sharing</Text>
+            <View style={[styles.activePill, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#DCFCE7' }]}>
+              <View style={[styles.activeDot, { backgroundColor: colors.success }]} />
+              <Text style={[styles.activeText, { color: colors.success }]}>Active Sharing</Text>
             </View>
           </View>
 
-          <Text style={styles.heroTitle}>{activeTrip?.name}</Text>
+          <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>{activeTrip?.name}</Text>
 
           <View style={styles.heroConnectedRow}>
-            <Users size={16} color={COLORS.primary} />
-            <Text style={styles.heroConnectedText}>
+            <Users size={16} color={colors.primary} />
+            <Text style={[styles.heroConnectedText, { color: colors.textSecondary }]}>
               {members.length} / {activeTrip?.totalCapacity || 25} connected
             </Text>
           </View>
 
           {/* Time Breakdown Cards */}
           <View style={styles.timeRow}>
-            <View style={styles.timeBox}>
-              <Text style={styles.timeLabel}>STARTED</Text>
-              <Text style={styles.timeValue}>
+            <View style={[styles.timeBox, { backgroundColor: colors.surfaceSubtle }]}>
+              <Text style={[styles.timeLabel, { color: colors.textMuted }]}>STARTED</Text>
+              <Text style={[styles.timeValue, { color: colors.textPrimary }]}>
                 {formatTripTime(activeTrip?.startTime || activeTrip?.starts_at)}
               </Text>
             </View>
-            <View style={styles.timeBoxDivider} />
-            <View style={styles.timeBox}>
-              <Text style={styles.timeLabel}>ENDS</Text>
-              <Text style={styles.timeValue}>
+            <View style={[styles.timeBoxDivider, { backgroundColor: colors.border }]} />
+            <View style={[styles.timeBox, { backgroundColor: colors.surfaceSubtle }]}>
+              <Text style={[styles.timeLabel, { color: colors.textMuted }]}>ENDS</Text>
+              <Text style={[styles.timeValue, { color: colors.textPrimary }]}>
                 {formatTripTime(activeTrip?.endTime || activeTrip?.ends_at)}
               </Text>
             </View>
           </View>
 
           {/* Trip Code Row */}
-          <View style={styles.codeRow}>
+          <View style={[styles.codeRow, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
             <View>
-              <Text style={styles.codeLabel}>TRIP CODE</Text>
-              <Text style={styles.codeDisplay}>{activeTrip?.code || activeTrip?.trip_code}</Text>
+              <Text style={[styles.codeLabel, { color: colors.textMuted }]}>TRIP CODE</Text>
+              <Text style={[styles.codeDisplay, { color: colors.primary }]}>{activeTrip?.code || activeTrip?.trip_code}</Text>
             </View>
             <TouchableOpacity
-              style={styles.copyPill}
+              style={[styles.copyPill, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF' }]}
               onPress={handleCopyCode}
               activeOpacity={0.7}
             >
-              <Copy size={14} color={COLORS.primary} />
-              <Text style={styles.copyPillText}>{copied ? 'Copied!' : 'Copy'}</Text>
+              <Copy size={14} color={colors.primary} />
+              <Text style={[styles.copyPillText, { color: colors.primary }]}>{copied ? 'Copied!' : 'Copy'}</Text>
             </TouchableOpacity>
           </View>
 
@@ -304,35 +336,35 @@ export default function TripScreen() {
 
         {/* 2. TRIP DETAILS & CONTROLS (Inset Grouped Section) */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionLabel}>TRIP DETAILS & CONTROLS</Text>
-          <View style={styles.menuBox}>
+          <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>TRIP DETAILS & CONTROLS</Text>
+          <View style={[styles.menuBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.infoRow}>
-              <View style={[styles.menuIconBox, { backgroundColor: '#EFF6FF' }]}>
-                <Shield size={18} color={COLORS.primary} />
+              <View style={[styles.menuIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF' }]}>
+                <Shield size={18} color={colors.primary} />
               </View>
               <View style={styles.infoTextContainer}>
-                <Text style={styles.infoTitle}>Organizer</Text>
-                <Text style={styles.infoSub}>
+                <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>Organizer</Text>
+                <Text style={[styles.infoSub, { color: colors.textSecondary }]}>
                   {activeTrip?.organizer?.name || (userRole === 'organizer' ? 'You (Host)' : 'Organizer')}
                 </Text>
               </View>
             </View>
 
-            <View style={styles.menuDivider} />
+            <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
 
             <View style={styles.infoRow}>
-              <View style={[styles.menuIconBox, { backgroundColor: '#EFF6FF' }]}>
-                <Clock size={18} color={COLORS.primary} />
+              <View style={[styles.menuIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF' }]}>
+                <Clock size={18} color={colors.primary} />
               </View>
               <View style={styles.infoTextContainer}>
-                <Text style={styles.infoTitle}>Auto-Expiration</Text>
-                <Text style={styles.infoSub}>
+                <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>Auto-Expiration</Text>
+                <Text style={[styles.infoSub, { color: colors.textSecondary }]}>
                   Location tracking automatically ends in {timeLeft}.
                 </Text>
               </View>
             </View>
 
-            <View style={styles.menuDivider} />
+            <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
 
             <View style={styles.controlActionBox}>
               {userRole === 'organizer' ? (
@@ -360,8 +392,8 @@ export default function TripScreen() {
         {tripHistory && tripHistory.length > 0 && (
           <View style={styles.historySection}>
             <View style={styles.historySectionHeader}>
-              <Text style={styles.sectionLabel}>TRIP HISTORY</Text>
-              <Text style={styles.historyCountText}>{tripHistory.length} previous</Text>
+              <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>TRIP HISTORY</Text>
+              <Text style={[styles.historyCountText, { color: colors.textSecondary }]}>{tripHistory.length} previous</Text>
             </View>
 
             <View style={styles.historyGroupContainer}>

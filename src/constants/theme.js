@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-export const COLORS = {
+export const LIGHT_COLORS = {
   primary: '#2563EB',      // Main brand blue
   primaryDark: '#1D4ED8',
   primaryLight: '#DBEAFE',
@@ -33,6 +33,45 @@ export const COLORS = {
   tileBgDanger: '#FEF2F2',
   tileBgAccent: '#F5F3FF',
 };
+
+export const DARK_COLORS = {
+  primary: '#22C55E',      // Tactical Emerald Green from reference mockup
+  primaryDark: '#16A34A',
+  primaryLight: 'rgba(34, 197, 94, 0.2)',
+  secondary: '#38BDF8',    // Tactical Cyan
+  accent: '#38BDF8',
+  success: '#22C55E',      // Green (Live / Safe)
+  successBg: 'rgba(34, 197, 94, 0.15)',
+  warning: '#F59E0B',      // Amber
+  warningBg: 'rgba(245, 158, 11, 0.15)',
+  danger: '#EF4444',       // Red (SOS / Emergency)
+  dangerBg: 'rgba(239, 68, 68, 0.18)',
+  background: '#0A0E17',   // Deep obsidian tactical background
+  surface: '#111827',      // Elevated dark sheet/card
+  surfaceSubtle: '#1F2937',// Input fields and secondary surfaces
+  cardBorder: 'rgba(255, 255, 255, 0.08)',
+  textPrimary: '#F9FAFB',  // High contrast white
+  textSecondary: '#9CA3AF',// Soft gray
+  textMuted: '#6B7280',    // Muted slate
+  white: '#FFFFFF',
+  darkMapOverlay: '#0A0E17',
+  pulseRing: 'rgba(34, 197, 94, 0.35)',
+  radarSweep: 'rgba(34, 197, 94, 0.2)',
+  clusterBg: '#22C55E',
+  clusterBorder: '#86EFAC',
+  divider: 'rgba(255, 255, 255, 0.06)',
+  border: 'rgba(255, 255, 255, 0.1)',
+  borderSubtle: 'rgba(255, 255, 255, 0.06)',
+  tileBg: '#111827',
+  tileBgPrimary: 'rgba(34, 197, 94, 0.12)',
+  tileBgDanger: 'rgba(239, 68, 68, 0.14)',
+  tileBgAccent: 'rgba(56, 189, 248, 0.14)',
+};
+
+export const COLORS = LIGHT_COLORS;
+
+export const getThemeColors = (isDark) => (isDark ? DARK_COLORS : LIGHT_COLORS);
+
 
 export const SPACING = {
   xs: 4,

@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { COLORS } from '../src/constants/theme';
+import { useThemeStore } from '../src/store/useThemeStore';
 import { analytics } from '../src/services/analyticsService';
 import { crashlytics } from '../src/services/crashlyticsService';
 import { perfService } from '../src/services/perfService';
@@ -12,8 +13,12 @@ import { notificationService } from '../src/services/notificationService';
 export default function RootLayout() {
   const { width } = useWindowDimensions();
   const isDesktopWeb = Platform.OS === 'web' && width > 520;
+  const isDark = useThemeStore((state) => state.isDark);
+  const colors = useThemeStore((state) => state.colors);
+  const initializeTheme = useThemeStore((state) => state.initializeTheme);
 
   useEffect(() => {
+    initializeTheme();
     perfService.startTrace('app_initial_mount').then((t) => t.stop());
     crashlytics.init();
     analytics.logAppOpen();
@@ -22,13 +27,16 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider style={styles.provider}>
-      <StatusBar style="dark" backgroundColor={COLORS.background} />
+      <StatusBar
+        style={isDark ? 'light' : 'dark'}
+        backgroundColor={colors.background}
+      />
       <View style={[styles.rootWrapper, isDesktopWeb && styles.desktopWrapper]}>
-        <View style={[styles.appShell, isDesktopWeb && styles.desktopShell]}>
+        <View style={[styles.appShell, isDesktopWeb && styles.desktopShell, { backgroundColor: colors.background }]}>
           <Stack
             screenOptions={{
               headerShown: false,
-              contentStyle: { backgroundColor: COLORS.background },
+              contentStyle: { backgroundColor: colors.background },
               animation: 'slide_from_right',
             }}
           >

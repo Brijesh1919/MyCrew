@@ -19,6 +19,7 @@ import { MapControls } from './MapControls';
 import { calculateDistanceMeters, formatDistance, calculateGroupCenter } from '../utils/distance';
 import { mapService, MAP_STYLES } from '../services/mapService';
 import { useLocationStore } from '../store/useLocationStore';
+import { useThemeStore } from '../store/useThemeStore';
 
 export const MapView = ({
   userLocation,
@@ -38,6 +39,8 @@ export const MapView = ({
   zoom = 16,
   height = 360,
   interactive = true,
+  showStylePicker = false,
+  compactControls = false,
   providerBadgeTop = 14,
   controlsBottomOffset = 24,
   isPinDropMode = false,
@@ -131,9 +134,16 @@ export const MapView = ({
   }, [userLocation?.latitude, userLocation?.longitude, center]);
 
   // Mapbox style & loading states
-  const [activeStyle, setActiveStyle] = useState(mapService.getStyle() || 'streets-v12');
+  const isDark = useThemeStore((state) => state.isDark);
+  const preferredMapStyle = isDark ? 'dark-v11' : (mapService.getStyle() || 'streets-v12');
+  const [activeStyle, setActiveStyle] = useState(preferredMapStyle);
   const [mapboxError, setMapboxError] = useState(false);
   const [isTileLoading, setIsTileLoading] = useState(false);
+
+  // Synchronize map style with light/dark theme changes
+  useEffect(() => {
+    setActiveStyle(isDark ? 'dark-v11' : 'streets-v12');
+  }, [isDark]);
 
   // Keep center synchronized if center prop changes externally
   useEffect(() => {
@@ -504,10 +514,13 @@ export const MapView = ({
     : 32;
 
   // Route destination coordinate
-  const routePos = routeDestination ? projectToScreen(routeDestination.coordinates) : null;
+  const routeCoord =
+    routeDestination?.coordinates ||
+    (routeDestination?.latitude && routeDestination?.longitude ? routeDestination : null);
+  const routePos = routeCoord ? projectToScreen(routeCoord) : null;
   const routeDistance =
-    userLocation && routeDestination?.coordinates
-      ? calculateDistanceMeters(userLocation, routeDestination.coordinates)
+    userLocation && routeCoord
+      ? calculateDistanceMeters(userLocation, routeCoord)
       : null;
 
   const numCols = Math.ceil(containerWidth / 35) + 1;
@@ -668,23 +681,55 @@ export const MapView = ({
         )}
 
         {/* Route Line if navigation is active */}
-        {showRoute && routePos && (
+        {showRoute && routePos && userPos && (
           <G>
+            {/* Glowing outer aura */}
             <Line
               x1={userPos.x}
               y1={userPos.y}
               x2={routePos.x}
               y2={routePos.y}
-              stroke="#0284C7"
-              strokeWidth="4"
-              strokeDasharray="6 4"
+              stroke="rgba(34, 197, 94, 0.22)"
+              strokeWidth="12"
               strokeLinecap="round"
+            />
+            {/* Solid vibrant emerald path */}
+            <Line
+              x1={userPos.x}
+              y1={userPos.y}
+              x2={routePos.x}
+              y2={routePos.y}
+              stroke="#22C55E"
+              strokeWidth="4.5"
+              strokeLinecap="round"
+            />
+            {/* Crisp dashed center track */}
+            <Line
+              x1={userPos.x}
+              y1={userPos.y}
+              x2={routePos.x}
+              y2={routePos.y}
+              stroke="#DCFCE7"
+              strokeWidth="1.8"
+              strokeDasharray="6 6"
+              strokeLinecap="round"
+            />
+            {/* Destination pulsing radar beacon */}
+            <Circle
+              cx={routePos.x}
+              cy={routePos.y}
+              r={24}
+              fill="rgba(34, 197, 94, 0.16)"
+              stroke="rgba(34, 197, 94, 0.5)"
+              strokeWidth="1.5"
             />
             <Circle
               cx={routePos.x}
               cy={routePos.y}
-              r={16}
-              fill="rgba(2, 132, 199, 0.28)"
+              r={8}
+              fill="#22C55E"
+              stroke="#FFFFFF"
+              strokeWidth="2"
             />
           </G>
         )}
@@ -693,19 +738,24 @@ export const MapView = ({
       {/* 5. MEETING POINTS LAYER */}
       {showPointsToggle &&
         meetingPoints.map((mp, index) => {
-          if (!mp.coordinates || isNaN(mp.coordinates.latitude)) return null;
-          const pos = projectToScreen(mp.coordinates);
+          const coords =
+            mp.coordinates ||
+            (mp.latitude && mp.longitude
+              ? { latitude: Number(mp.latitude), longitude: Number(mp.longitude) }
+              : null);
+          if (!coords || isNaN(coords.latitude) || isNaN(coords.longitude)) return null;
+          const pos = projectToScreen(coords);
           const mpKey = mp.id ? `map_mp_${mp.id}` : `map_mp_idx_${index}`;
           return (
             <View
               key={mpKey}
               style={[
                 styles.markerPosition,
-                { left: pos.x - 40, top: pos.y - 39 },
+                { left: pos.x - 40, top: pos.y - 39, zIndex: 12 },
               ]}
             >
               <MeetingPointMarker
-                meetingPoint={mp}
+                meetingPoint={{ ...mp, coordinates: coords }}
                 isSelected={selectedMeetingPoint?.id === mp.id}
                 onPress={onSelectMeetingPoint}
               />
@@ -806,20 +856,22 @@ export const MapView = ({
       )}
       </View>
 
-      {/* 4. MAPBOX PROVIDER & STYLE BADGE (Interactive, stationary overlay) */}
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={isMapbox ? handleCycleStyle : null}
-        style={[styles.providerBadge, { top: providerBadgeTop }]}
-      >
-        <View style={[styles.providerDot, !isMapbox && { backgroundColor: '#F59E0B' }]} />
-        <Text style={styles.providerText}>
-          {isMapbox ? `Mapbox ${currentStyleObj.name} ▾` : 'MyCrew Vector Engine'}
-        </Text>
-        {isTileLoading && (
-          <ActivityIndicator size="small" color="#94A3B8" style={{ marginLeft: 6 }} />
-        )}
-      </TouchableOpacity>
+      {/* 4. MAPBOX PROVIDER & STYLE BADGE (Interactive, stationary overlay - only shown when explicitly enabled) */}
+      {showStylePicker && (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={isMapbox ? handleCycleStyle : null}
+          style={[styles.providerBadge, { top: providerBadgeTop }]}
+        >
+          <View style={[styles.providerDot, !isMapbox && { backgroundColor: '#F59E0B' }]} />
+          <Text style={styles.providerText}>
+            {isMapbox ? `Mapbox ${currentStyleObj.name} ▾` : 'MyCrew Vector Engine'}
+          </Text>
+          {isTileLoading && (
+            <ActivityIndicator size="small" color="#94A3B8" style={{ marginLeft: 6 }} />
+          )}
+        </TouchableOpacity>
+      )}
 
       {/* 10. FINDING LOCATION BADGE */}
       {!userLocation && interactive && (
@@ -869,7 +921,7 @@ export const MapView = ({
           onToggleMeetingPoints={() => setShowPointsToggle((prev) => !prev)}
           isMeetingPointsActive={showPointsToggle}
           bottomOffset={controlsBottomOffset}
-          compact={isCompact}
+          compact={compactControls || isCompact}
         />
       )}
     </View>
@@ -916,13 +968,18 @@ const styles = StyleSheet.create({
   },
   routeBadge: {
     position: 'absolute',
-    backgroundColor: '#0284C7',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: COLORS.white,
+    borderColor: '#DCFCE7',
     zIndex: 6,
+    shadowColor: '#22C55E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.45,
+    shadowRadius: 5,
+    elevation: 5,
   },
   routeBadgeText: {
     color: COLORS.white,

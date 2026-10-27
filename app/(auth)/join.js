@@ -32,6 +32,7 @@ import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { SecondaryButton } from '../../src/components/SecondaryButton';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useUserStore } from '../../src/store/useUserStore';
+import { useThemeStore } from '../../src/store/useThemeStore';
 import { tripService } from '../../src/services/tripService';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
@@ -43,6 +44,8 @@ export default function JoinTripScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { triggerSuccess, triggerWarning, triggerLight } = useHapticFeedback();
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
   const joinTrip = useTripStore((state) => state.joinTrip);
   const setOnboardingCompleted = useTripStore((state) => state.setOnboardingCompleted);
   const setUserName = useUserStore((state) => state.setUserName);
@@ -194,7 +197,7 @@ export default function JoinTripScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <AppHeader
         title={step === 1 ? 'Join a Crew' : step === 2 ? 'Trip Confirmation' : 'Complete Setup'}
         subtitle={
@@ -226,22 +229,28 @@ export default function JoinTripScreen() {
         {step === 1 && (
           <View style={styles.stepContainer}>
             {/* Mode Switch Tabs */}
-            <View style={styles.tabToggle}>
+            <View style={[styles.tabToggle, { backgroundColor: colors.surfaceSubtle }]}>
               <TouchableOpacity
-                style={[styles.toggleBtn, !scanMode && styles.toggleBtnActive]}
+                style={[
+                  styles.toggleBtn,
+                  !scanMode && [styles.toggleBtnActive, { backgroundColor: colors.surface, borderColor: colors.border }],
+                ]}
                 onPress={() => handleToggleScanMode(false)}
               >
-                <KeyRound size={16} color={!scanMode ? COLORS.primary : COLORS.textSecondary} />
-                <Text style={[styles.toggleTxt, !scanMode && styles.toggleTxtActive]}>
+                <KeyRound size={16} color={!scanMode ? colors.primary : colors.textSecondary} />
+                <Text style={[styles.toggleTxt, { color: !scanMode ? colors.primary : colors.textSecondary }, !scanMode && styles.toggleTxtActive]}>
                   Enter Code
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.toggleBtn, scanMode && styles.toggleBtnActive]}
+                style={[
+                  styles.toggleBtn,
+                  scanMode && [styles.toggleBtnActive, { backgroundColor: colors.surface, borderColor: colors.border }],
+                ]}
                 onPress={() => handleToggleScanMode(true)}
               >
-                <QrCode size={16} color={scanMode ? COLORS.primary : COLORS.textSecondary} />
-                <Text style={[styles.toggleTxt, scanMode && styles.toggleTxtActive]}>
+                <QrCode size={16} color={scanMode ? colors.primary : colors.textSecondary} />
+                <Text style={[styles.toggleTxt, { color: scanMode ? colors.primary : colors.textSecondary }, scanMode && styles.toggleTxtActive]}>
                   Scan QR Code
                 </Text>
               </TouchableOpacity>
@@ -331,12 +340,16 @@ export default function JoinTripScreen() {
               </View>
             ) : (
               /* ENTER MANUAL TRIP CODE MODE */
-              <View style={styles.inputCard}>
-                <Text style={styles.inputLabel}>ENTER TRIP CODE</Text>
+              <View style={[styles.inputCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <Text style={[styles.inputLabel, { color: colors.textMuted }]}>ENTER TRIP CODE</Text>
                 <TextInput
-                  style={[styles.codeInput, error && styles.codeInputError]}
+                  style={[
+                    styles.codeInput,
+                    { backgroundColor: colors.surfaceSubtle, color: colors.textPrimary, borderColor: colors.border },
+                    error && styles.codeInputError,
+                  ]}
                   placeholder="e.g. 6-CHARACTER CODE"
-                  placeholderTextColor={COLORS.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   value={tripCode}
                   onChangeText={(text) => {
                     const clean = text.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
@@ -351,9 +364,9 @@ export default function JoinTripScreen() {
                 />
 
                 {error ? (
-                  <View style={styles.errorBox}>
-                    <Text style={styles.errorTitle}>Trip not found</Text>
-                    <Text style={styles.errorDesc}>{error}</Text>
+                  <View style={[styles.errorBox, { backgroundColor: colors.dangerBg, borderColor: colors.danger }]}>
+                    <Text style={[styles.errorTitle, { color: colors.danger }]}>Trip not found</Text>
+                    <Text style={[styles.errorDesc, { color: colors.danger }]}>{error}</Text>
                   </View>
                 ) : null}
 
@@ -375,50 +388,50 @@ export default function JoinTripScreen() {
         {step === 2 && tripPreview && (
           <View style={styles.stepContainer}>
             <View style={styles.previewContainer}>
-              <Text style={styles.previewSubheading}>You're about to join:</Text>
-              <Text style={styles.previewHeading}>Join {tripPreview.name}?</Text>
+              <Text style={[styles.previewSubheading, { color: colors.textSecondary }]}>You're about to join:</Text>
+              <Text style={[styles.previewHeading, { color: colors.textPrimary }]}>Join {tripPreview.name}?</Text>
 
               {/* Verified Trip Card */}
-              <View style={styles.confirmationCard}>
+              <View style={[styles.confirmationCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.confirmationHeader}>
                   <Text style={styles.confirmationEmoji}>{tripPreview.emoji}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.confirmationName}>{tripPreview.name}</Text>
-                    <Text style={styles.confirmationLocation}>{tripPreview.locationName}</Text>
+                    <Text style={[styles.confirmationName, { color: colors.textPrimary }]}>{tripPreview.name}</Text>
+                    <Text style={[styles.confirmationLocation, { color: colors.textSecondary }]}>{tripPreview.locationName}</Text>
                   </View>
                 </View>
 
-                <View style={styles.detailDivider} />
+                <View style={[styles.detailDivider, { backgroundColor: colors.border }]} />
 
                 {/* Details Grid */}
                 <View style={styles.detailRow}>
                   <View style={styles.detailCol}>
-                    <Text style={styles.detailLabel}>ORGANIZER</Text>
-                    <Text style={styles.detailValue}>{tripPreview.organizerName}</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textMuted }]}>ORGANIZER</Text>
+                    <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{tripPreview.organizerName}</Text>
                   </View>
                   <View style={styles.detailCol}>
-                    <Text style={styles.detailLabel}>CONNECTED</Text>
-                    <Text style={styles.detailValue}>{tripPreview.memberCount} people</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textMuted }]}>CONNECTED</Text>
+                    <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{tripPreview.memberCount} people</Text>
                   </View>
                 </View>
 
                 <View style={[styles.detailRow, { marginTop: 12 }]}>
                   <View style={styles.detailCol}>
-                    <Text style={styles.detailLabel}>TRIP ENDS</Text>
-                    <Text style={styles.detailValue}>{tripPreview.endTimeFormatted}</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textMuted }]}>TRIP ENDS</Text>
+                    <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{tripPreview.endTimeFormatted}</Text>
                   </View>
                   <View style={styles.detailCol}>
-                    <Text style={styles.detailLabel}>CODE</Text>
-                    <Text style={[styles.detailValue, { color: COLORS.primary, fontWeight: '800' }]}>
+                    <Text style={[styles.detailLabel, { color: colors.textMuted }]}>CODE</Text>
+                    <Text style={[styles.detailValue, { color: colors.primary, fontWeight: '800' }]}>
                       {tripPreview.code}
                     </Text>
                   </View>
                 </View>
 
                 {/* Privacy Badge */}
-                <View style={styles.privacyGuaranteeBadge}>
-                  <ShieldCheck size={16} color={COLORS.success} />
-                  <Text style={styles.privacyGuaranteeText}>
+                <View style={[styles.privacyGuaranteeBadge, { backgroundColor: colors.surfaceSubtle }]}>
+                  <ShieldCheck size={16} color={colors.success} />
+                  <Text style={[styles.privacyGuaranteeText, { color: colors.textSecondary }]}>
                     Location sharing starts only when you join and stops when the trip ends.
                   </Text>
                 </View>
@@ -452,12 +465,12 @@ export default function JoinTripScreen() {
               <Text style={styles.avatarInitial}>{name.charAt(0) || 'F'}</Text>
             </View>
 
-            <View style={styles.inputCard}>
-              <Text style={styles.inputLabel}>WHAT SHOULD YOUR CREW CALL YOU?</Text>
+            <View style={[styles.inputCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>WHAT SHOULD YOUR CREW CALL YOU?</Text>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { backgroundColor: colors.surfaceSubtle, color: colors.textPrimary, borderColor: colors.border }]}
                 placeholder="Enter your name"
-                placeholderTextColor={COLORS.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={name}
                 onChangeText={(text) => {
                   setName(text);
@@ -466,24 +479,24 @@ export default function JoinTripScreen() {
                 autoFocus
               />
 
-              <Text style={styles.helperText}>
+              <Text style={[styles.helperText, { color: colors.textSecondary }]}>
                 No account or password needed. This name will appear on the crew live map for{' '}
-                <Text style={{ fontWeight: '700', color: COLORS.textPrimary }}>
+                <Text style={{ fontWeight: '700', color: colors.textPrimary }}>
                   {tripPreview?.name}
                 </Text>
                 .
               </Text>
 
-              <View style={styles.permGuarantees}>
+              <View style={[styles.permGuarantees, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
                 <View style={styles.guaranteeRow}>
-                  <Shield size={16} color={COLORS.success} />
-                  <Text style={styles.guaranteeTxt}>
+                  <Shield size={16} color={colors.success} />
+                  <Text style={[styles.guaranteeTxt, { color: colors.textPrimary }]}>
                     Location stops automatically when trip expires
                   </Text>
                 </View>
                 <View style={styles.guaranteeRow}>
-                  <Users size={16} color={COLORS.success} />
-                  <Text style={styles.guaranteeTxt}>
+                  <Users size={16} color={colors.success} />
+                  <Text style={[styles.guaranteeTxt, { color: colors.textPrimary }]}>
                     Only visible to your crew members
                   </Text>
                 </View>

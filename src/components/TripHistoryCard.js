@@ -8,8 +8,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Calendar, Users, ChevronRight, ShieldCheck, Clock } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
 import { getTripStatusBadge } from '../utils/tripStatus';
+import { useThemeStore } from '../store/useThemeStore';
 
 export const TripHistoryCard = ({ trip, onPress, variant = 'row' }) => {
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
   if (!trip) return null;
 
   const badge = getTripStatusBadge(trip);
@@ -40,17 +43,17 @@ export const TripHistoryCard = ({ trip, onPress, variant = 'row' }) => {
   if (variant === 'row') {
     return (
       <TouchableOpacity
-        style={styles.row}
+        style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
         onPress={() => onPress && onPress(trip)}
         activeOpacity={0.7}
       >
         <View style={styles.leftInfo}>
-          <View style={styles.emojiCircle}>
+          <View style={[styles.emojiCircle, { backgroundColor: colors.surfaceSubtle }]}>
             <Text style={styles.emojiText}>{trip.emoji || '🎪'}</Text>
           </View>
           <View style={styles.nameBlock}>
             <View style={styles.rowTitleWrap}>
-              <Text style={styles.tripName} numberOfLines={1}>
+              <Text style={[styles.tripName, { color: colors.textPrimary }]} numberOfLines={1}>
                 {trip.name}
               </Text>
               <View
@@ -58,7 +61,7 @@ export const TripHistoryCard = ({ trip, onPress, variant = 'row' }) => {
                   styles.statusBadge,
                   badge.status === 'active' && styles.statusActive,
                   badge.status === 'upcoming' && styles.statusUpcoming,
-                  badge.status === 'expired' && styles.statusExpired,
+                  badge.status === 'expired' && [styles.statusExpired, { backgroundColor: colors.surfaceSubtle }],
                 ]}
               >
                 <Text
@@ -66,7 +69,7 @@ export const TripHistoryCard = ({ trip, onPress, variant = 'row' }) => {
                     styles.statusText,
                     badge.status === 'active' && styles.statusActiveText,
                     badge.status === 'upcoming' && styles.statusUpcomingText,
-                    badge.status === 'expired' && styles.statusExpiredText,
+                    badge.status === 'expired' && [styles.statusExpiredText, { color: colors.textSecondary }],
                   ]}
                 >
                   {badge.label}
@@ -74,35 +77,35 @@ export const TripHistoryCard = ({ trip, onPress, variant = 'row' }) => {
               </View>
             </View>
             <View style={styles.rowSubWrap}>
-              <Text style={styles.dateText} numberOfLines={1}>
+              <Text style={[styles.dateText, { color: colors.textSecondary }]} numberOfLines={1}>
                 {formattedDateRange}
               </Text>
-              <Text style={styles.rowDot}>•</Text>
-              <Text style={styles.rowRole}>{isOrganizer ? '👑 Host' : '👤 Member'}</Text>
+              <Text style={[styles.rowDot, { color: colors.textMuted }]}>•</Text>
+              <Text style={[styles.rowRole, { color: colors.textSecondary }]}>{isOrganizer ? '👑 Host' : '👤 Member'}</Text>
             </View>
           </View>
         </View>
-        <ChevronRight size={18} color={COLORS.textMuted} />
+        <ChevronRight size={18} color={colors.textMuted} />
       </TouchableOpacity>
     );
   }
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
       onPress={() => onPress && onPress(trip)}
       activeOpacity={0.75}
     >
       <View style={styles.topRow}>
         <View style={styles.leftInfo}>
-          <View style={styles.emojiCircle}>
+          <View style={[styles.emojiCircle, { backgroundColor: colors.surfaceSubtle }]}>
             <Text style={styles.emojiText}>{trip.emoji || '🎪'}</Text>
           </View>
           <View style={styles.nameBlock}>
-            <Text style={styles.tripName} numberOfLines={1}>
+            <Text style={[styles.tripName, { color: colors.textPrimary }]} numberOfLines={1}>
               {trip.name}
             </Text>
-            <Text style={styles.dateText} numberOfLines={1}>
+            <Text style={[styles.dateText, { color: colors.textSecondary }]} numberOfLines={1}>
               {formattedDateRange}
             </Text>
           </View>
@@ -113,7 +116,7 @@ export const TripHistoryCard = ({ trip, onPress, variant = 'row' }) => {
             styles.statusBadge,
             badge.status === 'active' && styles.statusActive,
             badge.status === 'upcoming' && styles.statusUpcoming,
-            badge.status === 'expired' && styles.statusExpired,
+            badge.status === 'expired' && [styles.statusExpired, { backgroundColor: colors.surfaceSubtle }],
           ]}
         >
           <Text
@@ -121,7 +124,7 @@ export const TripHistoryCard = ({ trip, onPress, variant = 'row' }) => {
               styles.statusText,
               badge.status === 'active' && styles.statusActiveText,
               badge.status === 'upcoming' && styles.statusUpcomingText,
-              badge.status === 'expired' && styles.statusExpiredText,
+              badge.status === 'expired' && [styles.statusExpiredText, { color: colors.textSecondary }],
             ]}
           >
             {badge.label}

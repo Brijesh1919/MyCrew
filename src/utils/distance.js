@@ -5,12 +5,22 @@ const EARTH_RADIUS_METERS = 6371000;
 /**
  * Calculates Haversine distance in meters between two lat/lng coordinates
  */
-export const calculateDistanceMeters = (coord1, coord2) => {
-  if (!coord1 || !coord2) return null;
-  const lat1 = Number(coord1.latitude);
-  const lon1 = Number(coord1.longitude);
-  const lat2 = Number(coord2.latitude);
-  const lon2 = Number(coord2.longitude);
+export const calculateDistanceMeters = (coord1, coord2, lat2Arg, lon2Arg) => {
+  if (!coord1) return null;
+
+  let lat1, lon1, lat2, lon2;
+  if (typeof coord1 === 'number' && typeof coord2 === 'number') {
+    lat1 = coord1;
+    lon1 = coord2;
+    lat2 = lat2Arg;
+    lon2 = lon2Arg;
+  } else {
+    if (!coord2) return null;
+    lat1 = Number(coord1.latitude !== undefined ? coord1.latitude : coord1.lat);
+    lon1 = Number(coord1.longitude !== undefined ? coord1.longitude : coord1.lng);
+    lat2 = Number(coord2.latitude !== undefined ? coord2.latitude : coord2.lat);
+    lon2 = Number(coord2.longitude !== undefined ? coord2.longitude : coord2.lng);
+  }
 
   if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) return null;
   if ((lat1 === 0 && lon1 === 0) || (lat2 === 0 && lon2 === 0)) return null;
@@ -62,6 +72,12 @@ export const calculateBearing = (fromCoord, toCoord) => {
 
   let brng = toDeg(Math.atan2(y, x));
   return (brng + 360) % 360;
+};
+
+export const getCardinalDirection = (bearing) => {
+  const directions = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'];
+  const index = Math.round(((bearing % 360) + 360) % 360 / 45) % 8;
+  return directions[index];
 };
 
 /**

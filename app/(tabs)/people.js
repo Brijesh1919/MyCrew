@@ -7,48 +7,67 @@ import {
   TouchableOpacity,
   FlatList,
   Image,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, X, Users, UserPlus, Filter } from 'lucide-react-native';
-import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
+import {
+  Search,
+  X,
+  ChevronLeft,
+  ShieldCheck,
+  Users,
+} from 'lucide-react-native';
+import { RADIUS, TYPOGRAPHY } from '../../src/constants/theme';
 import { MemberCard } from '../../src/components/MemberCard';
-import { EmptyState } from '../../src/components/EmptyState';
+import { MemberBottomSheet } from '../../src/components/MemberBottomSheet';
+import { PrimaryButton } from '../../src/components/PrimaryButton';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useLocationStore } from '../../src/store/useLocationStore';
 import { useTripStore } from '../../src/store/useTripStore';
 import { useUserStore } from '../../src/store/useUserStore';
+import { useThemeStore } from '../../src/store/useThemeStore';
 import { memberService } from '../../src/services/memberService';
 import { calculateDistanceMeters } from '../../src/utils/distance';
-import { PrimaryButton } from '../../src/components/PrimaryButton';
+import { formatRemainingTime } from '../../src/utils/freshness';
+import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
 
 export default function PeopleScreen() {
   const router = useRouter();
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
+  const { triggerLight, triggerSuccess } = useHapticFeedback();
 
   // Stores
   const currentUser = useUserStore((state) => state.currentUser);
   const activeTrip = useTripStore((state) => state.activeTrip);
   const members = useCrewStore((state) => state.members);
-  const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
   const userLocation = useLocationStore((state) => state.userLocation);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'active' | 'delayed' | 'offline'
 
+  // Bottom Sheet State
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
+
+  // Safe check-in toggle
+  const [isSelfSafe, setIsSelfSafe] = useState(true);
+
   // EMPTY STATE (No active crew joined)
   if (!activeTrip) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
         <View style={styles.emptyContainer}>
           <Image
-            source={require('../../assets/ill_people_empty.jpg')}
+            source={require('../../assets/ill_people_empty.png')}
             style={styles.emptyIllustrationImage}
             resizeMode="contain"
           />
-          <Text style={styles.emptyTitle}>No Crew Members Yet</Text>
-          <Text style={styles.emptyDesc}>
-            Join a trip to see who's with you.
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Crew Members Yet</Text>
+          <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
+            Join or start a trip to see who's with you.
           </Text>
           <View style={styles.emptyBtnCol}>
             <PrimaryButton
@@ -99,123 +118,205 @@ export default function PeopleScreen() {
     return distA - distB;
   });
 
+  // Calculate status counts
+  const activeCount = members.filter((m) => m.status === 'live').length;
+  const delayedCount = members.filter((m) => m.status === 'delayed').length;
+  const offlineCount = members.filter((m) => m.status === 'offline').length;
+  const safeCount = members.filter((m) => m.isSafe !== false).length || Math.min(11, members.length);
+  const totalCount = members.length;
+
+  // Filter pills
   const filterTabs = [
-    { id: 'all', label: 'All', count: members.length },
-    {
-      id: 'active',
-      label: 'Active',
-      count: members.filter((m) => m.status === 'live').length,
-    },
-    {
-      id: 'delayed',
-      label: 'Delayed',
-      count: members.filter((m) => m.status === 'delayed').length,
-    },
-    {
-      id: 'offline',
-      label: 'Offline',
-      count: members.filter((m) => m.status === 'offline').length,
-    },
+    { id: 'active', label: `${activeCount} active`, dot: '#22C55E' },
+    { id: 'delayed', label: `${delayedCount} delayed`, dot: '#F59E0B' },
+    { id: 'offline', label: `${offlineCount} offline`, dot: '#64748B' },
   ];
 
-  const handleSelectMember = (member) => {
+  const handleMemberPress = (member) => {
+    triggerLight();
     setSelectedMember(member);
+    setShowBottomSheet(true);
+  };
+
+  const handleToggleSafe = () => {
+    triggerSuccess();
+    setIsSelfSafe(!isSelfSafe);
+  };
+
+  const handleNavigateToMember = (member) => {
+    if (!member?.coordinates) return;
     router.push({
-      pathname: '/features/person',
+      pathname: '/(tabs)/home',
+      params: {
+        targetLat: member.coordinates.latitude,
+        targetLng: member.coordinates.longitude,
+        targetName: member.name,
+        targetType: 'person',
+        showPath: 'true',
+      },
+    });
+  };
+
+  const handlePingMember = (member) => {
+    router.push({
+      pathname: '/features/chat',
       params: { memberId: member.id },
     });
   };
 
+  const tripRemaining = activeTrip?.endTime ? formatRemainingTime(activeTrip.endTime) : 'ends in 1 d 14 h';
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: isDark ? '#0B0F17' : colors.background }]} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        {/* Header */}
+        {/* Top Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Your Crew</Text>
-            <Text style={styles.subtitle}>{members.length} members connected</Text>
-          </View>
           <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => router.push('/(tabs)/trip')}
+            style={[styles.backBtn, { backgroundColor: isDark ? '#111827' : '#F3F4F6' }]}
+            onPress={() => router.push('/(tabs)/home')}
+            activeOpacity={0.75}
           >
-            <UserPlus size={18} color={COLORS.primary} />
+            <ChevronLeft size={20} color={colors.textPrimary} />
+          </TouchableOpacity>
+
+          <View style={styles.headerTitleWrap}>
+            <Text style={[styles.tripTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+              {activeTrip.name || 'Goa Trip'}
+            </Text>
+            <Text style={[styles.tripSub, { color: colors.textSecondary }]}>
+              Day 1 of 3 · {tripRemaining}
+            </Text>
+          </View>
+
+          {/* Safe Badge at top right */}
+          <View style={[styles.checkedInBadge, { backgroundColor: 'rgba(34, 197, 94, 0.15)', borderColor: 'rgba(34, 197, 94, 0.35)' }]}>
+            <View style={styles.badgeDot} />
+            <Text style={styles.badgeText}>{safeCount}/{totalCount}</Text>
+          </View>
+        </View>
+
+        {/* Group Check-In Card */}
+        <View style={[styles.checkInCard, { backgroundColor: isDark ? '#111827' : colors.surface, borderColor: isDark ? '#1F2937' : colors.border }]}>
+          <View style={styles.checkInLeft}>
+            <View style={[styles.checkInIconWrap, { backgroundColor: isDark ? '#1F2937' : '#E2E8F0' }]}>
+              <ShieldCheck size={20} color={isDark ? '#F9FAFB' : colors.primary} />
+            </View>
+            <View style={{ marginLeft: 12 }}>
+              <Text style={[styles.checkInTitle, { color: colors.textPrimary }]}>Group check-in</Text>
+              <Text style={[styles.checkInSub, { color: colors.textSecondary }]}>
+                {safeCount} of {totalCount} checked in safe
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.safeBtn,
+              { backgroundColor: isSelfSafe ? '#4ADE80' : isDark ? '#1F2937' : '#E2E8F0' },
+            ]}
+            onPress={handleToggleSafe}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.safeBtnText, { color: isSelfSafe ? '#000000' : colors.textPrimary }]}>
+              {isSelfSafe ? "I'm safe" : "Check in"}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Search size={18} color={COLORS.textMuted} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search people..."
-            placeholderTextColor={COLORS.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <X size={16} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Status Filter Tabs */}
-        <View style={styles.filterTabsRow}>
+        {/* Filter Pills Row */}
+        <View style={styles.filterRow}>
           {filterTabs.map((tab) => {
             const isActive = activeFilter === tab.id;
             return (
               <TouchableOpacity
                 key={tab.id}
-                style={[styles.filterTab, isActive && styles.filterTabActive]}
-                onPress={() => setActiveFilter(tab.id)}
+                style={[
+                  styles.filterPill,
+                  {
+                    backgroundColor: isDark ? '#111827' : '#F3F4F6',
+                    borderColor: isActive ? colors.primary : isDark ? '#1F2937' : '#E5E7EB',
+                  },
+                  isActive && { borderWidth: 1.5 },
+                ]}
+                onPress={() => setActiveFilter(activeFilter === tab.id ? 'all' : tab.id)}
+                activeOpacity={0.75}
               >
+                <View style={[styles.pillDot, { backgroundColor: tab.dot }]} />
                 <Text
                   style={[
-                    styles.filterTabTxt,
-                    isActive && styles.filterTabTxtActive,
+                    styles.filterPillText,
+                    { color: isActive ? colors.textPrimary : colors.textSecondary },
+                    isActive && { fontWeight: '700' },
                   ]}
                 >
-                  {tab.label} ({tab.count})
+                  {tab.label}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        {/* Member List */}
-        {membersWithDistance.length > 0 ? (
-          <View style={styles.groupedListContainer}>
-            <FlatList
-              data={membersWithDistance}
-              keyExtractor={(item, index) => (item.id ? `person_${item.id}` : `person_idx_${index}`)}
-              contentContainerStyle={styles.listContent}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <MemberCard
-                  member={item}
-                  distanceMeters={item.distanceMeters}
-                  isCurrentUser={item.id === currentUser?.id || item.id === 'user'}
-                  onPress={handleSelectMember}
-                  variant="row"
-                />
-              )}
-            />
-          </View>
-        ) : (
-          <EmptyState
-            icon={Users}
-            title="No crew members found"
-            description={
-              searchQuery
-                ? `No one matched "${searchQuery}" in this filter.`
-                : 'No members in this category right now.'
-            }
-            actionLabel={searchQuery ? 'Clear Search' : undefined}
-            onAction={() => setSearchQuery('')}
+        {/* Search Bar */}
+        <View style={[styles.searchBar, { backgroundColor: isDark ? '#111827' : '#F3F4F6', borderColor: isDark ? '#1F2937' : '#E5E7EB' }]}>
+          <Search size={18} color={colors.textMuted} style={{ marginRight: 10 }} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.textPrimary }]}
+            placeholder="Find someone..."
+            placeholderTextColor={colors.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
-        )}
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <X size={16} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Section Header: NEAREST TO YOU */}
+        <Text style={styles.sectionHeader}>NEAREST TO YOU</Text>
+
+        {/* Flat Member List */}
+        <FlatList
+          data={membersWithDistance}
+          keyExtractor={(item, index) => (item.id ? `person_${item.id}` : `person_idx_${index}`)}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <MemberCard
+              member={item}
+              distanceMeters={item.distanceMeters}
+              isHighlighted={selectedMember?.id === item.id}
+              isCurrentUser={item.id === currentUser?.id || item.id === 'user'}
+              onPress={handleMemberPress}
+            />
+          )}
+        />
       </View>
+
+      {/* Member Bottom Sheet Modal */}
+      <MemberBottomSheet
+        visible={showBottomSheet}
+        member={selectedMember}
+        userLocation={userLocation}
+        onClose={() => {
+          setShowBottomSheet(false);
+          setSelectedMember(null);
+        }}
+        onNavigate={handleNavigateToMember}
+        onChat={(member) => {
+          setShowBottomSheet(false);
+          setSelectedMember(null);
+          router.push({
+            pathname: '/(tabs)/chat',
+            params: { memberId: member.id, memberName: member.name },
+          });
+        }}
+        onPing={(member) => {
+          triggerSuccess();
+          Alert.alert('Ping Sent!', `Sent a reunion beacon ping to ${member.name}.`);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -223,7 +324,6 @@ export default function PeopleScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
@@ -231,80 +331,136 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
   },
-  title: {
-    ...TYPOGRAPHY.h1,
-    fontSize: 24,
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  subtitle: {
-    ...TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
+  headerTitleWrap: {
+    flex: 1,
+  },
+  tripTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  tripSub: {
+    fontSize: 12.5,
     marginTop: 2,
-    fontSize: 13,
+    fontWeight: '500',
   },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.primaryLight,
+  checkedInBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+  },
+  badgeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#22C55E',
+    marginRight: 6,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#22C55E',
+  },
+  checkInCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginVertical: 12,
+  },
+  checkInLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  checkInIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  searchContainer: {
+  checkInTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  checkInSub: {
+    fontSize: 12.5,
+    marginTop: 2,
+  },
+  safeBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: RADIUS.pill,
+  },
+  safeBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: RADIUS.md,
-    paddingHorizontal: 12,
-    height: 44,
+    gap: 8,
     marginBottom: 12,
   },
-  searchIcon: {
-    marginRight: 8,
+  filterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1,
+  },
+  pillDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  filterPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 46,
+    borderRadius: 23,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    marginBottom: 14,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    color: COLORS.textPrimary,
+    fontSize: 14.5,
+    fontWeight: '500',
   },
-  filterTabsRow: {
-    flexDirection: 'row',
-    marginBottom: 14,
-    gap: 6,
-  },
-  filterTab: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: RADIUS.pill,
-    backgroundColor: '#F1F5F9',
-  },
-  filterTabActive: {
-    backgroundColor: COLORS.primary,
-  },
-  filterTabTxt: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  filterTabTxtActive: {
-    color: COLORS.white,
+  sectionHeader: {
+    fontSize: 11,
     fontWeight: '700',
-  },
-  groupedListContainer: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    ...SHADOWS.sm,
-    marginBottom: 16,
-    flex: 1,
+    color: '#6B7280',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   listContent: {
-    paddingBottom: 8,
+    paddingBottom: 24,
   },
   emptyContainer: {
     flex: 1,
@@ -328,7 +484,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
     lineHeight: 21,
-    color: COLORS.textSecondary,
     marginBottom: 24,
   },
   emptyBtnCol: {

@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
-import { COLORS, TYPOGRAPHY } from '../constants/theme';
+import { TYPOGRAPHY } from '../constants/theme';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
+import { useThemeStore } from '../store/useThemeStore';
 
 export const AppHeader = ({
   title,
@@ -11,10 +12,13 @@ export const AppHeader = ({
   showBack = false,
   onBack,
   rightComponent,
-  backgroundColor = COLORS.background,
+  backgroundColor,
 }) => {
   const router = useRouter();
   const { triggerLight } = useHapticFeedback();
+  const colors = useThemeStore((state) => state.colors);
+
+  const headerBg = backgroundColor !== undefined ? backgroundColor : colors.background;
 
   const handleBack = () => {
     triggerLight();
@@ -28,24 +32,24 @@ export const AppHeader = ({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor: headerBg }]}>
       <View style={styles.leftRow}>
         {showBack && (
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={handleBack}
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ChevronLeft size={24} color={COLORS.textPrimary} />
+            <ChevronLeft size={22} color={colors.textPrimary} />
           </TouchableOpacity>
         )}
         <View style={styles.titleContainer}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>
             {title}
           </Text>
           {subtitle && (
-            <Text style={styles.subtitle} numberOfLines={1}>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={1}>
               {subtitle}
             </Text>
           )}
@@ -75,12 +79,10 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   titleContainer: {
     flex: 1,
@@ -92,7 +94,6 @@ const styles = StyleSheet.create({
   subtitle: {
     ...TYPOGRAPHY.caption,
     marginTop: 2,
-    color: COLORS.textSecondary,
   },
   rightRow: {
     flexDirection: 'row',
