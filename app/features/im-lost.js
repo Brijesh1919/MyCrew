@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   },
   heroTime: {
     ...TYPOGRAPHY.caption,
-    color: '#22C55E',
+    color: '#3B82F6',
     fontWeight: '700',
     marginTop: 4,
   },

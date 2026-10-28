@@ -689,7 +689,7 @@ export const MapView = ({
               y1={userPos.y}
               x2={routePos.x}
               y2={routePos.y}
-              stroke="rgba(34, 197, 94, 0.22)"
+              stroke="rgba(59, 130, 246, 0.25)"
               strokeWidth="12"
               strokeLinecap="round"
             />
@@ -699,7 +699,7 @@ export const MapView = ({
               y1={userPos.y}
               x2={routePos.x}
               y2={routePos.y}
-              stroke="#22C55E"
+              stroke="#3B82F6"
               strokeWidth="4.5"
               strokeLinecap="round"
             />
@@ -709,7 +709,7 @@ export const MapView = ({
               y1={userPos.y}
               x2={routePos.x}
               y2={routePos.y}
-              stroke="#DCFCE7"
+              stroke="#DBEAFE"
               strokeWidth="1.8"
               strokeDasharray="6 6"
               strokeLinecap="round"
@@ -719,15 +719,15 @@ export const MapView = ({
               cx={routePos.x}
               cy={routePos.y}
               r={24}
-              fill="rgba(34, 197, 94, 0.16)"
-              stroke="rgba(34, 197, 94, 0.5)"
+              fill="rgba(59, 130, 246, 0.18)"
+              stroke="rgba(59, 130, 246, 0.5)"
               strokeWidth="1.5"
             />
             <Circle
               cx={routePos.x}
               cy={routePos.y}
               r={8}
-              fill="#22C55E"
+              fill="#3B82F6"
               stroke="#FFFFFF"
               strokeWidth="2"
             />
@@ -796,6 +796,9 @@ export const MapView = ({
         (members || []).map((member, index) => {
           if (
             !member ||
+            Boolean(member.isCurrentUser) ||
+            member.id === 'user' ||
+            member.id === 'me' ||
             !member.coordinates ||
             isNaN(member.coordinates.latitude) ||
             isNaN(member.coordinates.longitude) ||
@@ -974,9 +977,9 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#DCFCE7',
+    borderColor: '#DBEAFE',
     zIndex: 6,
-    shadowColor: '#22C55E',
+    shadowColor: '#3B82F6',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.45,
     shadowRadius: 5,

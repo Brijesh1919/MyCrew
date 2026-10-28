@@ -102,12 +102,12 @@ export const ShareTripModal = ({
                       styles.iconBubble,
                       {
                         backgroundColor: isDark
-                          ? 'rgba(34, 197, 94, 0.16)'
-                          : 'rgba(34, 197, 94, 0.12)',
+                          ? 'rgba(59, 130, 246, 0.16)'
+                          : '#EFF6FF',
                       },
                     ]}
                   >
-                    <UserPlus size={20} color="#22C55E" />
+                    <UserPlus size={20} color="#3B82F6" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.badgeText}>ADD PEOPLE & SHARE</Text>
@@ -167,7 +167,7 @@ export const ShareTripModal = ({
                   <Text style={[styles.codeLabel, { color: isDark ? '#94A3B8' : '#64748B' }]}>
                     CREW INVITE CODE
                   </Text>
-                  <Text style={[styles.codeVal, { color: '#22C55E' }]}>
+                  <Text style={[styles.codeVal, { color: '#3B82F6' }]}>
                     {tripCode}
                   </Text>
                 </View>
@@ -178,12 +178,12 @@ export const ShareTripModal = ({
                       styles.actionBtn,
                       {
                         backgroundColor: copied
-                          ? '#22C55E'
+                          ? '#3B82F6'
                           : isDark
                           ? '#1F2937'
                           : '#FFFFFF',
                         borderColor: copied
-                          ? '#22C55E'
+                          ? '#3B82F6'
                           : isDark
                           ? '#374151'
                           : '#CBD5E1',
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#22C55E',
+    color: '#3B82F6',
     letterSpacing: 0.6,
     marginBottom: 2,
   },

@@ -158,6 +158,15 @@ export default function HomeScreen() {
 
   // Handle member tap
   const handleMemberPress = (member) => {
+    const myId = String(currentUser?.id || currentUser?.user_id || '');
+    const isMe =
+      Boolean(member?.isCurrentUser) ||
+      member?.id === 'user' ||
+      member?.id === 'me' ||
+      (myId && (String(member?.id) === myId || String(member?.user_id) === myId));
+    if (isMe) {
+      return;
+    }
     setSelectedPersonSheet(member);
   };
 
@@ -371,13 +380,13 @@ export default function HomeScreen() {
               styles.navHUDCard,
               {
                 backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.97)',
-                borderColor: '#22C55E',
+                borderColor: colors.primary,
               },
             ]}
           >
             <View style={styles.navHUDMain}>
-              <View style={[styles.navHUDIconBubble, { backgroundColor: 'rgba(34, 197, 94, 0.15)' }]}>
-                <Compass size={22} color="#22C55E" strokeWidth={2.4} />
+              <View style={[styles.navHUDIconBubble, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }]}>
+                <Compass size={22} color={colors.primary} strokeWidth={2.4} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.navHUDSubtitle}>
@@ -568,6 +577,15 @@ export default function HomeScreen() {
         currentUser={currentUser}
         onSelectMember={(member) => {
           setShowNearestPeopleSheet(false);
+          const myId = String(currentUser?.id || currentUser?.user_id || '');
+          const isMe =
+            Boolean(member?.isCurrentUser) ||
+            member?.id === 'user' ||
+            member?.id === 'me' ||
+            (myId && (String(member?.id) === myId || String(member?.user_id) === myId));
+          if (isMe) {
+            return;
+          }
           setSelectedPersonSheet(member);
         }}
         onSeeEveryone={() => {
@@ -1513,7 +1531,7 @@ const styles = StyleSheet.create({
   navHUDSubtitle: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#22C55E',
+    color: '#3B82F6',
     letterSpacing: 0.6,
   },
   navHUDTitle: {
@@ -1524,7 +1542,7 @@ const styles = StyleSheet.create({
   navHUDDistance: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#22C55E',
+    color: '#3B82F6',
     marginTop: 1,
   },
   navHUDExitBtn: {

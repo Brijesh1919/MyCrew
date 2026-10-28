@@ -73,7 +73,7 @@ export default function GroupStatusScreen() {
   // Only show farthest if there are at least 2 other sharing members and farthest is distinct
   const farthest =
     sortedByDist.length > 1 &&
-    sortedByDist[sortedByDist.length - 1].id !== closest?.id
+      sortedByDist[sortedByDist.length - 1].id !== closest?.id
       ? sortedByDist[sortedByDist.length - 1]
       : null;
 
@@ -215,10 +215,10 @@ export default function GroupStatusScreen() {
                   <View
                     style={[
                       styles.iconCircle,
-                      { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.18)' : '#DCFCE7' },
+                      { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.18)' : '#EFF6FF' },
                     ]}
                   >
-                    <Users size={18} color="#22C55E" />
+                    <Users size={18} color="#3B82F6" />
                   </View>
                   <View>
                     <Text style={[styles.highlightLabel, { color: isDark ? '#9CA3AF' : COLORS.textMuted }]}>
@@ -339,15 +339,15 @@ export default function GroupStatusScreen() {
                   ? 'rgba(34, 197, 94, 0.12)'
                   : 'rgba(245, 158, 11, 0.12)'
                 : isAllSafe
-                ? '#F0FDF4'
-                : '#FFFBEB',
+                  ? '#F0FDF4'
+                  : '#FFFBEB',
               borderColor: isDark
                 ? isAllSafe
                   ? 'rgba(34, 197, 94, 0.3)'
                   : 'rgba(245, 158, 11, 0.3)'
                 : isAllSafe
-                ? '#DCFCE7'
-                : '#FEF3C7',
+                  ? '#DCFCE7'
+                  : '#FEF3C7',
             },
           ]}
           activeOpacity={0.8}
@@ -363,8 +363,8 @@ export default function GroupStatusScreen() {
                       ? 'rgba(34, 197, 94, 0.22)'
                       : 'rgba(245, 158, 11, 0.22)'
                     : isAllSafe
-                    ? '#DCFCE7'
-                    : '#FEF3C7',
+                      ? '#DCFCE7'
+                      : '#FEF3C7',
                 },
               ]}
             >
@@ -380,9 +380,8 @@ export default function GroupStatusScreen() {
               </Text>
               <Text style={[styles.safetySub, { color: isDark ? '#9CA3AF' : colors.textSecondary }]}>
                 {totalCrew > 0
-                  ? `${safeCrew} of ${totalCrew} ${
-                      totalCrew === 1 ? 'friend has' : 'friends have'
-                    } checked in as safe`
+                  ? `${safeCrew} of ${totalCrew} ${totalCrew === 1 ? 'friend has' : 'friends have'
+                  } checked in as safe`
                   : "Tap to check in and let your crew know you're safe"}
               </Text>
             </View>

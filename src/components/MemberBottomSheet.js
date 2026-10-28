@@ -22,6 +22,7 @@ import {
   getCardinalDirection,
   calculateDistanceMeters,
   formatDistance,
+  getProximityColor,
 } from '../utils/distance';
 import { useThemeStore } from '../store/useThemeStore';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
@@ -58,13 +59,14 @@ export const MemberBottomSheet = ({
       ? calculateBearing(userLocation, member.coordinates)
       : 45;
   const cardinal = getCardinalDirection(bearing);
+  const proximity = getProximityColor(distance, isDark, colors.primary);
 
   // Status subtitle
   const lastSeenText = isLive
     ? `Live ${member.lastSeenSecondsAgo ? `${member.lastSeenSecondsAgo}s ago` : 'now'}`
     : isDelayed
-    ? `Delayed ${member.lastSeenSecondsAgo ? `${Math.round(member.lastSeenSecondsAgo / 60)}m ago` : ''}`
-    : 'Offline';
+      ? `Delayed ${member.lastSeenSecondsAgo ? `${Math.round(member.lastSeenSecondsAgo / 60)}m ago` : ''}`
+      : 'Offline';
 
   const battery =
     member.battery !== undefined && member.battery !== null ? member.battery : 84;
@@ -183,12 +185,8 @@ export const MemberBottomSheet = ({
                 style={[
                   styles.distanceCard,
                   {
-                    backgroundColor: isDark
-                      ? 'rgba(34, 197, 94, 0.08)'
-                      : '#F0FDF4',
-                    borderColor: isDark
-                      ? 'rgba(34, 197, 94, 0.25)'
-                      : '#BBF7D0',
+                    backgroundColor: proximity.cardBg,
+                    borderColor: proximity.cardBorder,
                   },
                 ]}
               >
@@ -210,13 +208,13 @@ export const MemberBottomSheet = ({
                   style={[
                     styles.arrowCircle,
                     {
-                      borderColor: '#22C55E',
-                      backgroundColor: 'rgba(34, 197, 94, 0.12)',
+                      borderColor: proximity.circleBorder,
+                      backgroundColor: proximity.circleBg,
                     },
                   ]}
                 >
                   <View style={{ transform: [{ rotate: `${bearing}deg` }] }}>
-                    <ArrowUp size={26} color="#22C55E" strokeWidth={2.6} />
+                    <ArrowUp size={26} color={proximity.arrowColor} strokeWidth={2.6} />
                   </View>
                 </View>
               </View>
@@ -226,7 +224,7 @@ export const MemberBottomSheet = ({
                 style={[styles.instructionText, { color: colors.textSecondary }]}
               >
                 Walk toward the{' '}
-                <Text style={{ color: '#22C55E', fontWeight: '800' }}>
+                <Text style={{ color: proximity.accent, fontWeight: '800' }}>
                   {cardinal}
                 </Text>{' '}
                 — the arrow updates as you move.
@@ -250,13 +248,13 @@ export const MemberBottomSheet = ({
               <View style={styles.buttonRow}>
                 {/* 1. Navigate Button */}
                 <TouchableOpacity
-                  style={styles.navigateBtn}
+                  style={[styles.navigateBtn, { backgroundColor: colors.primary }]}
                   activeOpacity={0.82}
                   onPress={handleNavigatePress}
                 >
                   <Navigation
                     size={18}
-                    color="#000000"
+                    color="#FFFFFF"
                     style={{ marginRight: 6 }}
                     strokeWidth={2.4}
                   />
@@ -468,7 +466,7 @@ const styles = StyleSheet.create({
   navigateBtnText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#000000',
+    color: '#FFFFFF',
   },
   chatBtn: {
     flexDirection: 'row',

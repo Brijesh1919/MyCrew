@@ -22,6 +22,7 @@ import {
   getCardinalDirection,
   calculateDistanceMeters,
   formatDistance,
+  getProximityColor,
 } from '../utils/distance';
 import { useThemeStore } from '../store/useThemeStore';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
@@ -43,9 +44,9 @@ export const MeetingPointBottomSheet = ({
     meetingPoint.coordinates ||
     (meetingPoint.latitude && meetingPoint.longitude
       ? {
-          latitude: Number(meetingPoint.latitude),
-          longitude: Number(meetingPoint.longitude),
-        }
+        latitude: Number(meetingPoint.latitude),
+        longitude: Number(meetingPoint.longitude),
+      }
       : null);
 
   // Distance calculation
@@ -59,6 +60,7 @@ export const MeetingPointBottomSheet = ({
   const bearing =
     userLocation && coords ? calculateBearing(userLocation, coords) : 45;
   const cardinal = getCardinalDirection(bearing);
+  const proximity = getProximityColor(distance, isDark, colors.primary);
 
   const landmark =
     meetingPoint.landmarkNote ||
@@ -118,13 +120,11 @@ export const MeetingPointBottomSheet = ({
                     style={[
                       styles.pinIconBubble,
                       {
-                        backgroundColor: isDark
-                          ? 'rgba(34, 197, 94, 0.16)'
-                          : 'rgba(34, 197, 94, 0.12)',
+                        backgroundColor: proximity.circleBg,
                       },
                     ]}
                   >
-                    <MapPin size={22} color="#22C55E" />
+                    <MapPin size={22} color={proximity.accent} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={styles.badgeRow}>
@@ -132,26 +132,22 @@ export const MeetingPointBottomSheet = ({
                         style={[
                           styles.rallyBadge,
                           {
-                            backgroundColor: isDark
-                              ? 'rgba(34, 197, 94, 0.18)'
-                              : '#DCFCE7',
+                            backgroundColor: proximity.badgeBg,
                           },
                         ]}
                       >
-                        <Text style={styles.rallyBadgeText}>RALLY POINT</Text>
+                        <Text style={[styles.rallyBadgeText, { color: proximity.badgeText }]}>RALLY POINT</Text>
                       </View>
                       {meetingPoint.isActive && (
                         <View
                           style={[
                             styles.livePill,
                             {
-                              backgroundColor: isDark
-                                ? 'rgba(59, 130, 246, 0.18)'
-                                : '#DBEAFE',
+                              backgroundColor: proximity.badgeBg,
                             },
                           ]}
                         >
-                          <Text style={styles.livePillText}>ACTIVE NOW</Text>
+                          <Text style={[styles.livePillText, { color: proximity.badgeText }]}>ACTIVE NOW</Text>
                         </View>
                       )}
                     </View>
@@ -182,23 +178,45 @@ export const MeetingPointBottomSheet = ({
                 </TouchableOpacity>
               </View>
 
-              {/* Green Distance Card with Compass Bearing */}
-              <View style={styles.distanceCard}>
+              {/* Distance Card with Dynamic Proximity & Compass Bearing */}
+              <View
+                style={[
+                  styles.distanceCard,
+                  {
+                    backgroundColor: proximity.cardBg,
+                    borderColor: proximity.cardBorder,
+                  },
+                ]}
+              >
                 <View style={styles.distLeft}>
-                  <Text style={styles.distNumber}>{distFormatted}</Text>
-                  <Text style={styles.distLabel}>
-                    {distance !== null
-                      ? `Head ${cardinal} • towards this rally point`
-                      : 'Calculating distance from GPS...'}
+                  <Text style={[styles.distNumber, { color: colors.textPrimary }]}>
+                    {distFormatted}
+                  </Text>
+                  <Text style={[styles.distLabel, { color: colors.textSecondary }]}>
+                    {distance !== null ? (
+                      <>
+                        Head{' '}
+                        <Text style={{ color: proximity.accent, fontWeight: '800' }}>
+                          {cardinal}
+                        </Text>{' '}
+                        • towards this rally point
+                      </>
+                    ) : (
+                      'Calculating distance from GPS...'
+                    )}
                   </Text>
                 </View>
                 <View
                   style={[
                     styles.bearingCircle,
-                    { transform: [{ rotate: `${bearing}deg` }] },
+                    {
+                      borderColor: proximity.circleBorder,
+                      backgroundColor: proximity.circleBg,
+                      transform: [{ rotate: `${bearing}deg` }],
+                    },
                   ]}
                 >
-                  <ArrowUp size={22} color="#FFFFFF" strokeWidth={2.8} />
+                  <ArrowUp size={24} color={proximity.arrowColor} strokeWidth={2.6} />
                 </View>
               </View>
 
@@ -241,7 +259,7 @@ export const MeetingPointBottomSheet = ({
                     ]}
                   >
                     <View style={styles.detailIconWrap}>
-                      <FileText size={16} color="#22C55E" />
+                      <FileText size={16} color={colors.primary} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.detailKey, { color: isDark ? '#94A3B8' : '#64748B' }]}>
@@ -388,10 +406,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   distanceCard: {
-    backgroundColor: '#15803D',
-    borderRadius: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -402,22 +420,21 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   distNumber: {
-    fontSize: 30,
+    fontSize: 36,
     fontWeight: '900',
-    color: '#FFFFFF',
     letterSpacing: -0.5,
+    lineHeight: 42,
   },
   distLabel: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#DCFCE7',
+    fontWeight: '500',
     marginTop: 2,
   },
   bearingCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -453,12 +470,12 @@ const styles = StyleSheet.create({
   navigateBtn: {
     flex: 1,
     height: 52,
-    backgroundColor: '#22C55E',
+    backgroundColor: '#3B82F6',
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#22C55E',
+    shadowColor: '#3B82F6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,

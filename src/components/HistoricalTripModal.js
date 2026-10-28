@@ -117,7 +117,7 @@ export const HistoricalTripModal = ({ visible, trip, onClose }) => {
             {/* Structured Details Grid */}
             <View style={[styles.detailsBox, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
               <View style={styles.detailRow}>
-                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' }]}>
+                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }]}>
                   <Calendar size={18} color={colors.primary} />
                 </View>
                 <View style={styles.detailCol}>
@@ -132,7 +132,7 @@ export const HistoricalTripModal = ({ visible, trip, onClose }) => {
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
               <View style={styles.detailRow}>
-                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' }]}>
+                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }]}>
                   <Clock size={18} color={colors.primary} />
                 </View>
                 <View style={styles.detailCol}>
@@ -144,7 +144,7 @@ export const HistoricalTripModal = ({ visible, trip, onClose }) => {
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
               <View style={styles.detailRow}>
-                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' }]}>
+                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }]}>
                   <Users size={18} color={colors.primary} />
                 </View>
                 <View style={styles.detailCol}>
@@ -158,7 +158,7 @@ export const HistoricalTripModal = ({ visible, trip, onClose }) => {
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
               <View style={styles.detailRow}>
-                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' }]}>
+                <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }]}>
                   <KeyRound size={18} color={colors.primary} />
                 </View>
                 <View style={styles.detailCol}>
@@ -171,7 +171,7 @@ export const HistoricalTripModal = ({ visible, trip, onClose }) => {
                 <>
                   <View style={[styles.divider, { backgroundColor: colors.border }]} />
                   <View style={styles.detailRow}>
-                    <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' }]}>
+                    <View style={[styles.detailIconBox, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }]}>
                       <MapPin size={18} color={colors.primary} />
                     </View>
                     <View style={styles.detailCol}>

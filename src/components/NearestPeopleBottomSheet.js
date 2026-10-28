@@ -8,7 +8,7 @@ import {
   TouchableWithoutFeedback,
   Image,
 } from 'react-native';
-import { calculateDistanceMeters, formatDistance } from '../utils/distance';
+import { calculateDistanceMeters, formatDistance, getProximityColor } from '../utils/distance';
 import { useThemeStore } from '../store/useThemeStore';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
 import { memberService } from '../services/memberService';
@@ -298,7 +298,14 @@ export const NearestPeopleBottomSheet = ({
                         </View>
 
                         {/* Distance Label */}
-                        <Text style={styles.distanceText}>
+                        <Text
+                          style={[
+                            styles.distanceText,
+                            {
+                              color: getProximityColor(member.distanceMeters, isDark, colors.primary).accent,
+                            },
+                          ]}
+                        >
                           {member.formattedDistance}
                         </Text>
                       </TouchableOpacity>
@@ -451,7 +458,7 @@ const styles = StyleSheet.create({
   distanceText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#22C55E',
+    color: '#3B82F6',
   },
   seeEveryoneBtn: {
     marginTop: 14,

@@ -60,7 +60,7 @@ export const ActiveTripPickerModal = ({
                     styles.tripItem,
                     {
                       backgroundColor: isSelected
-                        ? isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF'
+                        ? isDark ? 'rgba(59, 130, 246, 0.16)' : '#EFF6FF'
                         : colors.surfaceSubtle,
                       borderColor: isSelected ? colors.primary : colors.border,
                     },

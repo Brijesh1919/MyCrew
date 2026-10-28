@@ -63,7 +63,7 @@ export const MemberCard = ({
         { borderBottomColor: isDark ? '#1F2937' : colors.divider },
         isHighlighted && [
           styles.rowHighlighted,
-          { borderColor: isDark ? '#374151' : colors.primary, backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(34, 197, 94, 0.08)' }
+          { borderColor: isDark ? '#374151' : colors.primary, backgroundColor: isDark ? 'rgba(59, 130, 246, 0.08)' : 'rgba(37, 99, 235, 0.08)' }
         ],
       ]}
     >
@@ -91,7 +91,7 @@ export const MemberCard = ({
             </View>
           )}
           {isCurrentUser && (
-            <View style={[styles.youBadge, { backgroundColor: 'rgba(34, 197, 94, 0.15)', borderColor: 'rgba(34, 197, 94, 0.3)' }]}>
+            <View style={[styles.youBadge, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF', borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#BFDBFE' }]}>
               <Text style={styles.youText}>YOU</Text>
             </View>
           )}
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   youText: {
     fontSize: 9.5,
     fontWeight: '800',
-    color: '#22C55E',
+    color: '#3B82F6',
     letterSpacing: 0.6,
   },
   subRow: {

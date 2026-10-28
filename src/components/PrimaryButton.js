@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../constants/theme';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
+import { useThemeStore } from '../store/useThemeStore';
 
 export const PrimaryButton = ({
   title,
@@ -16,6 +17,8 @@ export const PrimaryButton = ({
   textStyle,
 }) => {
   const { triggerLight } = useHapticFeedback();
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
 
   const handlePress = () => {
     if (disabled || loading) return;
@@ -24,11 +27,11 @@ export const PrimaryButton = ({
   };
 
   const getBackgroundColor = () => {
-    if (disabled) return '#CBD5E1';
-    if (variant === 'danger') return COLORS.danger;
-    if (variant === 'success') return COLORS.success;
-    if (variant === 'dark') return COLORS.textPrimary;
-    return COLORS.primary;
+    if (disabled) return isDark ? '#374151' : '#CBD5E1';
+    if (variant === 'danger') return colors.danger;
+    if (variant === 'success') return colors.success;
+    if (variant === 'dark') return colors.textPrimary;
+    return colors.primary;
   };
 
   return (

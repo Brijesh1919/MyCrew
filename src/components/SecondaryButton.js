@@ -30,7 +30,7 @@ export const SecondaryButton = ({
       return { backgroundColor: 'transparent' };
     }
     if (variant === 'subtle') {
-      return { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : colors.surfaceSubtle };
+      return { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.16)' : colors.surfaceSubtle };
     }
     return {
       backgroundColor: 'transparent',

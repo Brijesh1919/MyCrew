@@ -32,9 +32,9 @@ export const calculateDistanceMeters = (coord1, coord2, lat2Arg, lon2Arg) => {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return Math.round(EARTH_RADIUS_METERS * c);
@@ -158,5 +158,74 @@ export const calculateBoundingDelta = (coords, paddingRatio = 1.3) => {
     },
     latitudeDelta,
     longitudeDelta,
+  };
+};
+
+/**
+ * Dynamic proximity color theme based on distance in meters.
+ * - Close (<= 75m): Vibrant Green
+ * - Medium (75m - 300m): Warm Orange / Amber
+ * - Far (> 300m or unknown GPS): Red
+ *
+ * @param {number|null|undefined} distanceMeters
+ * @param {boolean} isDark
+ * @param {string} [primaryColor]
+ */
+export const getProximityColor = (distanceMeters, isDark = true, primaryColor = '#3B82F6') => {
+  const hasValidDistance =
+    distanceMeters !== null &&
+    distanceMeters !== undefined &&
+    !isNaN(distanceMeters) &&
+    Number(distanceMeters) >= 0;
+
+  const dist = hasValidDistance ? Number(distanceMeters) : null;
+
+  // 1. CLOSE (<= 75m): Vibrant Green
+  if (dist !== null && dist <= 75) {
+    return {
+      tier: 'close',
+      accent: isDark ? '#4ADE80' : '#16A34A',
+      accentDark: '#15803D',
+      cardBg: isDark ? 'rgba(34, 197, 94, 0.12)' : '#F0FDF4',
+      cardBorder: isDark ? 'rgba(34, 197, 94, 0.35)' : '#BBF7D0',
+      circleBg: isDark ? 'rgba(34, 197, 94, 0.22)' : '#DCFCE7',
+      circleBorder: isDark ? '#22C55E' : '#16A34A',
+      arrowColor: isDark ? '#4ADE80' : '#16A34A',
+      badgeBg: isDark ? 'rgba(34, 197, 94, 0.2)' : '#DCFCE7',
+      badgeText: isDark ? '#4ADE80' : '#15803D',
+      label: 'NEARBY',
+    };
+  }
+
+  // 2. MEDIUM (75m - 300m): Warm Orange
+  if (dist !== null && dist <= 300) {
+    return {
+      tier: 'mid',
+      accent: isDark ? '#FB923C' : '#EA580C',
+      accentDark: '#C2410C',
+      cardBg: isDark ? 'rgba(249, 115, 22, 0.12)' : '#FFF7ED',
+      cardBorder: isDark ? 'rgba(249, 115, 22, 0.35)' : '#FED7AA',
+      circleBg: isDark ? 'rgba(249, 115, 22, 0.22)' : '#FFEDD5',
+      circleBorder: isDark ? '#F97316' : '#EA580C',
+      arrowColor: isDark ? '#FB923C' : '#EA580C',
+      badgeBg: isDark ? 'rgba(249, 115, 22, 0.18)' : '#FFEDD5',
+      badgeText: isDark ? '#FB923C' : '#C2410C',
+      label: 'WALKING DISTANCE',
+    };
+  }
+
+  // 3. FAR (> 300m or calculating/unknown GPS): Red
+  return {
+    tier: 'far',
+    accent: isDark ? '#F87171' : '#DC2626',
+    accentDark: '#B91C1C',
+    cardBg: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
+    cardBorder: isDark ? 'rgba(239, 68, 68, 0.35)' : '#FECACA',
+    circleBg: isDark ? 'rgba(239, 68, 68, 0.22)' : '#FEE2E2',
+    circleBorder: isDark ? '#EF4444' : '#DC2626',
+    arrowColor: isDark ? '#F87171' : '#DC2626',
+    badgeBg: isDark ? 'rgba(239, 68, 68, 0.18)' : '#FEE2E2',
+    badgeText: isDark ? '#F87171' : '#B91C1C',
+    label: 'FAR AWAY',
   };
 };

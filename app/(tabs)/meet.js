@@ -35,7 +35,7 @@ import { useLocationStore } from '../../src/store/useLocationStore';
 import { useCrewStore } from '../../src/store/useCrewStore';
 import { useThemeStore } from '../../src/store/useThemeStore';
 import { useHapticFeedback } from '../../src/hooks/useHapticFeedback';
-import { calculateDistanceMeters, formatDistance } from '../../src/utils/distance';
+import { calculateDistanceMeters, formatDistance, getProximityColor } from '../../src/utils/distance';
 
 export default function MeetScreen() {
   const router = useRouter();
@@ -98,8 +98,8 @@ export default function MeetScreen() {
     const finalCoord = selectedCoord?.latitude
       ? selectedCoord
       : userLocation?.latitude
-      ? { latitude: userLocation.latitude, longitude: userLocation.longitude }
-      : { latitude: 15.2993, longitude: 74.1240 };
+        ? { latitude: userLocation.latitude, longitude: userLocation.longitude }
+        : { latitude: 15.2993, longitude: 74.1240 };
 
     await addMeetingPoint({
       tripId: activeTrip?.id,
@@ -177,12 +177,12 @@ export default function MeetScreen() {
 
           {activeTrip && (
             <TouchableOpacity
-              style={[styles.addBtn, { backgroundColor: '#22C55E' }]}
+              style={[styles.addBtn, { backgroundColor: colors.primary }]}
               onPress={openCreateModal}
               activeOpacity={0.75}
             >
-              <Plus size={16} color="#000000" strokeWidth={2.5} style={{ marginRight: 4 }} />
-              <Text style={styles.addBtnText}>Set Point</Text>
+              <Plus size={16} color="#FFFFFF" strokeWidth={2.5} style={{ marginRight: 4 }} />
+              <Text style={[styles.addBtnText, { color: '#FFFFFF' }]}>Set Point</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -190,7 +190,7 @@ export default function MeetScreen() {
         {!activeTrip ? (
           <View style={[styles.emptyCard, { backgroundColor: isDark ? '#111827' : colors.surface, borderColor: isDark ? '#1F2937' : colors.border }]}>
             <View style={[styles.emptyIconBubble, { backgroundColor: isDark ? '#1E293B' : colors.surfaceSubtle }]}>
-              <MapPin size={28} color="#22C55E" />
+              <MapPin size={28} color={colors.primary} />
             </View>
             <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Active Crew Trip</Text>
             <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
@@ -200,13 +200,13 @@ export default function MeetScreen() {
               title="Go to Home"
               onPress={() => router.replace('/(tabs)/home')}
               size="md"
-              style={{ marginTop: 14, backgroundColor: '#22C55E' }}
+              style={{ marginTop: 14 }}
             />
           </View>
         ) : meetingPoints.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: isDark ? '#111827' : colors.surface, borderColor: isDark ? '#1F2937' : colors.border }]}>
             <View style={[styles.emptyIconBubble, { backgroundColor: isDark ? '#1E293B' : colors.surfaceSubtle }]}>
-              <Sparkles size={28} color="#22C55E" />
+              <Sparkles size={28} color={colors.primary} />
             </View>
             <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Meeting Point Set</Text>
             <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
@@ -217,7 +217,7 @@ export default function MeetScreen() {
               onPress={openCreateModal}
               icon={Plus}
               size="md"
-              style={{ marginTop: 14, backgroundColor: '#22C55E' }}
+              style={{ marginTop: 14 }}
             />
           </View>
         ) : (
@@ -227,6 +227,7 @@ export default function MeetScreen() {
               ? calculateDistanceMeters(userLocation, pointCoord)
               : null;
             const distFormatted = distMeters !== null ? formatDistance(distMeters) : null;
+            const proximity = getProximityColor(distMeters, isDark, colors.primary);
             const noteText = point.landmarkNote || point.description;
 
             return (
@@ -241,8 +242,8 @@ export default function MeetScreen() {
                 ]}
               >
                 <View style={styles.pointCardHeader}>
-                  <View style={[styles.pointIconBubble, { backgroundColor: 'rgba(34, 197, 94, 0.12)' }]}>
-                    <MapPin size={20} color="#22C55E" strokeWidth={2.2} />
+                  <View style={[styles.pointIconBubble, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' }]}>
+                    <MapPin size={20} color={colors.primary} strokeWidth={2.2} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.pointName, { color: colors.textPrimary }]} numberOfLines={1}>
@@ -273,14 +274,14 @@ export default function MeetScreen() {
                     style={[
                       styles.landmarkNoteCard,
                       {
-                        backgroundColor: isDark ? 'rgba(34, 197, 94, 0.07)' : '#F0FDF4',
-                        borderColor: isDark ? 'rgba(34, 197, 94, 0.22)' : '#BBF7D0',
+                        backgroundColor: isDark ? 'rgba(59, 130, 246, 0.08)' : '#EFF6FF',
+                        borderColor: isDark ? 'rgba(59, 130, 246, 0.22)' : '#BFDBFE',
                       },
                     ]}
                   >
                     <View style={styles.landmarkNoteHeader}>
-                      <FileText size={13} color="#22C55E" strokeWidth={2.2} style={{ marginRight: 5 }} />
-                      <Text style={styles.landmarkNoteLabel}>LANDMARK NOTE</Text>
+                      <FileText size={13} color={colors.primary} strokeWidth={2.2} style={{ marginRight: 5 }} />
+                      <Text style={[styles.landmarkNoteLabel, { color: colors.primary }]}>LANDMARK NOTE</Text>
                     </View>
                     <Text style={[styles.landmarkNoteText, { color: colors.textPrimary }]}>
                       {noteText}
@@ -291,8 +292,8 @@ export default function MeetScreen() {
                 {/* Distance Badge */}
                 {distFormatted && (
                   <View style={styles.distanceBadgeRow}>
-                    <Navigation size={14} color="#22C55E" style={{ marginRight: 6 }} />
-                    <Text style={[styles.distanceText, { color: '#22C55E' }]}>
+                    <Navigation size={14} color={proximity.accent} style={{ marginRight: 6 }} />
+                    <Text style={[styles.distanceText, { color: proximity.accent }]}>
                       {distFormatted} away from your position
                     </Text>
                   </View>
@@ -300,12 +301,12 @@ export default function MeetScreen() {
 
                 {/* Direct Map Navigation Button */}
                 <TouchableOpacity
-                  style={[styles.navigateBtn, { backgroundColor: '#22C55E' }]}
+                  style={[styles.navigateBtn, { backgroundColor: colors.primary }]}
                   onPress={() => handleNavigateToPoint(point)}
                   activeOpacity={0.8}
                 >
-                  <Compass size={17} color="#000000" strokeWidth={2.4} style={{ marginRight: 6 }} />
-                  <Text style={styles.navigateBtnText}>Navigate to Meeting Point</Text>
+                  <Compass size={17} color="#FFFFFF" strokeWidth={2.4} style={{ marginRight: 6 }} />
+                  <Text style={[styles.navigateBtnText, { color: '#FFFFFF' }]}>Navigate to Meeting Point</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -374,14 +375,14 @@ export default function MeetScreen() {
                         activeOpacity={0.8}
                         onPress={handleCenterOnUser}
                       >
-                        <LocateFixed size={14} color="#22C55E" style={{ marginRight: 5 }} />
+                        <LocateFixed size={14} color={colors.primary} style={{ marginRight: 5 }} />
                         <Text style={[styles.recenterText, { color: colors.textPrimary }]}>My Location</Text>
                       </TouchableOpacity>
                     )}
 
                     {/* Coordinate Indicator Pill */}
                     <View style={styles.coordsIndicatorPill}>
-                      <MapPin size={11} color="#22C55E" style={{ marginRight: 4 }} />
+                      <MapPin size={11} color={colors.primary} style={{ marginRight: 4 }} />
                       <Text style={styles.coordsIndicatorText}>
                         Pin: {selectedCoord?.latitude?.toFixed(4)}, {selectedCoord?.longitude?.toFixed(4)}
                       </Text>
@@ -459,8 +460,7 @@ export default function MeetScreen() {
                   onPress={handleCreatePoint}
                   icon={CheckCircle2}
                   size="lg"
-                  style={{ marginTop: 6, backgroundColor: '#22C55E' }}
-                  textStyle={{ color: '#000000', fontWeight: '800' }}
+                  style={{ marginTop: 6 }}
                 />
               </ScrollView>
             </View>
@@ -655,7 +655,7 @@ const styles = StyleSheet.create({
   },
   dragHintText: {
     fontSize: 11,
-    color: '#22C55E',
+    color: '#3B82F6',
     fontWeight: '700',
   },
   mapContainerBox: {
@@ -675,7 +675,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: RADIUS.pill,
     borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.4)',
+    borderColor: 'rgba(59, 130, 246, 0.4)',
     zIndex: 10,
     ...SHADOWS.sm,
   },

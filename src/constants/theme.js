@@ -6,7 +6,7 @@ export const LIGHT_COLORS = {
   primaryLight: '#DBEAFE',
   secondary: '#3B82F6',    // Secondary blue
   accent: '#0EA5E9',       // Cyan/Sky accent
-  success: '#22C55E',      // Green (Live / Safe)
+  success: '#22C55E',      // Green (Live status only)
   successBg: '#DCFCE7',
   warning: '#F59E0B',      // Amber (Delayed)
   warningBg: '#FEF3C7',
@@ -21,7 +21,7 @@ export const LIGHT_COLORS = {
   textMuted: '#94A3B8',    // Slate 400
   white: '#FFFFFF',
   darkMapOverlay: '#0F172A',
-  pulseRing: 'rgba(34, 197, 94, 0.25)',
+  pulseRing: 'rgba(37, 99, 235, 0.25)',
   radarSweep: 'rgba(37, 99, 235, 0.15)',
   clusterBg: '#2563EB',
   clusterBorder: '#60A5FA',
@@ -35,12 +35,12 @@ export const LIGHT_COLORS = {
 };
 
 export const DARK_COLORS = {
-  primary: '#22C55E',      // Tactical Emerald Green from reference mockup
-  primaryDark: '#16A34A',
-  primaryLight: 'rgba(34, 197, 94, 0.2)',
-  secondary: '#38BDF8',    // Tactical Cyan
-  accent: '#38BDF8',
-  success: '#22C55E',      // Green (Live / Safe)
+  primary: '#3B82F6',      // Vibrant Electric Blue for dark mode
+  primaryDark: '#2563EB',  // Deep Blue
+  primaryLight: 'rgba(59, 130, 246, 0.2)', // Soft Blue Tint
+  secondary: '#60A5FA',    // Sky/Blue 400
+  accent: '#38BDF8',       // Cyan
+  success: '#22C55E',      // Green (Live status only)
   successBg: 'rgba(34, 197, 94, 0.15)',
   warning: '#F59E0B',      // Amber
   warningBg: 'rgba(245, 158, 11, 0.15)',
@@ -55,15 +55,15 @@ export const DARK_COLORS = {
   textMuted: '#6B7280',    // Muted slate
   white: '#FFFFFF',
   darkMapOverlay: '#0A0E17',
-  pulseRing: 'rgba(34, 197, 94, 0.35)',
-  radarSweep: 'rgba(34, 197, 94, 0.2)',
-  clusterBg: '#22C55E',
-  clusterBorder: '#86EFAC',
+  pulseRing: 'rgba(59, 130, 246, 0.35)',
+  radarSweep: 'rgba(59, 130, 246, 0.2)',
+  clusterBg: '#3B82F6',
+  clusterBorder: '#93C5FD',
   divider: 'rgba(255, 255, 255, 0.06)',
   border: 'rgba(255, 255, 255, 0.1)',
   borderSubtle: 'rgba(255, 255, 255, 0.06)',
   tileBg: '#111827',
-  tileBgPrimary: 'rgba(34, 197, 94, 0.12)',
+  tileBgPrimary: 'rgba(59, 130, 246, 0.15)',
   tileBgDanger: 'rgba(239, 68, 68, 0.14)',
   tileBgAccent: 'rgba(56, 189, 248, 0.14)',
 };

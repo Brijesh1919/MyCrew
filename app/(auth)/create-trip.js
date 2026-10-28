@@ -225,7 +225,7 @@ export default function CreateTripScreen() {
                     style={[
                       styles.typeItem,
                       { backgroundColor: colors.surfaceSubtle, borderColor: isSelected ? colors.primary : colors.border },
-                      isSelected && { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF' },
+                      isSelected && { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.16)' : '#EFF6FF' },
                     ]}
                     onPress={() => setSelectedType(t.id)}
                     activeOpacity={0.75}
@@ -269,7 +269,7 @@ export default function CreateTripScreen() {
                     key={hr}
                     style={[
                       styles.durationPill,
-                      { backgroundColor: isSelected ? (isDark ? 'rgba(34, 197, 94, 0.18)' : colors.primaryLight) : colors.surfaceSubtle, borderColor: isSelected ? colors.primary : colors.border },
+                      { backgroundColor: isSelected ? (isDark ? 'rgba(59, 130, 246, 0.18)' : colors.primaryLight) : colors.surfaceSubtle, borderColor: isSelected ? colors.primary : colors.border },
                     ]}
                     onPress={() => setDurationHours(hr)}
                   >
@@ -333,7 +333,7 @@ export default function CreateTripScreen() {
                   key={option.id}
                   style={[
                     styles.visOption,
-                    { backgroundColor: isSelected ? (isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF') : colors.surfaceSubtle, borderColor: isSelected ? colors.primary : colors.border },
+                    { backgroundColor: isSelected ? (isDark ? 'rgba(59, 130, 246, 0.16)' : '#EFF6FF') : colors.surfaceSubtle, borderColor: isSelected ? colors.primary : colors.border },
                   ]}
                   onPress={() => setVisibility(option.id)}
                 >

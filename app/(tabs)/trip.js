@@ -264,7 +264,7 @@ export default function TripScreen() {
           <View style={styles.heroHeader}>
             <View style={styles.heroBadgeRow}>
               <Text style={styles.heroEmoji}>{activeTrip?.emoji || '🎪'}</Text>
-              <View style={[styles.heroTypeBadge, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF' }]}>
+              <View style={[styles.heroTypeBadge, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.16)' : '#EFF6FF' }]}>
                 <Text style={[styles.heroTypeText, { color: colors.primary }]}>
                   {activeTrip?.type?.toUpperCase() || 'EVENT'}
                 </Text>
@@ -309,7 +309,7 @@ export default function TripScreen() {
               <Text style={[styles.codeDisplay, { color: colors.primary }]}>{activeTrip?.code || activeTrip?.trip_code}</Text>
             </View>
             <TouchableOpacity
-              style={[styles.copyPill, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF' }]}
+              style={[styles.copyPill, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.16)' : '#EFF6FF' }]}
               onPress={handleCopyCode}
               activeOpacity={0.7}
             >
@@ -351,7 +351,7 @@ export default function TripScreen() {
           <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>TRIP DETAILS & CONTROLS</Text>
           <View style={[styles.menuBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.infoRow}>
-              <View style={[styles.menuIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF' }]}>
+              <View style={[styles.menuIconBox, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.16)' : '#EFF6FF' }]}>
                 <Shield size={18} color={colors.primary} />
               </View>
               <View style={styles.infoTextContainer}>
@@ -365,7 +365,7 @@ export default function TripScreen() {
             <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
 
             <View style={styles.infoRow}>
-              <View style={[styles.menuIconBox, { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF' }]}>
+              <View style={[styles.menuIconBox, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.16)' : '#EFF6FF' }]}>
                 <Clock size={18} color={colors.primary} />
               </View>
               <View style={styles.infoTextContainer}>

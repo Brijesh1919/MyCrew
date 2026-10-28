@@ -194,9 +194,9 @@ export default function PeopleScreen() {
           </View>
 
           {/* Safe Badge at top right */}
-          <View style={[styles.checkedInBadge, { backgroundColor: 'rgba(34, 197, 94, 0.15)', borderColor: 'rgba(34, 197, 94, 0.35)' }]}>
-            <View style={styles.badgeDot} />
-            <Text style={styles.badgeText}>{safeCount}/{totalCount}</Text>
+          <View style={[styles.checkedInBadge, { backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF', borderColor: isDark ? 'rgba(59, 130, 246, 0.35)' : '#BFDBFE' }]}>
+            <View style={[styles.badgeDot, { backgroundColor: colors.primary }]} />
+            <Text style={[styles.badgeText, { color: colors.primary }]}>{safeCount}/{totalCount}</Text>
           </View>
         </View>
 
@@ -217,12 +217,12 @@ export default function PeopleScreen() {
           <TouchableOpacity
             style={[
               styles.safeBtn,
-              { backgroundColor: isSelfSafe ? '#4ADE80' : isDark ? '#1F2937' : '#E2E8F0' },
+              { backgroundColor: isSelfSafe ? colors.primary : isDark ? '#1F2937' : '#E2E8F0' },
             ]}
             onPress={handleToggleSafe}
             activeOpacity={0.8}
           >
-            <Text style={[styles.safeBtnText, { color: isSelfSafe ? '#000000' : colors.textPrimary }]}>
+            <Text style={[styles.safeBtnText, { color: isSelfSafe ? '#FFFFFF' : colors.textPrimary }]}>
               {isSelfSafe ? "I'm safe" : "Check in"}
             </Text>
           </TouchableOpacity>

@@ -70,7 +70,7 @@ export const MapControls = ({
             style={[
               singleBtnStyle,
               bgStyle,
-              isMeetingPointsActive && { borderColor: colors.primary, backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#EFF6FF' },
+              isMeetingPointsActive && { borderColor: colors.primary, backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#EFF6FF' },
             ]}
             activeOpacity={0.75}
             onPress={() => handleAction(onToggleMeetingPoints)}
@@ -138,10 +138,10 @@ const styles = StyleSheet.create({
     ...SHADOWS.md,
   },
   activeBtn: {
-    borderColor: '#22C55E',
+    borderColor: '#3B82F6',
   },
   recenterBtn: {
-    borderColor: '#22C55E',
+    borderColor: '#3B82F6',
   },
   buttonGroupCompact: {
     marginBottom: 6,
