@@ -8,8 +8,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Modal,
-  Image,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -18,11 +17,10 @@ import {
   Users,
   Search,
   X,
-  Compass,
   Navigation,
   Sparkles,
-  MapPin,
-  AlertTriangle,
+  ChevronRight,
+  MessageCircle,
 } from 'lucide-react-native';
 import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
 import { useThemeStore } from '../../src/store/useThemeStore';
@@ -45,7 +43,25 @@ const QUICK_PINGS = [
   { label: '🚨 Need help!', text: 'Need quick help here!', type: 'sos' },
 ];
 
-export default function ChatScreen({ isTab = false }) {
+function formatTime(isoString) {
+  if (!isoString) return '';
+  try {
+    const d = new Date(isoString);
+    const now = new Date();
+    const diffHours = (now - d) / (1000 * 60 * 60);
+    if (diffHours < 24 && d.getDate() === now.getDate()) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffHours < 48) {
+      return 'Yesterday';
+    } else {
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  } catch (e) {
+    return '';
+  }
+}
+
+export default function ChatScreen({ isTab = false, initialMemberId = null }) {
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
@@ -62,28 +78,35 @@ export default function ChatScreen({ isTab = false }) {
   const userLocation = useLocationStore((state) => state.userLocation);
 
   const messages = useChatStore((state) => state.messages);
-  const activeChannel = useChatStore((state) => state.activeChannel);
   const unreadCounts = useChatStore((state) => state.unreadCounts);
   const setActiveChannel = useChatStore((state) => state.setActiveChannel);
-  const fetchTripMessages = useChatStore((state) => state.fetchTripMessages);
   const sendMessage = useChatStore((state) => state.sendMessage);
-  const initRealtime = useChatStore((state) => state.initRealtime);
-  const cleanupRealtime = useChatStore((state) => state.cleanupRealtime);
+
+  // Navigation / Selected Channel state
+  // null = Conversations List View, 'group' = Whole Crew Thread, memberId = 1:1 Thread
+  const targetInitialId = initialMemberId || params?.memberId;
+  const [selectedChannel, setSelectedChannel] = useState(
+    targetInitialId ? String(targetInitialId) : (params?.channel === 'group' ? 'group' : null)
+  );
 
   // Local state
   const [inputText, setInputText] = useState('');
-  const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const flatListRef = useRef(null);
 
-  // Initialize active channel if memberId was provided in route params
+  // Listen for navigation param changes (e.g. from MemberBottomSheet or people screen)
   useEffect(() => {
     if (params?.memberId) {
-      setActiveChannel(String(params.memberId));
+      const id = String(params.memberId);
+      setSelectedChannel(id);
+      setActiveChannel(id);
+    } else if (params?.channel === 'group') {
+      setSelectedChannel('group');
+      setActiveChannel('group');
     }
-  }, [params?.memberId]);
+  }, [params?.memberId, params?.channel]);
 
-  // Manage chat screen active status so unread count accurately reflects foreground/background
+  // Manage chat screen active status in store
   useFocusEffect(
     useCallback(() => {
       useChatStore.getState().setChatScreenOpen(true);
@@ -95,21 +118,21 @@ export default function ChatScreen({ isTab = false }) {
 
   // Active target member if in 1:1 chat
   const activeTargetMember = useMemo(() => {
-    if (activeChannel === 'group') return null;
-    return members.find((m) => String(m.id) === String(activeChannel)) || null;
-  }, [activeChannel, members]);
+    if (!selectedChannel || selectedChannel === 'group') return null;
+    return members.find((m) => String(m.id) === String(selectedChannel)) || null;
+  }, [selectedChannel, members]);
 
   // Filter messages for current channel
   const filteredMessages = useMemo(() => {
-    if (!messages || messages.length === 0) return [];
+    if (!messages || messages.length === 0 || !selectedChannel) return [];
 
-    if (activeChannel === 'group') {
+    if (selectedChannel === 'group') {
       return messages
         .filter((m) => !m.recipient_id)
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     }
 
-    const targetId = String(activeChannel);
+    const targetId = String(selectedChannel);
     const myId = String(currentUser?.id || '');
 
     return messages
@@ -119,19 +142,59 @@ export default function ChatScreen({ isTab = false }) {
         return (s === targetId && r === myId) || (s === myId && r === targetId);
       })
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  }, [messages, activeChannel, currentUser?.id]);
+  }, [messages, selectedChannel, currentUser?.id]);
+
+  // Compute latest group message
+  const latestGroupMessage = useMemo(() => {
+    if (!messages || !messages.length) return null;
+    const groupMsgs = messages.filter((m) => !m.recipient_id);
+    if (!groupMsgs.length) return null;
+    return groupMsgs.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+  }, [messages]);
+
+  // Compute latest message per member for 1:1 conversations
+  const latestMessagePerMember = useMemo(() => {
+    if (!messages || !messages.length) return {};
+    const map = {};
+    const myId = String(currentUser?.id || '');
+
+    const sorted = [...messages].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    for (const m of sorted) {
+      if (!m.recipient_id) continue;
+      const s = String(m.sender_id);
+      const r = String(m.recipient_id);
+
+      let otherId = null;
+      if (s === myId) otherId = r;
+      else if (r === myId) otherId = s;
+
+      if (otherId) {
+        map[otherId] = m;
+      }
+    }
+    return map;
+  }, [messages, currentUser?.id]);
+
+  // Filtered members list for Conversations List
+  const filteredMembers = useMemo(() => {
+    const otherMembers = members.filter((m) => String(m.id) !== String(currentUser?.id));
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return otherMembers;
+    return otherMembers.filter((m) => (m.name || '').toLowerCase().includes(query));
+  }, [members, currentUser?.id, searchQuery]);
 
   // Handle Send Text
   const handleSend = async (customContent = null, messageType = 'text') => {
     const textToSend = customContent || inputText;
-    if (!textToSend?.trim() || !activeTrip?.id || !currentUser?.id) return;
+    if (!textToSend?.trim() || !activeTrip?.id || !currentUser?.id || !selectedChannel) return;
 
     triggerLight();
     if (!customContent) {
       setInputText('');
     }
 
-    const recipientId = activeChannel === 'group' ? null : activeChannel;
+    const recipientId = selectedChannel === 'group' ? null : selectedChannel;
 
     await sendMessage({
       tripId: activeTrip.id,
@@ -147,10 +210,10 @@ export default function ChatScreen({ isTab = false }) {
   // Quick Ping Tap
   const handleQuickPing = (ping) => {
     triggerSuccess();
-    handleSend(ping.text, 'text');
+    handleSend(ping.text, ping.type || 'text');
   };
 
-  // Distance to active target member
+  // Distance to active target member (1:1 view)
   const targetDistanceInfo = useMemo(() => {
     if (!activeTargetMember) return null;
     const isOffline =
@@ -170,32 +233,311 @@ export default function ChatScreen({ isTab = false }) {
     };
   }, [activeTargetMember, userLocation]);
 
-  // Map center calculation
-  const mapCenter = useMemo(() => {
-    if (activeTargetMember?.coordinates && userLocation && !targetDistanceInfo?.isPaused) {
-      return {
-        latitude: (userLocation.latitude + activeTargetMember.coordinates.latitude) / 2,
-        longitude: (userLocation.longitude + activeTargetMember.coordinates.longitude) / 2,
-      };
-    }
-    return userLocation || null;
-  }, [activeTargetMember, userLocation, targetDistanceInfo]);
+  // =========================================================================
+  // VIEW 1: CONVERSATIONS LIST (DEFAULT VIEW)
+  // =========================================================================
+  if (!selectedChannel) {
+    return (
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: isDark ? '#0B0F17' : colors.background }]}
+        edges={['top', 'left', 'right']}
+      >
+        {/* Header - No radar/compass button */}
+        <AppHeader
+          title="CREW CHAT"
+          subtitle={`${activeTrip?.name || 'Active Trip'} • ${members.length} Members`}
+          showBack={!isTab && Boolean(router.canGoBack())}
+          onBack={() => router.back()}
+          rightComponent={null}
+        />
 
-  // Filtered members list for Search modal
-  const filteredSearchMembers = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    const otherMembers = members.filter((m) => String(m.id) !== String(currentUser?.id));
-    if (!query) return otherMembers;
-    return otherMembers.filter((m) => (m.name || '').toLowerCase().includes(query));
-  }, [members, currentUser?.id, searchQuery]);
+        <ScrollView
+          style={styles.listScrollView}
+          contentContainerStyle={[
+            styles.listScrollContent,
+            { paddingBottom: isTab ? 90 : Math.max(insets.bottom + 20, 30) },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Search Bar */}
+          <View
+            style={[
+              styles.searchBarBox,
+              {
+                backgroundColor: isDark ? '#111827' : '#F1F5F9',
+                borderColor: isDark ? '#1F2937' : '#E2E8F0',
+              },
+            ]}
+          >
+            <Search size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
+            <TextInput
+              style={[styles.searchBarInput, { color: colors.textPrimary }]}
+              placeholder="Search crew members..."
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <X size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
 
+          {/* PINNED SECTION: WHOLE CREW GROUP CHAT */}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.sectionHeaderTitle, { color: colors.textSecondary }]}>
+              PINNED CONVERSATION
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.groupCard,
+              {
+                backgroundColor: isDark ? '#111827' : '#FFFFFF',
+                borderColor: isDark ? 'rgba(59, 130, 246, 0.4)' : 'rgba(37, 99, 235, 0.25)',
+              },
+            ]}
+            activeOpacity={0.8}
+            onPress={() => {
+              triggerLight();
+              setActiveChannel('group');
+              setSelectedChannel('group');
+            }}
+          >
+            <View style={styles.cardRow}>
+              {/* Group Avatar Bubble */}
+              <View
+                style={[
+                  styles.groupAvatarCircle,
+                  {
+                    backgroundColor: isDark ? 'rgba(37, 99, 235, 0.2)' : '#DBEAFE',
+                    borderColor: isDark ? 'rgba(59, 130, 246, 0.5)' : '#93C5FD',
+                  },
+                ]}
+              >
+                <Users size={22} color={colors.primary} />
+              </View>
+
+              {/* Group Title & Last Message */}
+              <View style={styles.cardCenter}>
+                <View style={styles.cardTitleRow}>
+                  <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+                    Entire Crew
+                  </Text>
+                  <View
+                    style={[
+                      styles.pinnedTag,
+                      {
+                        backgroundColor: isDark ? 'rgba(37, 99, 235, 0.25)' : '#EFF6FF',
+                        borderColor: isDark ? 'rgba(59, 130, 246, 0.4)' : '#BFDBFE',
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.pinnedTagText, { color: colors.primary }]}>GROUP</Text>
+                  </View>
+                </View>
+
+                <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                  {latestGroupMessage
+                    ? `${latestGroupMessage.sender_name?.split(' ')[0]}: ${latestGroupMessage.content}`
+                    : `Coordinate with all ${members.length} members`}
+                </Text>
+              </View>
+
+              {/* Timestamp & Unread Badge / Chevron */}
+              <View style={styles.cardRight}>
+                {latestGroupMessage && (
+                  <Text style={[styles.cardTime, { color: colors.textMuted }]}>
+                    {formatTime(latestGroupMessage.created_at)}
+                  </Text>
+                )}
+                <View style={styles.cardActionRow}>
+                  {unreadCounts['group'] > 0 ? (
+                    <View style={[styles.unreadBadge, { backgroundColor: colors.danger }]}>
+                      <Text style={styles.unreadBadgeText}>{unreadCounts['group']}</Text>
+                    </View>
+                  ) : (
+                    <ChevronRight size={18} color={colors.textMuted} />
+                  )}
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* CREW MEMBERS (DIRECT MESSAGES) LIST */}
+          <View style={[styles.sectionHeaderRow, { marginTop: 22 }]}>
+            <Text style={[styles.sectionHeaderTitle, { color: colors.textSecondary }]}>
+              CREW MEMBERS ({filteredMembers.length})
+            </Text>
+          </View>
+
+          {filteredMembers.length === 0 ? (
+            <View
+              style={[
+                styles.emptyListBox,
+                {
+                  backgroundColor: isDark ? '#111827' : '#FFFFFF',
+                  borderColor: isDark ? '#1F2937' : '#E5E7EB',
+                },
+              ]}
+            >
+              <Text style={[styles.emptyListText, { color: colors.textSecondary }]}>
+                {searchQuery ? `No members found matching "${searchQuery}"` : 'No other crew members yet'}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.membersListContainer}>
+              {filteredMembers.map((member) => {
+                const latestMsg = latestMessagePerMember[member.id];
+                const unread = unreadCounts[member.id] || 0;
+
+                // Tactical proximity / status text
+                const isOffline =
+                  member.status === 'offline' ||
+                  member.status === 'inactive' ||
+                  member.isLocationSharingActive === false;
+
+                let proximityText = 'Location Paused';
+                if (!isOffline && userLocation && member.coordinates) {
+                  const dist = calculateDistanceMeters(userLocation, member.coordinates);
+                  proximityText = `${formatDistance(dist)} away`;
+                  if (member.lastSeenSecondsAgo) {
+                    proximityText += ` • ${
+                      member.lastSeenSecondsAgo < 60
+                        ? `${member.lastSeenSecondsAgo}s ago`
+                        : `${Math.round(member.lastSeenSecondsAgo / 60)}m ago`
+                    }`;
+                  }
+                }
+
+                return (
+                  <TouchableOpacity
+                    key={member.id}
+                    style={[
+                      styles.memberCard,
+                      {
+                        backgroundColor: isDark ? '#111827' : '#FFFFFF',
+                        borderColor: isDark ? '#1F2937' : '#E5E7EB',
+                      },
+                    ]}
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      triggerLight();
+                      const idStr = String(member.id);
+                      setActiveChannel(idStr);
+                      setSelectedChannel(idStr);
+                    }}
+                  >
+                    <View style={styles.cardRow}>
+                      {/* Avatar with Live Indicator */}
+                      <MemberAvatar
+                        uri={member.avatar}
+                        name={member.name}
+                        size="md"
+                        status={member.status}
+                        style={{ marginRight: 12 }}
+                      />
+
+                      {/* Member Info */}
+                      <View style={styles.cardCenter}>
+                        <View style={styles.cardTitleRow}>
+                          <Text
+                            style={[styles.cardTitle, { color: colors.textPrimary }]}
+                            numberOfLines={1}
+                          >
+                            {member.name}
+                          </Text>
+                          {member.role === 'admin' && (
+                            <View
+                              style={[
+                                styles.roleTag,
+                                {
+                                  backgroundColor: isDark
+                                    ? 'rgba(234, 179, 8, 0.15)'
+                                    : '#FEF3C7',
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.roleTagText,
+                                  { color: isDark ? '#FACC15' : '#D97706' },
+                                ]}
+                              >
+                                LEADER
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <Text
+                          style={[styles.cardSubtitle, { color: colors.textSecondary }]}
+                          numberOfLines={1}
+                        >
+                          {latestMsg ? latestMsg.content : `📍 ${proximityText}`}
+                        </Text>
+                      </View>
+
+                      {/* Timestamp & Unread / Chevron */}
+                      <View style={styles.cardRight}>
+                        {latestMsg ? (
+                          <Text style={[styles.cardTime, { color: colors.textMuted }]}>
+                            {formatTime(latestMsg.created_at)}
+                          </Text>
+                        ) : (
+                          <Text style={[styles.cardTime, { color: colors.textMuted }]}>
+                            {!isOffline && userLocation && member.coordinates
+                              ? formatDistance(
+                                  calculateDistanceMeters(userLocation, member.coordinates)
+                                )
+                              : ''}
+                          </Text>
+                        )}
+
+                        <View style={styles.cardActionRow}>
+                          {unread > 0 ? (
+                            <View style={[styles.unreadBadge, { backgroundColor: colors.danger }]}>
+                              <Text style={styles.unreadBadgeText}>{unread}</Text>
+                            </View>
+                          ) : (
+                            <ChevronRight size={18} color={colors.textMuted} />
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // =========================================================================
+  // VIEW 2: ACTIVE CHAT CONVERSATION (DETAIL VIEW)
+  // =========================================================================
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
-      {/* 1. APP HEADER */}
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: isDark ? '#0B0F17' : colors.background }]}
+      edges={['top', 'left', 'right']}
+    >
+      {/* Detail Header with Back Button to return to list - No radar icon */}
       <AppHeader
-        title={activeChannel === 'group' ? 'CREW CHAT' : (activeTargetMember?.name || 'MEMBER CHAT').toUpperCase()}
+        title={
+          selectedChannel === 'group'
+            ? 'ENTIRE CREW'
+            : (activeTargetMember?.name || 'MEMBER CHAT').toUpperCase()
+        }
         subtitle={
-          activeChannel === 'group'
+          selectedChannel === 'group'
             ? `${activeTrip?.name || 'Active Trip'} • ${members.length} Members`
             : targetDistanceInfo
             ? targetDistanceInfo.isPaused
@@ -203,11 +545,18 @@ export default function ChatScreen({ isTab = false }) {
               : `Direct Chat • ${targetDistanceInfo.text}`
             : 'Direct 1:1 Chat'
         }
-        showBack={!isTab && Boolean(router.canGoBack())}
+        showBack={true}
+        onBack={() => {
+          triggerLight();
+          setSelectedChannel(null);
+        }}
         rightComponent={
           activeTargetMember && !targetDistanceInfo?.isPaused ? (
             <TouchableOpacity
-              style={[styles.headerWalkBtn, { backgroundColor: colors.surfaceSubtle }]}
+              style={[
+                styles.headerWalkBtn,
+                { backgroundColor: isDark ? 'rgba(37, 99, 235, 0.2)' : '#E0F2FE' },
+              ]}
               activeOpacity={0.8}
               onPress={() => {
                 router.push({
@@ -219,31 +568,23 @@ export default function ChatScreen({ isTab = false }) {
               <Navigation size={14} color={colors.primary} style={{ marginRight: 4 }} />
               <Text style={[styles.headerWalkText, { color: colors.primary }]}>Navigate</Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.headerMapBtn, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}
-              activeOpacity={0.8}
-              onPress={() => router.push('/(tabs)/home')}
-            >
-              <Compass size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )
+          ) : null
         }
       />
 
       <KeyboardAvoidingView
-        style={[styles.keyboardContainer, { backgroundColor: colors.background }]}
+        style={[styles.keyboardContainer, { backgroundColor: isDark ? '#0B0F17' : colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : (isTab ? 68 : 20)}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : isTab ? 68 : 20}
       >
-        {/* Contextual Member Distance & Status Strip (Only shown when chatting 1:1) */}
+        {/* Contextual Distance Strip (Only when chatting 1:1) */}
         {activeTargetMember && (
           <View
             style={[
               styles.locationStrip,
               {
-                backgroundColor: isDark ? 'rgba(30, 41, 59, 0.7)' : '#F1F5F9',
-                borderColor: colors.border,
+                backgroundColor: isDark ? '#111827' : '#F1F5F9',
+                borderColor: isDark ? '#1F2937' : '#E2E8F0',
               },
             ]}
           >
@@ -284,143 +625,25 @@ export default function ChatScreen({ isTab = false }) {
           </View>
         )}
 
-        {/* 2. HORIZONTAL CHANNEL / PERSON SELECTOR CHIPS */}
-        <View style={[styles.channelsBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={[
-              { id: 'group', name: 'Entire Crew', isGroup: true },
-              ...members.filter((m) => String(m.id) !== String(currentUser?.id)),
-            ]}
-            keyExtractor={(item) => String(item.id)}
-            style={styles.channelsFlatList}
-            contentContainerStyle={styles.channelsScrollContent}
-            nestedScrollEnabled={true}
-            keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => {
-              const isSelected = activeChannel === String(item.id);
-              const unread = unreadCounts[item.id] || 0;
-
-              let badgeText = '';
-              if (!item.isGroup) {
-                const isOff =
-                  item.status === 'offline' ||
-                  item.status === 'inactive' ||
-                  item.isLocationSharingActive === false;
-                if (isOff || !userLocation || !item.coordinates) {
-                  badgeText = 'Paused';
-                } else {
-                  const d = calculateDistanceMeters(userLocation, item.coordinates);
-                  badgeText = formatDistance(d);
-                }
-              }
-
-              return (
-                <TouchableOpacity
-                  style={[
-                    styles.channelChip,
-                    isSelected
-                      ? [styles.channelChipActive, { backgroundColor: colors.primary }]
-                      : [styles.channelChipInactive, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border, borderWidth: 1 }],
-                  ]}
-                  activeOpacity={0.75}
-                  onPress={() => {
-                    triggerLight();
-                    setActiveChannel(String(item.id));
-                  }}
-                >
-                  {item.isGroup ? (
-                    <View
-                      style={[
-                        styles.chipIconBubble,
-                        isSelected ? styles.chipIconBubbleActive : { backgroundColor: colors.surface },
-                      ]}
-                    >
-                      <Users
-                        size={13}
-                        color={isSelected ? colors.primary : colors.textSecondary}
-                      />
-                    </View>
-                  ) : (
-                    <MemberAvatar
-                      uri={item.avatar}
-                      name={item.name}
-                      size="xs"
-                      status={item.status}
-                      style={{ marginRight: 6 }}
-                    />
-                  )}
-
-                  <Text
-                    style={[
-                      styles.channelChipText,
-                      { color: isSelected ? '#FFFFFF' : colors.textPrimary },
-                      isSelected && styles.channelChipTextActive,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {item.isGroup ? 'Entire Crew' : item.name?.split(' ')[0]}
-                  </Text>
-
-                  {!item.isGroup && badgeText ? (
-                    <View
-                      style={[
-                        styles.chipDistanceBadge,
-                        isSelected ? styles.chipDistanceBadgeActive : { backgroundColor: colors.border },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.chipDistanceText,
-                          { color: isSelected ? '#FFFFFF' : colors.textSecondary },
-                        ]}
-                      >
-                        {badgeText}
-                      </Text>
-                    </View>
-                  ) : null}
-
-                  {unread > 0 && (
-                    <View
-                      style={[
-                        styles.chipUnreadBadge,
-                        { backgroundColor: colors.danger, borderColor: colors.surface },
-                      ]}
-                    >
-                      <Text style={styles.chipUnreadText}>{unread}</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            }}
-          />
-
-          {/* PINNED SEARCH BUTTON */}
-          <View style={[styles.searchPinnedContainer, { backgroundColor: colors.surface, borderLeftColor: colors.border }]}>
-            <TouchableOpacity
-              style={[styles.searchPinnedBtn, { backgroundColor: colors.surfaceSubtle }]}
-              activeOpacity={0.75}
-              onPress={() => {
-                triggerLight();
-                setShowSearchModal(true);
-              }}
-              accessibilityLabel="Search crew members"
-            >
-              <Search size={16} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 3. CHAT MESSAGE STREAM */}
-        <View style={[styles.messagesContainer, { backgroundColor: colors.background }]}>
+        {/* Chat Message Stream */}
+        <View
+          style={[
+            styles.messagesContainer,
+            { backgroundColor: isDark ? '#0B0F17' : '#F8FAFC' },
+          ]}
+        >
           {filteredMessages.length === 0 ? (
             <View style={styles.emptyMessagesBox}>
-              <View style={[styles.emptyIconCircle, { backgroundColor: colors.surfaceSubtle }]}>
+              <View
+                style={[
+                  styles.emptyIconCircle,
+                  { backgroundColor: isDark ? '#1E293B' : '#E0F2FE' },
+                ]}
+              >
                 <Sparkles size={24} color={colors.primary} />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-                {activeChannel === 'group'
+                {selectedChannel === 'group'
                   ? 'No crew messages yet'
                   : `Start a conversation with ${activeTargetMember?.name || 'them'}`}
               </Text>
@@ -466,11 +689,17 @@ export default function ChatScreen({ isTab = false }) {
                         styles.bubble,
                         isMe
                           ? [styles.bubbleMe, { backgroundColor: colors.primary }]
-                          : [styles.bubbleOther, { backgroundColor: colors.surface, borderColor: colors.border }],
+                          : [
+                              styles.bubbleOther,
+                              {
+                                backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
+                                borderColor: isDark ? '#334155' : '#E2E8F0',
+                              },
+                            ],
                         item.message_type === 'sos' && styles.bubbleSos,
                       ]}
                     >
-                      {!isMe && activeChannel === 'group' && (
+                      {!isMe && selectedChannel === 'group' && (
                         <Text style={[styles.bubbleSenderName, { color: colors.primary }]}>
                           {item.sender_name}
                         </Text>
@@ -505,8 +734,16 @@ export default function ChatScreen({ isTab = false }) {
           )}
         </View>
 
-        {/* 4. QUICK PING CHIPS */}
-        <View style={[styles.quickPingsSection, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        {/* Quick Ping Chips */}
+        <View
+          style={[
+            styles.quickPingsSection,
+            {
+              backgroundColor: isDark ? '#111827' : colors.surface,
+              borderTopColor: isDark ? '#1F2937' : colors.border,
+            },
+          ]}
+        >
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -517,7 +754,10 @@ export default function ChatScreen({ isTab = false }) {
               <TouchableOpacity
                 style={[
                   styles.quickPingPill,
-                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.border },
+                  {
+                    backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
+                    borderColor: isDark ? '#334155' : colors.border,
+                  },
                   item.type === 'sos' && styles.quickPingPillSos,
                 ]}
                 activeOpacity={0.7}
@@ -537,13 +777,13 @@ export default function ChatScreen({ isTab = false }) {
           />
         </View>
 
-        {/* 5. INPUT BAR */}
+        {/* Input Bar */}
         <View
           style={[
             styles.inputBar,
             {
-              backgroundColor: colors.surface,
-              borderTopColor: colors.border,
+              backgroundColor: isDark ? '#111827' : colors.surface,
+              borderTopColor: isDark ? '#1F2937' : colors.border,
               paddingBottom: isTab ? 10 : Math.max(insets.bottom, 12),
             },
           ]}
@@ -552,13 +792,13 @@ export default function ChatScreen({ isTab = false }) {
             style={[
               styles.textInput,
               {
-                backgroundColor: colors.surfaceSubtle,
+                backgroundColor: isDark ? '#1E293B' : '#F1F5F9',
                 color: colors.textPrimary,
-                borderColor: colors.border,
+                borderColor: isDark ? '#334155' : colors.border,
               },
             ]}
             placeholder={
-              activeChannel === 'group'
+              selectedChannel === 'group'
                 ? 'Message Entire Crew...'
                 : `Message ${activeTargetMember?.name?.split(' ')[0] || 'member'}...`
             }
@@ -572,7 +812,13 @@ export default function ChatScreen({ isTab = false }) {
           <TouchableOpacity
             style={[
               styles.sendButton,
-              { backgroundColor: inputText.trim() ? colors.primary : colors.surfaceSubtle },
+              {
+                backgroundColor: inputText.trim()
+                  ? colors.primary
+                  : isDark
+                  ? '#1E293B'
+                  : '#E2E8F0',
+              },
               !inputText.trim() && styles.sendButtonDisabled,
             ]}
             onPress={() => handleSend()}
@@ -586,87 +832,6 @@ export default function ChatScreen({ isTab = false }) {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-
-      {/* 6. SEARCH & SELECT MEMBER MODAL */}
-      <Modal
-        visible={showSearchModal}
-        animationType="slide"
-        transparent={true}
-        statusBarTranslucent={true}
-        onRequestClose={() => setShowSearchModal(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalBackdrop}
-        >
-          <TouchableOpacity
-            style={styles.modalBackdropTouch}
-            activeOpacity={1}
-            onPress={() => setShowSearchModal(false)}
-          />
-          <View
-            style={[
-              styles.modalSheet,
-              { backgroundColor: colors.surface, paddingBottom: Math.max(insets.bottom, 24) },
-            ]}
-          >
-            <View style={[styles.modalDragHandle, { backgroundColor: colors.border }]} />
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Select Crew Member</Text>
-              <TouchableOpacity
-                onPress={() => setShowSearchModal(false)}
-                style={styles.modalCloseBtn}
-              >
-                <X size={20} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={[styles.modalSearchBox, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
-              <Search size={18} color={colors.textMuted} style={{ marginRight: 8 }} />
-              <TextInput
-                style={[styles.modalSearchInput, { color: colors.textPrimary }]}
-                placeholder="Search member by name..."
-                placeholderTextColor={colors.textMuted}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoFocus
-              />
-            </View>
-
-            <FlatList
-              data={filteredSearchMembers}
-              keyExtractor={(item) => String(item.id)}
-              contentContainerStyle={{ paddingBottom: 16 }}
-              keyboardShouldPersistTaps="handled"
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[styles.modalMemberRow, { borderBottomColor: colors.border }]}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    setActiveChannel(String(item.id));
-                    setShowSearchModal(false);
-                    setSearchQuery('');
-                  }}
-                >
-                  <MemberAvatar
-                    uri={item.avatar}
-                    name={item.name}
-                    size="md"
-                    status={item.status}
-                    style={{ marginRight: 12 }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.modalMemberName, { color: colors.textPrimary }]}>{item.name}</Text>
-                    <Text style={[styles.modalMemberSub, { color: colors.textSecondary }]}>
-                      {item.role === 'admin' ? 'Trip Leader' : 'Crew Member'}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -679,10 +844,157 @@ const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
   },
+
+  // =========================================================================
+  // CONVERSATIONS LIST STYLES
+  // =========================================================================
+  listScrollView: {
+    flex: 1,
+  },
+  listScrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  searchBarBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  searchBarInput: {
+    flex: 1,
+    fontSize: 14,
+    paddingVertical: 0,
+  },
+  sectionHeaderRow: {
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  sectionHeaderTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+
+  // Pinned Group Card
+  groupCard: {
+    borderRadius: RADIUS.lg,
+    borderWidth: 1.5,
+    padding: 14,
+    ...SHADOWS.sm,
+  },
+  groupAvatarCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  pinnedTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginLeft: 8,
+  },
+  pinnedTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+
+  // Members List Container & Cards
+  membersListContainer: {
+    gap: 8,
+  },
+  memberCard: {
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    padding: 12,
+    ...SHADOWS.sm,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardCenter: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  roleTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    marginLeft: 6,
+  },
+  roleTagText: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  cardRight: {
+    alignItems: 'flex-end',
+    marginLeft: 10,
+    minWidth: 44,
+  },
+  cardTime: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  cardActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  unreadBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  unreadBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  emptyListBox: {
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyListText: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+
+  // =========================================================================
+  // DETAIL CONVERSATION VIEW STYLES
+  // =========================================================================
   headerWalkBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E0F2FE',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: RADIUS.full,
@@ -690,26 +1002,15 @@ const styles = StyleSheet.create({
   headerWalkText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primary,
-  },
-  headerMapBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
 
-  // Contextual Location Strip
+  // Location Strip
   locationStrip: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderBottomWidth: 1,
   },
   locationStripLeft: {
@@ -741,119 +1042,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // Channels bar
-  channelsBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    paddingVertical: 10,
-  },
-  channelsFlatList: {
-    flex: 1,
-  },
-  channelsScrollContent: {
-    paddingLeft: 14,
-    paddingRight: 8,
-    alignItems: 'center',
-  },
-  channelChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  channelChipInactive: {
-    backgroundColor: '#F1F5F9',
-  },
-  channelChipActive: {
-    backgroundColor: COLORS.primary,
-    ...SHADOWS.sm,
-  },
-  chipIconBubble: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#E2E8F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 6,
-  },
-  chipIconBubbleActive: {
-    backgroundColor: COLORS.white,
-  },
-  channelChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-  },
-  channelChipTextActive: {
-    color: COLORS.white,
-    fontWeight: '700',
-  },
-  chipDistanceBadge: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 6,
-  },
-  chipDistanceBadgeActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
-  },
-  chipDistanceText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-  },
-  chipDistanceTextActive: {
-    color: COLORS.white,
-  },
-  chipUnreadBadge: {
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#EF4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 6,
-    paddingHorizontal: 4,
-    borderWidth: 1.5,
-    borderColor: COLORS.white,
-  },
-  chipUnreadBadgeActive: {
-    borderColor: COLORS.primary,
-  },
-  chipUnreadText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: COLORS.white,
-  },
-
-  // Pinned search button
-  searchPinnedContainer: {
-    paddingLeft: 8,
-    paddingRight: 12,
-    borderLeftWidth: 1,
-    borderLeftColor: '#F1F5F9',
-    backgroundColor: COLORS.surface,
-  },
-  searchPinnedBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Message area
+  // Messages Stream
   messagesContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
   },
   messagesScrollContent: {
     paddingHorizontal: 16,
@@ -869,20 +1060,17 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#E0F2FE',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
   emptyTitle: {
     ...TYPOGRAPHY.h3,
-    color: COLORS.textPrimary,
     textAlign: 'center',
     marginBottom: 6,
   },
   emptySub: {
     ...TYPOGRAPHY.bodySmall,
-    color: COLORS.textSecondary,
     textAlign: 'center',
   },
 
@@ -910,24 +1098,20 @@ const styles = StyleSheet.create({
     ...SHADOWS.sm,
   },
   bubbleMe: {
-    backgroundColor: COLORS.primary,
     borderBottomRightRadius: 4,
   },
   bubbleOther: {
-    backgroundColor: COLORS.white,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
   },
   bubbleSos: {
     borderColor: '#FCA5A5',
-    borderWidth: 1,
+    borderWidth: 1.5,
     backgroundColor: '#FEF2F2',
   },
   bubbleSenderName: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.primary,
     marginBottom: 3,
   },
   bubbleContent: {
@@ -935,14 +1119,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   bubbleContentMe: {
-    color: COLORS.white,
+    color: '#FFFFFF',
   },
   bubbleContentOther: {
     color: COLORS.textPrimary,
-  },
-  bubbleContentSos: {
-    color: '#B91C1C',
-    fontWeight: '700',
   },
   bubbleTime: {
     fontSize: 10,
@@ -955,61 +1135,29 @@ const styles = StyleSheet.create({
   bubbleTimeOther: {
     color: COLORS.textTertiary,
   },
-  bubbleTimeSos: {
-    color: '#EF4444',
-  },
-
-  pingTag: {
-    backgroundColor: '#E0F2FE',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-  },
-  pingTagText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: COLORS.primary,
-  },
-  sosTag: {
-    backgroundColor: '#FEE2E2',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-  },
-  sosTagText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#EF4444',
-  },
 
   // Quick pings
   quickPingsSection: {
-    backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
     paddingVertical: 8,
   },
   quickPingsScrollContent: {
     paddingHorizontal: 14,
   },
   quickPingPill: {
-    backgroundColor: '#F1F5F9',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: RADIUS.full,
+    borderWidth: 1,
     marginRight: 8,
   },
   quickPingPillSos: {
     backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
   },
   quickPingText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.textPrimary,
   },
   quickPingTextSos: {
     color: '#DC2626',
@@ -1020,21 +1168,18 @@ const styles = StyleSheet.create({
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
     paddingHorizontal: 14,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
   },
   textInput: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
     borderRadius: 22,
+    borderWidth: 1,
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
     fontSize: 14,
-    color: COLORS.textPrimary,
     minHeight: 44,
     maxHeight: 96,
   },
@@ -1042,89 +1187,12 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
     ...SHADOWS.sm,
   },
   sendButtonDisabled: {
-    backgroundColor: '#E2E8F0',
-  },
-
-  // Modal
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
-    justifyContent: 'flex-end',
-  },
-  modalBackdropTouch: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  modalSheet: {
-    backgroundColor: COLORS.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    maxHeight: '80%',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    width: '100%',
-    maxWidth: 600,
-    alignSelf: 'center',
-    ...SHADOWS.lg,
-  },
-  modalDragHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#CBD5E1',
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  modalTitle: {
-    ...TYPOGRAPHY.h3,
-    color: COLORS.textPrimary,
-  },
-  modalCloseBtn: {
-    padding: 6,
-  },
-  modalSearchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: RADIUS.md,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 16,
-  },
-  modalSearchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-  modalMemberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  modalMemberName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  modalMemberSub: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 2,
+    opacity: 0.6,
   },
 });

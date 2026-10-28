@@ -21,7 +21,8 @@ import {
   Share2,
   MessageSquare,
 } from 'lucide-react-native';
-import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
+import { RADIUS, TYPOGRAPHY, SHADOWS } from '../../src/constants/theme';
+import { useThemeStore } from '../../src/store/useThemeStore';
 import { AppHeader } from '../../src/components/AppHeader';
 import { MemberAvatar } from '../../src/components/MemberAvatar';
 import { StatusBadge } from '../../src/components/StatusBadge';
@@ -37,6 +38,10 @@ import { calculateDistanceMeters, formatDistance } from '../../src/utils/distanc
 export default function PersonDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+
+  // Dynamic Theme
+  const isDark = useThemeStore((state) => state.isDark);
+  const colors = useThemeStore((state) => state.colors);
 
   const members = useCrewStore((state) => state.members);
   const setSelectedMember = useCrewStore((state) => state.setSelectedMember);
@@ -111,19 +116,21 @@ export default function PersonDetailScreen() {
   };
 
   const subtitleText = isSelf
-    ? member?.role === 'organizer'
-      ? 'You (Trip Host)'
-      : 'You (Crew Member)'
-    : member?.role === 'organizer'
-    ? 'Trip Host'
+    ? 'Your live trip status'
+    : member?.role === 'admin'
+    ? 'Trip Leader'
     : 'Crew Member';
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: isDark ? '#0B0F17' : colors.background }]}
+      edges={['top', 'left', 'right']}
+    >
       <AppHeader
         title={member?.name?.toUpperCase() || 'PERSON'}
         subtitle={subtitleText}
         showBack={true}
+        backgroundColor={isDark ? '#0B0F17' : colors.background}
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -135,7 +142,7 @@ export default function PersonDetailScreen() {
             size="xl"
             status={member?.status}
           />
-          <Text style={styles.name}>{member?.name}</Text>
+          <Text style={[styles.name, { color: colors.textPrimary }]}>{member?.name}</Text>
 
           {/* Status & Freshness */}
           <View style={styles.statusPillRow}>
@@ -151,41 +158,58 @@ export default function PersonDetailScreen() {
           <View
             style={[
               styles.distanceBox,
-              isTargetOffline && styles.distanceBoxPaused,
+              {
+                backgroundColor: isDark
+                  ? isTargetOffline
+                    ? 'rgba(239, 68, 68, 0.15)'
+                    : 'rgba(37, 99, 235, 0.2)'
+                  : isTargetOffline
+                  ? '#FEF2F2'
+                  : '#EFF6FF',
+              },
             ]}
           >
             {isSelf ? (
               !isTargetOffline ? (
-                <Text style={styles.distanceValue}>Active & visible to crew</Text>
+                <Text style={[styles.distanceValue, { color: colors.primary }]}>Active & visible to crew</Text>
               ) : (
-                <Text style={[styles.distanceValue, styles.distanceValuePaused]}>
+                <Text style={[styles.distanceValue, { color: colors.danger }]}>
                   Location Paused • Sharing off
                 </Text>
               )
             ) : isTargetOffline ? (
-              <Text style={[styles.distanceValue, styles.distanceValuePaused]}>
+              <Text style={[styles.distanceValue, { color: colors.danger }]}>
                 Location Paused by member
               </Text>
             ) : (
-              <Text style={styles.distanceValue}>
+              <Text style={[styles.distanceValue, { color: colors.primary }]}>
                 {formatDistance(distanceMeters)}{' '}
-                <Text style={styles.distanceLabel}>away from you</Text>
+                <Text style={[styles.distanceLabel, { color: colors.textSecondary }]}>away from you</Text>
               </Text>
             )}
           </View>
         </View>
 
         {/* DETAILS LIST */}
-        <View style={styles.detailsCard}>
+        <View
+          style={[
+            styles.detailsCard,
+            {
+              backgroundColor: isDark ? '#111827' : '#FFFFFF',
+              borderColor: isDark ? '#1F2937' : '#E2E8F0',
+            },
+          ]}
+        >
           <View style={styles.detailRow}>
             <View style={styles.detailLeft}>
-              <Compass size={18} color={COLORS.primary} />
-              <Text style={styles.detailTitle}>Current Area</Text>
+              <Compass size={18} color={colors.primary} />
+              <Text style={[styles.detailTitle, { color: colors.textPrimary }]}>Current Area</Text>
             </View>
             <Text
               style={[
                 styles.detailValue,
-                isTargetOffline && { color: COLORS.textMuted },
+                { color: colors.textPrimary },
+                isTargetOffline && { color: colors.textMuted },
               ]}
             >
               {isTargetOffline
@@ -196,7 +220,7 @@ export default function PersonDetailScreen() {
             </Text>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: isDark ? '#1F2937' : '#F1F5F9' }]} />
 
           <View style={styles.detailRow}>
             <View style={styles.detailLeft}>
@@ -204,18 +228,19 @@ export default function PersonDetailScreen() {
                 size={18}
                 color={
                   typeof resolvedBattery === 'number' && resolvedBattery <= 20
-                    ? COLORS.danger
-                    : COLORS.primary
+                    ? colors.danger
+                    : colors.primary
                 }
               />
-              <Text style={styles.detailTitle}>Battery</Text>
+              <Text style={[styles.detailTitle, { color: colors.textPrimary }]}>Battery</Text>
             </View>
             <Text
               style={[
                 styles.detailValue,
+                { color: colors.textPrimary },
                 typeof resolvedBattery === 'number' &&
                   resolvedBattery <= 20 && {
-                    color: COLORS.danger,
+                    color: colors.danger,
                     fontWeight: '700',
                   },
               ]}
@@ -228,43 +253,47 @@ export default function PersonDetailScreen() {
             </Text>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: isDark ? '#1F2937' : '#F1F5F9' }]} />
 
           <View style={styles.detailRow}>
             <View style={styles.detailLeft}>
-              <Phone size={18} color={COLORS.primary} />
-              <Text style={styles.detailTitle}>Contact Number</Text>
+              <Phone size={18} color={colors.primary} />
+              <Text style={[styles.detailTitle, { color: colors.textPrimary }]}>Contact Number</Text>
             </View>
             {isSelf ? (
               <TouchableOpacity
                 onPress={() => setShowContactModal(true)}
                 activeOpacity={0.7}
-                style={styles.inlinePhoneEditBtn}
+                style={[
+                  styles.inlinePhoneEditBtn,
+                  { backgroundColor: isDark ? '#1E293B' : '#F1F5F9' },
+                ]}
               >
                 <Text
                   style={[
                     styles.detailValue,
-                    !resolvedPhone && { color: COLORS.primary, fontWeight: '700' },
+                    { color: colors.textPrimary },
+                    !resolvedPhone && { color: colors.primary, fontWeight: '700' },
                   ]}
                 >
                   {resolvedPhone || '+ Add Number'}
                 </Text>
               </TouchableOpacity>
             ) : (
-              <Text style={styles.detailValue}>
+              <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
                 {resolvedPhone || 'Not provided'}
               </Text>
             )}
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: isDark ? '#1F2937' : '#F1F5F9' }]} />
 
           <View style={styles.detailRow}>
             <View style={styles.detailLeft}>
-              <ShieldCheck size={18} color={COLORS.success} />
-              <Text style={styles.detailTitle}>Safety Check-in</Text>
+              <ShieldCheck size={18} color={colors.success} />
+              <Text style={[styles.detailTitle, { color: colors.textPrimary }]}>Safety Check-in</Text>
             </View>
-            <Text style={[styles.detailValue, { color: COLORS.success }]}>
+            <Text style={[styles.detailValue, { color: colors.success }]}>
               {member?.isSafe ? 'Confirmed Safe' : 'No Response'}
             </Text>
           </View>
@@ -433,7 +462,6 @@ export default function PersonDetailScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   scrollContent: {
     padding: 16,
@@ -454,34 +482,22 @@ const styles = StyleSheet.create({
   },
   distanceBox: {
     marginTop: 14,
-    backgroundColor: '#EFF6FF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: RADIUS.full,
   },
-  distanceBoxPaused: {
-    backgroundColor: '#FEF2F2',
-  },
   distanceValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.primary,
-  },
-  distanceValuePaused: {
-    color: COLORS.danger,
-    fontSize: 13,
   },
   distanceLabel: {
     fontWeight: '400',
-    color: COLORS.textSecondary,
   },
   detailsCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
     paddingHorizontal: 16,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
     marginBottom: 20,
     ...SHADOWS.sm,
   },
@@ -497,7 +513,6 @@ const styles = StyleSheet.create({
   },
   detailTitle: {
     ...TYPOGRAPHY.bodySecondary,
-    color: COLORS.textPrimary,
     fontWeight: '600',
     marginLeft: 10,
     fontSize: 14,
@@ -508,7 +523,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
     marginLeft: 32,
   },
   actionsSection: {
@@ -524,6 +538,5 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: RADIUS.sm,
-    backgroundColor: '#F1F5F9',
   },
 });

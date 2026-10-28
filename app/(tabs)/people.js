@@ -84,15 +84,25 @@ export default function PeopleScreen() {
   // Filter & sort members
   const filtered = memberService.filterMembers(members, activeFilter, searchQuery);
 
-  // Calculate distance & sort: YOU at top, then ORGANIZER, then nearest
-  const membersWithDistance = filtered.map((m) => {
-    const isMe =
-      m.id === currentUser?.id ||
+  // Filter out current user from "NEAREST TO YOU" list (you are already at your location)
+  const myId = String(currentUser?.id || currentUser?.user_id || '');
+  const myName = currentUser?.name;
+
+  const isCurrentMember = (m) => {
+    return (
+      Boolean(m.isCurrentUser) ||
       m.id === 'user' ||
       m.id === 'me' ||
-      m.isCurrentUser ||
-      (currentUser?.name && m.name === currentUser.name);
-    const canMeasure = !isMe && m.status !== 'offline' && m.coordinates;
+      (myId && (String(m.id) === myId || String(m.user_id) === myId)) ||
+      (myName && m.name === myName)
+    );
+  };
+
+  const otherMembers = filtered.filter((m) => !isCurrentMember(m));
+
+  // Calculate distance & sort: ORGANIZER first, then nearest
+  const membersWithDistance = otherMembers.map((m) => {
+    const canMeasure = m.status !== 'offline' && m.coordinates;
 
     return {
       ...m,
@@ -103,11 +113,6 @@ export default function PeopleScreen() {
   });
 
   membersWithDistance.sort((a, b) => {
-    const aIsMe = a.id === currentUser?.id || a.id === 'user';
-    const bIsMe = b.id === currentUser?.id || b.id === 'user';
-    if (aIsMe) return -1;
-    if (bIsMe) return 1;
-
     const aIsOrg = a.role === 'organizer' || a.isOrganizer;
     const bIsOrg = b.role === 'organizer' || b.isOrganizer;
     if (aIsOrg && !bIsOrg) return -1;
@@ -282,12 +287,19 @@ export default function PeopleScreen() {
           keyExtractor={(item, index) => (item.id ? `person_${item.id}` : `person_idx_${index}`)}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyListWrap}>
+              <Text style={[styles.emptyListText, { color: colors.textMuted }]}>
+                {searchQuery ? 'No members match your search' : 'No other crew members yet'}
+              </Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <MemberCard
               member={item}
               distanceMeters={item.distanceMeters}
               isHighlighted={selectedMember?.id === item.id}
-              isCurrentUser={item.id === currentUser?.id || item.id === 'user'}
+              isCurrentUser={false}
               onPress={handleMemberPress}
             />
           )}
@@ -489,5 +501,14 @@ const styles = StyleSheet.create({
   emptyBtnCol: {
     width: '100%',
     maxWidth: 280,
+  },
+  emptyListWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 36,
+  },
+  emptyListText: {
+    fontSize: 13.5,
+    fontWeight: '500',
   },
 });

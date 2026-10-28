@@ -15,6 +15,7 @@ import {
 import { X, Check, Clock, Users } from 'lucide-react-native';
 import { COLORS, RADIUS, TYPOGRAPHY, SHADOWS } from '../constants/theme';
 import { formatRemainingTime } from '../utils/freshness';
+import { useThemeStore } from '../store/useThemeStore';
 
 export const ActiveTripPickerModal = ({
   visible,
@@ -23,6 +24,9 @@ export const ActiveTripPickerModal = ({
   onSelectTrip,
   onClose,
 }) => {
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
+
   if (!visible || trips.length <= 1) return null;
 
   return (
@@ -33,14 +37,14 @@ export const ActiveTripPickerModal = ({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modalCard}>
+        <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: isDark ? '#1F2937' : colors.border, borderWidth: isDark ? 1 : 0 }]}>
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Choose Your Active Crew</Text>
-              <Text style={styles.subtitle}>Which crew are you joining?</Text>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>Choose Your Active Crew</Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Which crew are you joining?</Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <X size={20} color={COLORS.textPrimary} />
+              <X size={20} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
@@ -52,36 +56,44 @@ export const ActiveTripPickerModal = ({
               return (
                 <TouchableOpacity
                   key={t.id}
-                  style={[styles.tripItem, isSelected && styles.tripItemSelected]}
+                  style={[
+                    styles.tripItem,
+                    {
+                      backgroundColor: isSelected
+                        ? isDark ? 'rgba(34, 197, 94, 0.16)' : '#EFF6FF'
+                        : colors.surfaceSubtle,
+                      borderColor: isSelected ? colors.primary : colors.border,
+                    },
+                  ]}
                   onPress={() => {
                     onSelectTrip(t);
                     onClose();
                   }}
                   activeOpacity={0.75}
                 >
-                  <View style={styles.emojiCircle}>
+                  <View style={[styles.emojiCircle, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     <Text style={styles.emojiText}>{t.emoji || '🎪'}</Text>
                   </View>
 
                   <View style={styles.tripInfo}>
-                    <Text style={styles.tripName} numberOfLines={1}>
+                    <Text style={[styles.tripName, { color: colors.textPrimary }]} numberOfLines={1}>
                       {t.name}
                     </Text>
                     <View style={styles.metaRow}>
                       <View style={styles.metaItem}>
-                        <Users size={12} color={COLORS.textSecondary} />
-                        <Text style={styles.metaText}>{t.memberCount || 1} people</Text>
+                        <Users size={12} color={colors.textSecondary} />
+                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>{t.memberCount || 1} people</Text>
                       </View>
                       <View style={styles.metaItem}>
-                        <Clock size={12} color={COLORS.textSecondary} />
-                        <Text style={styles.metaText}>Ends in {timeLeft}</Text>
+                        <Clock size={12} color={colors.textSecondary} />
+                        <Text style={[styles.metaText, { color: colors.textSecondary }]}>Ends in {timeLeft}</Text>
                       </View>
                     </View>
                   </View>
 
                   {isSelected && (
-                    <View style={styles.checkBubble}>
-                      <Check size={16} color={COLORS.white} />
+                    <View style={[styles.checkBubble, { backgroundColor: colors.primary }]}>
+                      <Check size={16} color="#FFFFFF" />
                     </View>
                   )}
                 </TouchableOpacity>

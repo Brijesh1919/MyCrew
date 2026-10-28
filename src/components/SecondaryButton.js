@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { COLORS, RADIUS, TYPOGRAPHY } from '../constants/theme';
 import { useHapticFeedback } from '../hooks/useHapticFeedback';
+import { useThemeStore } from '../store/useThemeStore';
 
 export const SecondaryButton = ({
   title,
@@ -15,6 +16,8 @@ export const SecondaryButton = ({
   textStyle,
 }) => {
   const { triggerLight } = useHapticFeedback();
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
 
   const handlePress = () => {
     if (disabled) return;
@@ -22,16 +25,24 @@ export const SecondaryButton = ({
     onPress && onPress();
   };
 
-  const getContainerStyle = () => {
-    if (variant === 'ghost') return styles.ghost;
-    if (variant === 'subtle') return styles.subtle;
-    return styles.outline;
+  const getDynamicContainerStyle = () => {
+    if (variant === 'ghost') {
+      return { backgroundColor: 'transparent' };
+    }
+    if (variant === 'subtle') {
+      return { backgroundColor: isDark ? 'rgba(34, 197, 94, 0.16)' : colors.surfaceSubtle };
+    }
+    return {
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      borderColor: isDark ? '#374151' : colors.border,
+    };
   };
 
   const getTextColor = () => {
-    if (variant === 'subtle') return COLORS.primary;
-    if (variant === 'ghost') return COLORS.textSecondary;
-    return COLORS.primary;
+    if (variant === 'subtle') return colors.primary;
+    if (variant === 'ghost') return colors.textSecondary;
+    return colors.primary;
   };
 
   return (
@@ -41,7 +52,7 @@ export const SecondaryButton = ({
       disabled={disabled}
       style={[
         styles.button,
-        getContainerStyle(),
+        getDynamicContainerStyle(),
         { width: fullWidth ? '100%' : 'auto' },
         size === 'sm' && styles.btnSm,
         size === 'lg' && styles.btnLg,

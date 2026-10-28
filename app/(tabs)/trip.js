@@ -243,7 +243,13 @@ export default function TripScreen() {
             )}
 
             <TouchableOpacity
-              style={[styles.newTripBtn, { backgroundColor: colors.surfaceSubtle }]}
+              style={[
+                styles.newTripBtn,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: isDark ? '#374151' : colors.border,
+                },
+              ]}
               onPress={() => router.push('/(auth)/create-trip')}
               activeOpacity={0.8}
             >
@@ -280,15 +286,15 @@ export default function TripScreen() {
           </View>
 
           {/* Time Breakdown Cards */}
-          <View style={styles.timeRow}>
-            <View style={[styles.timeBox, { backgroundColor: colors.surfaceSubtle }]}>
+          <View style={[styles.timeRow, { backgroundColor: colors.surfaceSubtle, borderColor: colors.border }]}>
+            <View style={styles.timeBox}>
               <Text style={[styles.timeLabel, { color: colors.textMuted }]}>STARTED</Text>
               <Text style={[styles.timeValue, { color: colors.textPrimary }]}>
                 {formatTripTime(activeTrip?.startTime || activeTrip?.starts_at)}
               </Text>
             </View>
             <View style={[styles.timeBoxDivider, { backgroundColor: colors.border }]} />
-            <View style={[styles.timeBox, { backgroundColor: colors.surfaceSubtle }]}>
+            <View style={styles.timeBox}>
               <Text style={[styles.timeLabel, { color: colors.textMuted }]}>ENDS</Text>
               <Text style={[styles.timeValue, { color: colors.textPrimary }]}>
                 {formatTripTime(activeTrip?.endTime || activeTrip?.ends_at)}
@@ -315,20 +321,26 @@ export default function TripScreen() {
           {/* Action Buttons: QR Code & Invite */}
           <View style={styles.btnRow}>
             <TouchableOpacity
-              style={styles.actionBtnOutline}
+              style={[
+                styles.actionBtnOutline,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: isDark ? '#374151' : colors.border,
+                },
+              ]}
               onPress={() => setShowQRModal(true)}
               activeOpacity={0.8}
             >
-              <QrCode size={18} color={COLORS.primary} />
-              <Text style={styles.actionBtnText}>Show QR Code</Text>
+              <QrCode size={18} color={colors.primary} />
+              <Text style={[styles.actionBtnText, { color: colors.textPrimary }]}>Show QR Code</Text>
             </TouchableOpacity>
             <View style={{ width: 10 }} />
             <TouchableOpacity
-              style={styles.actionBtnPrimary}
+              style={[styles.actionBtnPrimary, { backgroundColor: colors.primary }]}
               onPress={handleShare}
               activeOpacity={0.85}
             >
-              <Share2 size={18} color={COLORS.white} />
+              <Share2 size={18} color="#FFFFFF" />
               <Text style={styles.actionBtnPrimaryText}>Invite People</Text>
             </TouchableOpacity>
           </View>
@@ -345,7 +357,7 @@ export default function TripScreen() {
               <View style={styles.infoTextContainer}>
                 <Text style={[styles.infoTitle, { color: colors.textPrimary }]}>Organizer</Text>
                 <Text style={[styles.infoSub, { color: colors.textSecondary }]}>
-                  {activeTrip?.organizer?.name || (userRole === 'organizer' ? 'You (Host)' : 'Organizer')}
+                  {activeTrip?.organizer?.name || (userRole === 'organizer' ? 'You' : 'Organizer')}
                 </Text>
               </View>
             </View>
@@ -389,25 +401,35 @@ export default function TripScreen() {
         </View>
 
         {/* 3. TRIP HISTORY SECTION (Inset Grouped) */}
-        {tripHistory && tripHistory.length > 0 && (
-          <View style={styles.historySection}>
-            <View style={styles.historySectionHeader}>
-              <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>TRIP HISTORY</Text>
-              <Text style={[styles.historyCountText, { color: colors.textSecondary }]}>{tripHistory.length} previous</Text>
-            </View>
+        <View style={styles.historySection}>
+          <View style={styles.historySectionHeader}>
+            <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>TRIP HISTORY</Text>
+            <Text style={[styles.historyCountText, { color: colors.textSecondary }]}>
+              {tripHistory?.length ? `${tripHistory.length} completed` : '0 completed'}
+            </Text>
+          </View>
 
-            <View style={styles.historyGroupContainer}>
-              {tripHistory.map((t) => (
+          <View style={[styles.historyGroupContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            {tripHistory && tripHistory.length > 0 ? (
+              tripHistory.map((t) => (
                 <TripHistoryCard
                   key={t.id}
                   trip={t}
                   variant="row"
                   onPress={(item) => setSelectedHistoryTrip(item)}
                 />
-              ))}
-            </View>
+              ))
+            ) : (
+              <View style={styles.emptyHistoryRow}>
+                <History size={22} color={colors.textMuted} style={{ marginBottom: 6 }} />
+                <Text style={[styles.emptyHistoryTitle, { color: colors.textPrimary }]}>No Past Trips Yet</Text>
+                <Text style={[styles.emptyHistoryDesc, { color: colors.textSecondary }]}>
+                  When this active trip ends, it will be automatically archived here with its crew history.
+                </Text>
+              </View>
+            )}
           </View>
-        )}
+        </View>
       </ScrollView>
 
       {/* CONFIRMATION BOTTOM SHEET (END TRIP OR LEAVE CREW) */}
@@ -447,14 +469,30 @@ export default function TripScreen() {
         subtitle={activeTrip?.name}
       >
         <View style={styles.qrContainer}>
-          <View style={styles.qrBox}>
+          <View
+            style={[
+              styles.qrBox,
+              {
+                backgroundColor: '#FFFFFF',
+                padding: 14,
+                borderRadius: 20,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 10,
+                elevation: 4,
+              },
+            ]}
+          >
             <QRCodeView
               value={`mycrew://join?code=${activeTrip?.code || activeTrip?.trip_code || ''}`}
               size={180}
             />
           </View>
-          <Text style={styles.qrCodeText}>{activeTrip?.code || activeTrip?.trip_code}</Text>
-          <Text style={styles.qrHelpText}>
+          <Text style={[styles.qrCodeText, { color: colors.primary }]}>
+            {activeTrip?.code || activeTrip?.trip_code}
+          </Text>
+          <Text style={[styles.qrHelpText, { color: colors.textSecondary }]}>
             Ask your friend to scan this QR code or enter the code manually to join your temporary crew.
           </Text>
           <SecondaryButton
@@ -462,7 +500,7 @@ export default function TripScreen() {
             onPress={handleShare}
             icon={Share2}
             size="md"
-            style={{ marginTop: 12 }}
+            style={{ marginTop: 14 }}
           />
         </View>
       </BottomSheet>
@@ -569,6 +607,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
   headerRightActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -602,16 +648,13 @@ const styles = StyleSheet.create({
   newTripBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
     ...SHADOWS.sm,
   },
   newTripText: {
-    color: COLORS.primary,
     fontWeight: '700',
     fontSize: 13,
     marginLeft: 4,
@@ -688,11 +731,11 @@ const styles = StyleSheet.create({
   },
   timeRow: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
     borderRadius: RADIUS.lg,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 12,
+    borderWidth: 1,
   },
   timeBox: {
     flex: 1,
@@ -700,7 +743,6 @@ const styles = StyleSheet.create({
   },
   timeBoxDivider: {
     width: 1,
-    backgroundColor: '#F1F5F9',
   },
   timeLabel: {
     ...TYPOGRAPHY.badge,
@@ -711,17 +753,16 @@ const styles = StyleSheet.create({
   timeValue: {
     ...TYPOGRAPHY.body,
     fontWeight: '700',
-    color: COLORS.textPrimary,
     fontSize: 13,
   },
   codeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
     borderRadius: RADIUS.lg,
     padding: 12,
     marginBottom: 16,
+    borderWidth: 1,
   },
   codeLabel: {
     ...TYPOGRAPHY.badge,
@@ -731,14 +772,12 @@ const styles = StyleSheet.create({
   codeDisplay: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.primary,
     letterSpacing: 2,
     marginTop: 2,
   },
   copyPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: RADIUS.pill,
@@ -746,7 +785,6 @@ const styles = StyleSheet.create({
   copyPillText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primary,
     marginLeft: 5,
   },
   btnRow: {
@@ -757,12 +795,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F1F5F9',
     paddingVertical: 12,
     borderRadius: RADIUS.pill,
+    borderWidth: 1,
   },
   actionBtnText: {
-    color: COLORS.textPrimary,
     fontWeight: '700',
     fontSize: 13,
     marginLeft: 8,
@@ -772,7 +809,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary,
     paddingVertical: 12,
     borderRadius: RADIUS.pill,
   },
@@ -830,32 +866,44 @@ const styles = StyleSheet.create({
   },
   menuDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
     marginLeft: 64,
   },
   controlActionBox: {
     padding: 14,
   },
   historyGroupContainer: {
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
     overflow: 'hidden',
     ...SHADOWS.sm,
+  },
+  emptyHistoryRow: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
+  emptyHistoryTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  emptyHistoryDesc: {
+    fontSize: 12.5,
+    textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 290,
   },
   confirmModalContent: {
     paddingVertical: 12,
   },
   confirmModalText: {
     ...TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
     lineHeight: 22,
     marginBottom: 20,
   },
   qrContainer: {
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   qrBox: {
     marginBottom: 14,
@@ -864,13 +912,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '900',
     letterSpacing: 3,
-    color: COLORS.primary,
     marginBottom: 8,
   },
   qrHelpText: {
     ...TYPOGRAPHY.bodySecondary,
     textAlign: 'center',
-    color: COLORS.textSecondary,
     paddingHorizontal: 20,
     lineHeight: 18,
     fontSize: 13,

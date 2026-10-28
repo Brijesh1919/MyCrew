@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { X } from 'lucide-react-native';
 import { COLORS, RADIUS, SHADOWS, TYPOGRAPHY } from '../constants/theme';
+import { useThemeStore } from '../store/useThemeStore';
 
 export const BottomSheet = ({
   visible,
@@ -20,6 +21,9 @@ export const BottomSheet = ({
   showClose = true,
   maxHeight = '80%',
 }) => {
+  const colors = useThemeStore((state) => state.colors);
+  const isDark = useThemeStore((state) => state.isDark);
+
   if (!visible) return null;
 
   return (
@@ -34,26 +38,36 @@ export const BottomSheet = ({
           <View style={styles.backdrop} />
         </TouchableWithoutFeedback>
 
-        <View style={[styles.sheetContainer, { maxHeight }]}>
+        <View
+          style={[
+            styles.sheetContainer,
+            {
+              maxHeight,
+              backgroundColor: colors.surface,
+              borderColor: isDark ? '#1F2937' : colors.border,
+              borderWidth: isDark ? 1 : 0,
+            },
+          ]}
+        >
           {/* Drag handle */}
           <View style={styles.handleContainer}>
-            <View style={styles.handle} />
+            <View style={[styles.handle, { backgroundColor: isDark ? '#374151' : '#CBD5E1' }]} />
           </View>
 
           {/* Header */}
           {(title || showClose) && (
-            <View style={styles.header}>
+            <View style={[styles.header, { borderBottomColor: isDark ? '#1F2937' : '#F1F5F9' }]}>
               <View style={styles.headerTextContainer}>
-                {title && <Text style={styles.title}>{title}</Text>}
-                {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+                {title && <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>}
+                {subtitle && <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>}
               </View>
               {showClose && (
                 <TouchableOpacity
                   onPress={onClose}
-                  style={styles.closeButton}
+                  style={[styles.closeButton, { backgroundColor: isDark ? '#1E293B' : colors.surfaceSubtle }]}
                   activeOpacity={0.7}
                 >
-                  <X size={20} color={COLORS.textSecondary} />
+                  <X size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>

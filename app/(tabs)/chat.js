@@ -1,9 +1,11 @@
 import React, { useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import ChatScreen from '../features/chat';
 import { useChatStore } from '../../src/store/useChatStore';
 
 export default function ChatTab() {
+  const params = useLocalSearchParams();
+
   useFocusEffect(
     useCallback(() => {
       useChatStore.getState().setChatScreenOpen(true);
@@ -13,6 +15,5 @@ export default function ChatTab() {
     }, [])
   );
 
-  return <ChatScreen isTab={true} />;
+  return <ChatScreen isTab={true} initialMemberId={params?.memberId} />;
 }
-

@@ -793,8 +793,9 @@ export const MapView = ({
 
       {/* 7. MEMBER MARKERS LAYER */}
       {!showClusters &&
-        members.map((member, index) => {
+        (members || []).map((member, index) => {
           if (
+            !member ||
             !member.coordinates ||
             isNaN(member.coordinates.latitude) ||
             isNaN(member.coordinates.longitude) ||
